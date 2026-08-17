@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shakabeet</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.counter.dev/script.js" data-id="f4b3f23f-cd6a-4744-856b-9a3fd2e97b5d" data-utcoffset="3"></script>  <style>
-    /* باقي التنسيقات كما هي... */
-  </style>
-</head>
+  <script src="https://cdn.counter.dev/script.js" data-id="f4b3f23f-cd6a-4744-856b-9a3fd2e97b5d" data-utcoffset="3"></script>
+  
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; min-height: 100vh; padding: 20px 10px; display: flex; justify-content: center; }
@@ -27,7 +25,6 @@
     button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #3b82f6; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
     button:disabled { background: #64748b; cursor: not-allowed; }
 
-
     /* صندوق إضافة فكرة */
     .add-box { background: #1e293b; padding: 20px; border-radius: 14px; margin-bottom: 30px; border: 1px dashed #38bdf8; }
     
@@ -35,9 +32,44 @@
     h2 { font-size: 18px; margin: 20px 0 10px; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 5px; }
     .card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 12px; border-right: 4px solid #3b82f6; line-height: 1.6; }
     .visitor-card { border-right-color: #10b981; }
-    .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
     .card-meta { font-size: 12px; color: #64748b; }
     
+    /* شريط وأزرار التصويت */
+    .vote-bar {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .vote-btn {
+      width: auto;
+      padding: 3px 9px;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+    .vote-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+    }
+    .vote-btn.active-up {
+      color: #22c55e;
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.12);
+    }
+    .vote-btn.active-down {
+      color: #ef4444;
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.12);
+    }
+
     /* زر الإبلاغ */
     .report-btn {
       width: auto;
@@ -63,17 +95,7 @@
       border-color: #ef4444;
       cursor: not-allowed;
     }
-
-
-/* حاوية الزر أعلى اليسار */
-.top-nav {
-  display: flex;
-  justify-content: flex-end; /* يضع الزر أقصى اليسار في صفحات العربي */
-  width: 100%;
-  margin-bottom: 15px;
-}
-
- </style>
+  </style>
 </head>
 <body>
 
@@ -89,7 +111,7 @@
   
   <div class="container" id="app" style="display:none;">
     <header style="text-align: center; margin-bottom: 25px; position: relative;">
-      <!-- زر تواصل معنا في أقصى اليسار دون التأثير على توسيط العناصر -->
+      <!-- زر تواصل معنا أقصى اليسار -->
       <a href="https://mail.google.com/mail/?view=cm&fs=1&to=your-email@gmail.com" 
          target="_blank" 
          style="position: absolute; left: 0; top: 0; display: inline-flex; align-items: center; gap: 4px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 2px 8px; border-radius: 6px; font-size: 11px; text-decoration: none; width: auto;">
@@ -120,175 +142,222 @@
     <h2>💬 مشاركات الزوار</h2>
     <div id="visitor-list"><p style="color:#64748b;">جاري التحميل...</p></div>
 
- <!-- حاوية الإعلان الإجبارية للتوسيط -->
-<div style="width: 100%; text-align: center; margin: 25px 0; clear: both; display: block;">
-  <span style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block; text-align: center;">إعلان ممول</span>
+    <!-- حاوية الإعلان الإجبارية للتوسيط -->
+    <div style="width: 100%; text-align: center; margin: 25px 0; clear: both; display: block;">
+      <span style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block; text-align: center;">إعلان ممول</span>
 
-  <div style="display: inline-block; margin: 0 auto; text-align: center;">
-    <script>
-      atOptions = {
-        'key' : '6d7858aea445c095a181cb5b1fab1a38',
-        'format' : 'iframe',
-        'height' : 250,
-        'width' : 300,
-        'params' : {}
-      };
-    </script>
-    <script src="https://www.highperformanceformat.com/6d7858aea445c095a181cb5b1fab1a38/invoke.js"></script>
-    
+      <div style="display: inline-block; margin: 0 auto; text-align: center;">
+        <script>
+          atOptions = {
+            'key' : '6d7858aea445c095a181cb5b1fab1a38',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/6d7858aea445c095a181cb5b1fab1a38/invoke.js"></script>
+      </div>
+    </div>
   </div>
-</div>
-  </div>
 
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwluFOIpSIN6gOYggwS4WWLS6bsDndtDUPcKOn34iSe_CzCxnYQxbxtKAHwrQ8XgK3D/exec";
 
-<script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwluFOIpSIN6gOYggwS4WWLS6bsDndtDUPcKOn34iSe_CzCxnYQxbxtKAHwrQ8XgK3D/exec";
+    let currentName = localStorage.getItem('site_user') || '';
 
-  let currentName = localStorage.getItem('site_user') || '';
+    function saveName() {
+      const val = document.getElementById('visitor-name').value.trim();
+      if (!val) return alert('اكتب اسمك الأول!');
+      localStorage.setItem('site_user', val);
+      currentName = val;
+      initSite();
+    }
 
-  function saveName() {
-    const val = document.getElementById('visitor-name').value.trim();
-    if (!val) return alert('اكتب اسمك الأول!');
-    localStorage.setItem('site_user', val);
-    currentName = val;
-    initSite();
-  }
+    function editName() {
+      const newName = prompt('اكتب اسمك الجديد:', currentName);
+      if (newName && newName.trim() !== '') {
+        currentName = newName.trim();
+        localStorage.setItem('site_user', currentName);
+        document.getElementById('user-display').innerText = currentName;
+      }
+    }
 
-  function editName() {
-    const newName = prompt('اكتب اسمك الجديد:', currentName);
-    if (newName && newName.trim() !== '') {
-      currentName = newName.trim();
-      localStorage.setItem('site_user', currentName);
+    function initSite() {
+      document.getElementById('login-modal').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
       document.getElementById('user-display').innerText = currentName;
+      loadAllThoughts();
     }
-  }
 
-  function initSite() {
-    document.getElementById('login-modal').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('user-display').innerText = currentName;
-    loadAllThoughts();
-  }
-
-  async function loadAllThoughts() {
-    const ownerDiv = document.getElementById('owner-list');
-    const visitorDiv = document.getElementById('visitor-list');
-
-    // 1. جلب أفكارك الخاصة من الورقة الأولى (Owner)
-    try {
-      const resOwner = await fetch(`${SCRIPT_URL}?sheet=Owner`);
-      const ownerData = await resOwner.json();
+    // دالة إرسال التصويت ومنع التكرار للمستخدم
+    async function vote(sheetName, rowIndex, type, btnElement) {
+      const voteKey = `voted_${sheetName}_${rowIndex}`;
       
-      if (Array.isArray(ownerData) && ownerData.length > 0) {
-        ownerDiv.innerHTML = ownerData.slice().reverse().map(i => i.thought ? `
-          <div class="card">
-            <p>${i.thought}</p>
-            ${i.date ? `<span class="card-meta">${i.date}</span>` : ''}
-          </div>` : '').join('');
-      } else {
-        ownerDiv.innerHTML = '<p style="color:#64748b;">مفيش خواطر مكتوبة لسه.</p>';
+      if (localStorage.getItem(voteKey)) {
+        alert("لقد قمت بالتصويت على هذه الخاطرة بالفعل!");
+        return;
       }
-    } catch (e) {
-      ownerDiv.innerHTML = '<p style="color:#ef4444;">مشكلة في تحميل الخواطر.</p>';
-    }
-
-    // 2. جلب أفكار الزوار المقبولة من ورقة Visitors
-    try {
-      const resVisitors = await fetch(`${SCRIPT_URL}?sheet=Visitors&status=approved`);
-      const visitorData = await resVisitors.json();
       
-      if (Array.isArray(visitorData) && visitorData.length > 0) {
-        visitorDiv.innerHTML = visitorData.slice().reverse().map((i, index) => i.thought ? `
-          <div class="card visitor-card">
-            <p>${i.thought}</p>
-            <div class="card-footer">
-              <span class="card-meta">كتبها: <strong>${i.name}</strong></span>
-              <button class="report-btn" id="rep-btn-${index}" onclick="handleReport('${encodeURIComponent(i.name)}', '${encodeURIComponent(i.thought)}', 'rep-btn-${index}')">
-                🚩 إبلاغ
-              </button>
-            </div>
-          </div>` : '').join('');
-      } else {
-        visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة حالياً.</p>';
+      const countSpan = btnElement.querySelector('.count');
+      let currentCount = parseInt(countSpan.innerText) || 0;
+      countSpan.innerText = currentCount + 1;
+      btnElement.classList.add(type === 'up' ? 'active-up' : 'active-down');
+      
+      localStorage.setItem(voteKey, type);
+      
+      try {
+        await fetch(`${SCRIPT_URL}?sheet=${sheetName}&action=vote&row=${rowIndex}&type=${type}`);
+      } catch (err) {
+        console.error("Error voting:", err);
       }
-    } catch (e) {
-      visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة.</p>';
     }
-  }
 
-  async function sendThought() {
-    const text = document.getElementById('visitor-input').value.trim();
-    if (!text) return alert('اكتب حاجة الأول!');
-    
-    const btn = document.getElementById('send-btn');
-    btn.innerText = 'جاري الإرسال...';
-    btn.disabled = true;
+    async function loadAllThoughts() {
+      const ownerDiv = document.getElementById('owner-list');
+      const visitorDiv = document.getElementById('visitor-list');
 
-    try {
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          sheet: "Visitors",
-          data: {
-            name: currentName,
-            thought: text
-          }
-        })
-      });
+      // 1. جلب أفكارك الخاصة من ورقة Owner
+      try {
+        const resOwner = await fetch(`${SCRIPT_URL}?sheet=Owner`);
+        const ownerData = await resOwner.json();
+        
+        if (Array.isArray(ownerData) && ownerData.length > 0) {
+          ownerDiv.innerHTML = ownerData.slice().reverse().map(i => {
+            if (!i.thought) return '';
+            const userVote = localStorage.getItem(`voted_Owner_${i.rowIndex}`);
+            return `
+              <div class="card">
+                <p>${i.thought}</p>
+                <div class="card-footer">
+                  <span class="card-meta">${i.date || ''}</span>
+                  <div class="vote-bar">
+                    <button class="vote-btn ${userVote === 'up' ? 'active-up' : ''}" onclick="vote('Owner', ${i.rowIndex}, 'up', this)">
+                      👍 <span class="count">${i.upvotes || 0}</span>
+                    </button>
+                    <button class="vote-btn ${userVote === 'down' ? 'active-down' : ''}" onclick="vote('Owner', ${i.rowIndex}, 'down', this)">
+                      👎 <span class="count">${i.downvotes || 0}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+        } else {
+          ownerDiv.innerHTML = '<p style="color:#64748b;">مفيش خواطر مكتوبة لسه.</p>';
+        }
+      } catch (e) {
+        ownerDiv.innerHTML = '<p style="color:#ef4444;">مشكلة في تحميل الخواطر.</p>';
+      }
 
-      alert('تم إرسال فكرتك بنجاح! هتظهر أول ما أوافق عليها 💙');
-      document.getElementById('visitor-input').value = '';
-    } catch (err) {
-      alert('حصل مشكلة أثناء الإرسال، حاول تاني.');
-    } finally {
-      btn.innerText = 'إرسال الفكرة';
-      btn.disabled = false;
+      // 2. جلب أفكار الزوار المقبولة من ورقة Visitors
+      try {
+        const resVisitors = await fetch(`${SCRIPT_URL}?sheet=Visitors&status=approved`);
+        const visitorData = await resVisitors.json();
+        
+        if (Array.isArray(visitorData) && visitorData.length > 0) {
+          visitorDiv.innerHTML = visitorData.slice().reverse().map((i, index) => {
+            if (!i.thought) return '';
+            const userVote = localStorage.getItem(`voted_Visitors_${i.rowIndex}`);
+            return `
+              <div class="card visitor-card">
+                <p>${i.thought}</p>
+                <div class="card-footer">
+                  <span class="card-meta">كتبها: <strong>${i.name}</strong></span>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="vote-bar">
+                      <button class="vote-btn ${userVote === 'up' ? 'active-up' : ''}" onclick="vote('Visitors', ${i.rowIndex}, 'up', this)">
+                        👍 <span class="count">${i.upvotes || 0}</span>
+                      </button>
+                      <button class="vote-btn ${userVote === 'down' ? 'active-down' : ''}" onclick="vote('Visitors', ${i.rowIndex}, 'down', this)">
+                        👎 <span class="count">${i.downvotes || 0}</span>
+                      </button>
+                    </div>
+                    <button class="report-btn" id="rep-btn-${index}" onclick="handleReport('${encodeURIComponent(i.name)}', '${encodeURIComponent(i.thought)}', 'rep-btn-${index}')">
+                      🚩 إبلاغ
+                    </button>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+        } else {
+          visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة حالياً.</p>';
+        }
+      } catch (e) {
+        visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة.</p>';
+      }
     }
-  }
 
-  async function handleReport(encodedName, encodedThought, btnId) {
-    const authorName = decodeURIComponent(encodedName);
-    const thoughtContent = decodeURIComponent(encodedThought);
-    const btn = document.getElementById(btnId);
+    async function sendThought() {
+      const text = document.getElementById('visitor-input').value.trim();
+      if (!text) return alert('اكتب حاجة الأول!');
+      
+      const btn = document.getElementById('send-btn');
+      btn.innerText = 'جاري الإرسال...';
+      btn.disabled = true;
 
-    const confirmReport = confirm("هل تريد الإبلاغ عن هذه المشاركة لمراجعتها؟");
-    if (!confirmReport) return;
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            sheet: "Visitors",
+            data: {
+              name: currentName,
+              thought: text
+            }
+          })
+        });
 
-    btn.disabled = true;
-    btn.innerText = "جاري الإبلاغ...";
-
-    try {
-      const today = new Date().toLocaleDateString('ar-EG');
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          sheet: "Reports",
-          data: {
-            name: authorName,
-            thought: thoughtContent,
-            report_date: today
-          }
-        })
-      });
-
-      alert('شكراً لك، تم استلام البلاغ وسيتم مراجعة المحتوى.');
-      btn.innerText = 'تم الإبلاغ ✓';
-      btn.classList.add('reported');
-    } catch (error) {
-      alert('حدث خطأ أثناء إرسال البلاغ، حاول مرة أخرى.');
-      btn.disabled = false;
-      btn.innerText = '🚩 إبلاغ';
+        alert('تم إرسال فكرتك بنجاح! هتظهر أول ما أوافق عليها 💙');
+        document.getElementById('visitor-input').value = '';
+      } catch (err) {
+        alert('حصل مشكلة أثناء الإرسال، حاول تاني.');
+      } finally {
+        btn.innerText = 'إرسال الفكرة';
+        btn.disabled = false;
+      }
     }
-  }
 
-  if (currentName) {
-    initSite();
-  }
-  
-</script>
-<!-- كود إعلان Social Bar -->
-<script src="https://pl30867751.effectivecpmnetwork.com/9e/27/36/9e2736cc92f30b2e57053b8cbb617b66.js"></script>
-</body>
-</html>
+    async function handleReport(encodedName, encodedThought, btnId) {
+      const authorName = decodeURIComponent(encodedName);
+      const thoughtContent = decodeURIComponent(encodedThought);
+      const btn = document.getElementById(btnId);
+
+      const confirmReport = confirm("هل تريد الإبلاغ عن هذه المشاركة لمراجعتها؟");
+      if (!confirmReport) return;
+
+      btn.disabled = true;
+      btn.innerText = "جاري الإبلاغ...";
+
+      try {
+        const today = new Date().toLocaleDateString('ar-EG');
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            sheet: "Reports",
+            data: {
+              name: authorName,
+              thought: thoughtContent,
+              report_date: today
+            }
+          })
+        });
+
+        alert('شكراً لك، تم استلام البلاغ وسيتم مراجعة المحتوى.');
+        btn.innerText = 'تم الإبلاغ ✓';
+        btn.classList.add('reported');
+      } catch (error) {
+        alert('حدث خطأ أثناء إرسال البلاغ، حاول مرة أخرى.');
+        btn.disabled = false;
+        btn.innerText = '🚩 إبلاغ';
+      }
+    }
+
+    if (currentName) {
+      initSite();
+    }
+  </script>
+
+  <!-- كود إعلان Social Bar -->
+  <script src="https://pl30867751.effectivecpmnetwork.com/9e/27/36/9e2736cc92f30b2e57053b8cbb617b66.js"></script>
 </body>
 </html>
