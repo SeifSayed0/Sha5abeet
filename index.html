@@ -35,40 +35,53 @@
     .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
     .card-meta { font-size: 12px; color: #64748b; }
     
-    /* شريط وأزرار التصويت */
+    /* شريط التصويت بنظام السكور الموحد */
     .vote-bar {
       display: inline-flex;
-      gap: 8px;
       align-items: center;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 2px 6px;
+      gap: 6px;
     }
     .vote-btn {
       width: auto;
-      padding: 3px 9px;
-      font-size: 12px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid #334155;
+      background: transparent;
+      border: none;
       color: #94a3b8;
-      border-radius: 6px;
+      font-size: 14px;
       cursor: pointer;
-      display: inline-flex;
+      padding: 3px 6px;
+      border-radius: 50%;
+      display: flex;
       align-items: center;
-      gap: 5px;
+      justify-content: center;
       transition: all 0.2s ease;
     }
     .vote-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
       color: #f8fafc;
     }
+    .vote-score {
+      font-size: 13px;
+      font-weight: bold;
+      color: #94a3b8;
+      min-width: 20px;
+      text-align: center;
+    }
+    
+    /* ألوان الحالة النشطة */
     .vote-btn.active-up {
-      color: #22c55e;
-      border-color: #22c55e;
-      background: rgba(34, 197, 94, 0.12);
+      color: #22c55e !important;
+      background: rgba(34, 197, 94, 0.15);
     }
     .vote-btn.active-down {
-      color: #ef4444;
-      border-color: #ef4444;
-      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444 !important;
+      background: rgba(239, 68, 68, 0.15);
     }
+    .vote-score.score-up { color: #22c55e; }
+    .vote-score.score-down { color: #ef4444; }
 
     /* زر الإبلاغ */
     .report-btn {
@@ -190,27 +203,97 @@
       loadAllThoughts();
     }
 
-    // دالة إرسال التصويت ومنع التكرار للمستخدم
-    async function vote(sheetName, rowIndex, type, btnElement) {
-      const voteKey = `voted_${sheetName}_${rowIndex}`;
+    // منطق التبديل والإلغاء وحساب السكور الصافي
+    async function handleVote(sheetName, rowIndex, targetType, btnElement) {
+      const voteKey = `vote_state_${sheetName}_${rowIndex}`;
+      const currentVote = localStorage.getItem(voteKey); // 'up', 'down', or null
       
-      if (localStorage.getItem(voteKey)) {
-        alert("لقد قمت بالتصويت على هذه الخاطرة بالفعل!");
-        return;
+      const wrapper = btnElement.closest('.vote-bar');
+      const upBtn = wrapper.querySelector('.up-btn');
+      const downBtn = wrapper.querySelector('.down-btn');
+      const scoreSpan = wrapper.querySelector('.vote-score');
+      
+      let currentScore = parseInt(scoreSpan.innerText) || 0;
+      let upDelta = 0;
+      let downDelta = 0;
+      let newVoteState = null;
+
+      if (targetType === 'up') {
+        if (currentVote === 'up') {
+          // إلغاء الـ Upvote
+          upDelta = -1;
+          currentScore -= 1;
+          newVoteState = null;
+        } else if (currentVote === 'down') {
+          // تحويل من Downvote إلى Upvote
+          upDelta = 1;
+          downDelta = -1;
+          currentScore += 2;
+          newVoteState = 'up';
+        } else {
+          // إضافة Upvote جديد
+          upDelta = 1;
+          currentScore += 1;
+          newVoteState = 'up';
+        }
+      } else if (targetType === 'down') {
+        if (currentVote === 'down') {
+          // إلغاء الـ Downvote
+          downDelta = -1;
+          currentScore += 1;
+          newVoteState = null;
+        } else if (currentVote === 'up') {
+          // تحويل من Upvote إلى Downvote
+          downDelta = 1;
+          upDelta = -1;
+          currentScore -= 2;
+          newVoteState = 'down';
+        } else {
+          // إضافة Downvote جديد
+          downDelta = 1;
+          currentScore -= 1;
+          newVoteState = 'down';
+        }
       }
-      
-      const countSpan = btnElement.querySelector('.count');
-      let currentCount = parseInt(countSpan.innerText) || 0;
-      countSpan.innerText = currentCount + 1;
-      btnElement.classList.add(type === 'up' ? 'active-up' : 'active-down');
-      
-      localStorage.setItem(voteKey, type);
-      
+
+      // تحديث واجهة المستخدم فورياً
+      scoreSpan.innerText = currentScore;
+      upBtn.classList.toggle('active-up', newVoteState === 'up');
+      downBtn.classList.toggle('active-down', newVoteState === 'down');
+      scoreSpan.classList.toggle('score-up', currentScore > 0);
+      scoreSpan.classList.toggle('score-down', currentScore < 0);
+
+      // حفظ الحالة محلياً للجهاز لمنع التكرار
+      if (newVoteState) {
+        localStorage.setItem(voteKey, newVoteState);
+      } else {
+        localStorage.removeItem(voteKey);
+      }
+
+      // إرسال التحديث لـ Google Sheets
       try {
-        await fetch(`${SCRIPT_URL}?sheet=${sheetName}&action=vote&row=${rowIndex}&type=${type}`);
+        await fetch(`${SCRIPT_URL}?sheet=${sheetName}&action=vote&row=${rowIndex}&upDelta=${upDelta}&downDelta=${downDelta}`);
       } catch (err) {
         console.error("Error voting:", err);
       }
+    }
+
+    function createVoteBarHTML(sheetName, rowIndex, upvotes, downvotes) {
+      const score = (parseInt(upvotes) || 0) - (parseInt(downvotes) || 0);
+      const voteState = localStorage.getItem(`vote_state_${sheetName}_${rowIndex}`);
+      const scoreClass = score > 0 ? 'score-up' : (score < 0 ? 'score-down' : '');
+      
+      return `
+        <div class="vote-bar">
+          <button class="vote-btn up-btn ${voteState === 'up' ? 'active-up' : ''}" onclick="handleVote('${sheetName}', ${rowIndex}, 'up', this)" title="أعجبني">
+            ▲
+          </button>
+          <span class="vote-score ${scoreClass}">${score}</span>
+          <button class="vote-btn down-btn ${voteState === 'down' ? 'active-down' : ''}" onclick="handleVote('${sheetName}', ${rowIndex}, 'down', this)" title="لم يعجبني">
+            ▼
+          </button>
+        </div>
+      `;
     }
 
     async function loadAllThoughts() {
@@ -225,20 +308,12 @@
         if (Array.isArray(ownerData) && ownerData.length > 0) {
           ownerDiv.innerHTML = ownerData.slice().reverse().map(i => {
             if (!i.thought) return '';
-            const userVote = localStorage.getItem(`voted_Owner_${i.rowIndex}`);
             return `
               <div class="card">
                 <p>${i.thought}</p>
                 <div class="card-footer">
                   <span class="card-meta">${i.date || ''}</span>
-                  <div class="vote-bar">
-                    <button class="vote-btn ${userVote === 'up' ? 'active-up' : ''}" onclick="vote('Owner', ${i.rowIndex}, 'up', this)">
-                      👍 <span class="count">${i.upvotes || 0}</span>
-                    </button>
-                    <button class="vote-btn ${userVote === 'down' ? 'active-down' : ''}" onclick="vote('Owner', ${i.rowIndex}, 'down', this)">
-                      👎 <span class="count">${i.downvotes || 0}</span>
-                    </button>
-                  </div>
+                  ${createVoteBarHTML('Owner', i.rowIndex, i.upvotes, i.downvotes)}
                 </div>
               </div>`;
           }).join('');
@@ -257,21 +332,13 @@
         if (Array.isArray(visitorData) && visitorData.length > 0) {
           visitorDiv.innerHTML = visitorData.slice().reverse().map((i, index) => {
             if (!i.thought) return '';
-            const userVote = localStorage.getItem(`voted_Visitors_${i.rowIndex}`);
             return `
               <div class="card visitor-card">
                 <p>${i.thought}</p>
                 <div class="card-footer">
                   <span class="card-meta">كتبها: <strong>${i.name}</strong></span>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <div class="vote-bar">
-                      <button class="vote-btn ${userVote === 'up' ? 'active-up' : ''}" onclick="vote('Visitors', ${i.rowIndex}, 'up', this)">
-                        👍 <span class="count">${i.upvotes || 0}</span>
-                      </button>
-                      <button class="vote-btn ${userVote === 'down' ? 'active-down' : ''}" onclick="vote('Visitors', ${i.rowIndex}, 'down', this)">
-                        👎 <span class="count">${i.downvotes || 0}</span>
-                      </button>
-                    </div>
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    ${createVoteBarHTML('Visitors', i.rowIndex, i.upvotes, i.downvotes)}
                     <button class="report-btn" id="rep-btn-${index}" onclick="handleReport('${encodeURIComponent(i.name)}', '${encodeURIComponent(i.thought)}', 'rep-btn-${index}')">
                       🚩 إبلاغ
                     </button>
