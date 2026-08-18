@@ -30,7 +30,7 @@
     button:disabled { background: #64748b; cursor: not-allowed; }
 
     /* صندوق إضافة فكرة وسؤال الأسبوع */
-    .add-box { background: #1e293b; padding: 20px; border-radius: 14px; margin-bottom: 30px; border: 1px dashed #38bdf8; }
+    .add-box { background: #1e293b; padding: 20px; border-radius: 14px; margin-bottom: 25px; border: 1px dashed #38bdf8; }
     .weekly-prompt {
       background: rgba(56, 189, 248, 0.08);
       border: 1px solid rgba(56, 189, 248, 0.25);
@@ -42,12 +42,76 @@
       gap: 10px;
     }
 
-    /* شريط الأكشن العلوي */
+    /* شريط الأكشن العلوي المصغر */
     .header-actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
       margin-bottom: 15px;
+    }
+    .compact-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .icon-action-btn {
+      width: auto;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .icon-action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+    .icon-action-btn.active-fav {
+      background: rgba(234, 179, 8, 0.15);
+      color: #eab308;
+      border-color: rgba(234, 179, 8, 0.4);
+      font-weight: bold;
+    }
+
+    /* حقل البحث القابل للفتح والإغلاق */
+    #search-popup-bar {
+      display: none;
+      margin-bottom: 15px;
+      animation: fadeIn 0.2s ease;
+    }
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-input-wrapper input {
+      margin: 0;
+      padding: 8px 12px 8px 36px;
+      font-size: 13px;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      color: #f8fafc;
+    }
+    .search-close-btn {
+      position: absolute;
+      left: 10px;
+      width: auto;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0;
     }
 
     /* شريط الإحصائيات الحية */
@@ -165,7 +229,7 @@
     .vote-score.score-up { color: #22c55e; }
     .vote-score.score-down { color: #ef4444; }
 
-    /* زر الإبلاغ وزر مشاركة الصورة */
+    /* أزرار الإجراءات على الكارت */
     .action-sub-btn {
       width: auto;
       padding: 3px 8px;
@@ -185,6 +249,11 @@
       border-color: #38bdf8;
       background: rgba(56, 189, 248, 0.08);
     }
+    .fav-btn.is-fav {
+      color: #eab308;
+      border-color: #eab308;
+      background: rgba(234, 179, 8, 0.1);
+    }
     .report-btn:hover {
       color: #ef4444;
       border-color: #ef4444;
@@ -196,7 +265,7 @@
       cursor: not-allowed;
     }
 
-    /* كارت خفي لتصدير الصورة بدقة عالية وتصميم جذاب */
+    /* كارت خفي لتصدير الصورة بدقة عالية */
     #image-export-wrapper {
       position: fixed;
       left: -9999px;
@@ -209,6 +278,74 @@
       color: #f8fafc;
       box-sizing: border-box;
       direction: rtl;
+    }
+
+    /* وضع الرواق الشامل Zen Mode */
+    #zen-modal {
+      position: fixed;
+      inset: 0;
+      background: #030712;
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30px 20px;
+      user-select: none;
+      touch-action: pan-y;
+    }
+    .zen-header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .zen-close-btn {
+      width: auto;
+      padding: 4px 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .zen-body {
+      max-width: 650px;
+      width: 100%;
+      text-align: center;
+      padding: 20px 10px;
+    }
+    .zen-text {
+      font-size: 22px;
+      line-height: 1.9;
+      color: #f8fafc;
+      font-weight: 600;
+      margin-bottom: 20px;
+      word-break: break-word;
+    }
+    .zen-author {
+      font-size: 14px;
+      color: #38bdf8;
+      display: block;
+    }
+    .zen-nav {
+      display: flex;
+      gap: 15px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .zen-nav button {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -223,7 +360,7 @@
     <p id="export-text" style="font-size: 20px; line-height: 1.8; color: #f8fafc; font-weight: 600; margin-bottom: 30px; word-break: break-word;"></p>
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b; border-top: 1px solid #1e293b; padding-top: 12px;">
       <span>☕ مساحة حرة للخواطِر والأفكار</span>
-      <span>sha5abeet.vercel.app</span>
+      <span>sha5abeet.vercel.app[cite: 2]</span>
     </div>
   </div>
 
@@ -252,10 +389,26 @@
       </div>
     </div>
   </div>
+
+  <!-- شاشة وضع الرواق Zen Mode -->
+  <div id="zen-modal">
+    <div class="zen-header">
+      <span>وضع الرواق ☕ (اسحب للشاشة أو استخدم الأسهم)</span>
+      <button class="zen-close-btn" onclick="closeZenMode()">خروج ✕</button>
+    </div>
+    <div class="zen-body">
+      <p class="zen-text" id="zen-quote-text"></p>
+      <span class="zen-author" id="zen-quote-author"></span>
+    </div>
+    <div class="zen-nav">
+      <button onclick="prevZenQuote()">السابق ➔</button>
+      <button onclick="nextZenQuote()">⬅ التالي</button>
+    </div>
+  </div>
   
   <div class="container" id="app" style="display:none;">
     
-    <!-- الأزرار العلوية السريعة -->
+    <!-- الأزرار العلوية السريعة والمصغرة -->
     <div class="header-actions">
       <a href="https://mail.google.com/mail/?view=cm&fs=1&to=seifsayed8927@gmail.com" 
          target="_blank" 
@@ -263,9 +416,29 @@
         ✉️ تواصل معنا
       </a>
 
-      <button onclick="showRandomThought()" style="width: auto; padding: 4px 12px; font-size: 12px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px;">
-        🎲 خاطرة عشوائية
-      </button>
+      <!-- مجموعة الأدوات المصغرة -->
+      <div class="compact-btn-group">
+        <button class="icon-action-btn" onclick="toggleSearchBar()" title="بحث">
+          🔍
+        </button>
+        <button class="icon-action-btn" id="compact-fav-btn" onclick="toggleFavoritesMode()" title="المفضلة">
+          🌟 <span id="fav-count-badge">0</span>
+        </button>
+        <button class="icon-action-btn" onclick="openZenMode()" style="color:#10b981;" title="وضع الرواق">
+          ☕
+        </button>
+        <button class="icon-action-btn" onclick="showRandomThought()" style="color:#38bdf8;" title="خاطرة عشوائية">
+          🎲
+        </button>
+      </div>
+    </div>
+
+    <!-- شريط البحث المنبثق عند الضغط على 🔍 -->
+    <div id="search-popup-bar">
+      <div class="search-input-wrapper">
+        <input type="text" id="search-input" placeholder="ابحث في الخواطر أو اسم الكاتب... 🔍" oninput="handleSearch(this.value)">
+        <button class="search-close-btn" onclick="closeSearchBar()">✕</button>
+      </div>
     </div>
 
     <header style="text-align: center; margin-bottom: 20px;">
@@ -289,7 +462,7 @@
         <span style="font-size: 20px; line-height: 1;">💡</span>
         <div>
           <span style="font-size: 11px; color: #38bdf8; font-weight: bold; display: block; margin-bottom: 2px;">سؤال الأسبوع:</span>
-          <p style="font-size: 13.5px; color: #f8fafc; margin: 0; font-weight: 500;">     قريبا</p>
+          <p style="font-size: 13.5px; color: #f8fafc; margin: 0; font-weight: 500;">     قريبا</p>[cite: 2]
         </div>
       </div>
 
@@ -348,6 +521,10 @@
 
     let ownerSort = 'newest';
     let visitorSort = 'newest';
+    let searchQuery = '';
+    let onlyFavoritesMode = false;
+    let zenList = [];
+    let currentZenIndex = 0;
 
     function saveName() {
       const val = document.getElementById('visitor-name').value.trim();
@@ -370,8 +547,157 @@
       document.getElementById('login-modal').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       document.getElementById('user-display').innerText = currentName;
+      updateFavBadgeCount();
       loadAllThoughts();
     }
+
+    // فتح وإغلاق شريط البحث
+    function toggleSearchBar() {
+      const bar = document.getElementById('search-popup-bar');
+      const isVisible = bar.style.display === 'block';
+      if (isVisible) {
+        closeSearchBar();
+      } else {
+        bar.style.display = 'block';
+        document.getElementById('search-input').focus();
+      }
+    }
+
+    function closeSearchBar() {
+      document.getElementById('search-popup-bar').style.display = 'none';
+      document.getElementById('search-input').value = '';
+      searchQuery = '';
+      renderOwnerThoughts();
+      renderVisitorThoughts();
+    }
+
+    // 1. نظام المفضلة Bookmarks
+    function getFavorites() {
+      return JSON.parse(localStorage.getItem('shakabeet_favs') || '[]');
+    }
+
+    function toggleFavorite(id) {
+      let favs = getFavorites();
+      if (favs.includes(id)) {
+        favs = favs.filter(favId => favId !== id);
+      } else {
+        favs.push(id);
+      }
+      localStorage.setItem('shakabeet_favs', JSON.stringify(favs));
+      updateFavBadgeCount();
+      renderOwnerThoughts();
+      renderVisitorThoughts();
+    }
+
+    function updateFavBadgeCount() {
+      const favs = getFavorites();
+      const badge = document.getElementById('fav-count-badge');
+      if (badge) badge.innerText = favs.length;
+    }
+
+    function toggleFavoritesMode() {
+      onlyFavoritesMode = !onlyFavoritesMode;
+      document.getElementById('compact-fav-btn').classList.toggle('active-fav', onlyFavoritesMode);
+      renderOwnerThoughts();
+      renderVisitorThoughts();
+    }
+
+    // 2. البحث الحي Live Search
+    function handleSearch(query) {
+      searchQuery = query.trim().toLowerCase();
+      renderOwnerThoughts();
+      renderVisitorThoughts();
+    }
+
+    // 3. نسخ النص السريع Copy to Clipboard
+    async function copyThought(encodedThought, btnElement) {
+      const text = decodeURIComponent(encodedThought);
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '✓ تم';
+        btnElement.style.color = '#22c55e';
+        btnElement.style.borderColor = '#22c55e';
+        setTimeout(() => {
+          btnElement.innerHTML = originalText;
+          btnElement.style.color = '';
+          btnElement.style.borderColor = '';
+        }, 1500);
+      } catch (err) {
+        alert('تعذر النسخ التلقائي، يمكنك نسخ النص يدوياً.');
+      }
+    }
+
+    // 4. وضع الرواق Zen Mode
+    function openZenMode() {
+      zenList = allLoadedThoughts.filter(i => i && i.thought);
+      if (onlyFavoritesMode) {
+        const favs = getFavorites();
+        zenList = zenList.filter(i => favs.includes(`thought_${i.rowIndex}_${i.name || 'owner'}`));
+      }
+      if (searchQuery) {
+        zenList = zenList.filter(i => (i.thought && i.thought.toLowerCase().includes(searchQuery)) || (i.name && i.name.toLowerCase().includes(searchQuery)));
+      }
+
+      if (zenList.length === 0) {
+        alert("لا توجد خواطر مطابقة لعرضها في وضع الرواق حالياً.");
+        return;
+      }
+
+      currentZenIndex = 0;
+      updateZenDisplay();
+      document.getElementById('zen-modal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeZenMode() {
+      document.getElementById('zen-modal').style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    function updateZenDisplay() {
+      const item = zenList[currentZenIndex];
+      document.getElementById('zen-quote-text').innerText = item.thought;
+      document.getElementById('zen-quote-author').innerText = item.name ? `بقلم: ${item.name}` : (item.date ? `بتاريخ: ${item.date}` : 'من خواطر صاحب المساحة');
+    }
+
+    function nextZenQuote() {
+      if (currentZenIndex < zenList.length - 1) {
+        currentZenIndex++;
+        updateZenDisplay();
+      } else {
+        currentZenIndex = 0;
+        updateZenDisplay();
+      }
+    }
+
+    function prevZenQuote() {
+      if (currentZenIndex > 0) {
+        currentZenIndex--;
+        updateZenDisplay();
+      } else {
+        currentZenIndex = zenList.length - 1;
+        updateZenDisplay();
+      }
+    }
+
+    // دعم إيماءات اللمس والأسهم
+    let touchStartX = 0;
+    const zenModalElement = document.getElementById('zen-modal');
+    zenModalElement.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+    zenModalElement.addEventListener('touchend', e => {
+      const touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 50) nextZenQuote();
+      if (touchEndX - touchStartX > 50) prevZenQuote();
+    }, {passive: true});
+
+    document.addEventListener('keydown', e => {
+      if (document.getElementById('zen-modal').style.display === 'flex') {
+        if (e.key === 'ArrowLeft') nextZenQuote();
+        if (e.key === 'ArrowRight') prevZenQuote();
+        if (e.key === 'Escape') closeZenMode();
+      }
+    });
 
     // تحديث شريط الإحصائيات
     function updateStats() {
@@ -420,7 +746,7 @@
       }
     }
 
-    // دالة تحويل الخاطرة لصورة وتنزيلها
+    // دالة تحويل الخاطرة لصورة
     async function shareAsImage(encodedThought, encodedAuthor, btnElement) {
       const thoughtText = decodeURIComponent(encodedThought);
       const authorText = decodeURIComponent(encodedAuthor);
@@ -435,7 +761,7 @@
 
       try {
         const canvas = await html2canvas(exportWrapper, {
-          scale: 2, // جودة ودقة عالية
+          scale: 2,
           backgroundColor: '#0f172a',
           useCORS: true
         });
@@ -549,12 +875,23 @@
 
     function renderOwnerThoughts() {
       const ownerDiv = document.getElementById('owner-list');
-      if (rawOwnerData.length === 0) {
-        ownerDiv.innerHTML = '<p style="color:#64748b;">مفيش خواطر مكتوبة لسه.</p>';
+      const favs = getFavorites();
+
+      let list = [...rawOwnerData];
+
+      if (searchQuery) {
+        list = list.filter(i => (i.thought && i.thought.toLowerCase().includes(searchQuery)) || (i.date && i.date.toLowerCase().includes(searchQuery)));
+      }
+
+      if (onlyFavoritesMode) {
+        list = list.filter(i => favs.includes(`thought_${i.rowIndex}_owner`));
+      }
+
+      if (list.length === 0) {
+        ownerDiv.innerHTML = '<p style="color:#64748b;">لا توجد خواطر مطابقة.</p>';
         return;
       }
       
-      let list = [...rawOwnerData];
       if (ownerSort === 'top') {
         list.sort((a, b) => ((b.upvotes || 0) - (b.downvotes || 0)) - ((a.upvotes || 0) - (a.downvotes || 0)));
       } else {
@@ -563,14 +900,23 @@
 
       ownerDiv.innerHTML = list.map(i => {
         if (!i.thought) return '';
+        const itemFavId = `thought_${i.rowIndex}_owner`;
+        const isFav = favs.includes(itemFavId);
+
         return `
           <div class="card">
             <p>${i.thought}</p>
             <div class="card-footer">
               <span class="card-meta">${i.date || ''}</span>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="action-sub-btn" onclick="shareAsImage('${encodeURIComponent(i.thought)}', '', this)">
-                  📸 صورة
+              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <button class="action-sub-btn fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFavorite('${itemFavId}')" title="حفظ في المفضلة">
+                  ${isFav ? '★' : '☆'}
+                </button>
+                <button class="action-sub-btn" onclick="copyThought('${encodeURIComponent(i.thought)}', this)" title="نسخ النص">
+                  📋
+                </button>
+                <button class="action-sub-btn" onclick="shareAsImage('${encodeURIComponent(i.thought)}', '', this)" title="مشاركة كصورة">
+                  📸
                 </button>
                 ${createVoteBarHTML('Owner', i.rowIndex, i.upvotes, i.downvotes)}
               </div>
@@ -581,12 +927,23 @@
 
     function renderVisitorThoughts() {
       const visitorDiv = document.getElementById('visitor-list');
-      if (rawVisitorData.length === 0) {
-        visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة حالياً.</p>';
+      const favs = getFavorites();
+
+      let list = [...rawVisitorData];
+
+      if (searchQuery) {
+        list = list.filter(i => (i.thought && i.thought.toLowerCase().includes(searchQuery)) || (i.name && i.name.toLowerCase().includes(searchQuery)));
+      }
+
+      if (onlyFavoritesMode) {
+        list = list.filter(i => favs.includes(`thought_${i.rowIndex}_${i.name}`));
+      }
+
+      if (list.length === 0) {
+        visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات مطابقة.</p>';
         return;
       }
 
-      let list = [...rawVisitorData];
       if (visitorSort === 'top') {
         list.sort((a, b) => ((b.upvotes || 0) - (b.downvotes || 0)) - ((a.upvotes || 0) - (a.downvotes || 0)));
       } else {
@@ -595,18 +952,27 @@
 
       visitorDiv.innerHTML = list.map((i, index) => {
         if (!i.thought) return '';
+        const itemFavId = `thought_${i.rowIndex}_${i.name}`;
+        const isFav = favs.includes(itemFavId);
+
         return `
           <div class="card visitor-card">
             <p>${i.thought}</p>
             <div class="card-footer">
               <span class="card-meta">كتبها: <strong>${i.name}</strong></span>
-              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <button class="action-sub-btn" onclick="shareAsImage('${encodeURIComponent(i.thought)}', '${encodeURIComponent(i.name)}', this)">
-                  📸 صورة
+              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <button class="action-sub-btn fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFavorite('${itemFavId}')" title="حفظ في المفضلة">
+                  ${isFav ? '★' : '☆'}
+                </button>
+                <button class="action-sub-btn" onclick="copyThought('${encodeURIComponent(i.thought)}', this)" title="نسخ النص">
+                  📋
+                </button>
+                <button class="action-sub-btn" onclick="shareAsImage('${encodeURIComponent(i.thought)}', '${encodeURIComponent(i.name)}', this)" title="مشاركة كصورة">
+                  📸
                 </button>
                 ${createVoteBarHTML('Visitors', i.rowIndex, i.upvotes, i.downvotes)}
                 <button class="action-sub-btn report-btn" id="rep-btn-${index}" onclick="handleReport('${encodeURIComponent(i.name)}', '${encodeURIComponent(i.thought)}', 'rep-btn-${index}')">
-                  🚩 إبلاغ
+                  🚩
                 </button>
               </div>
             </div>
