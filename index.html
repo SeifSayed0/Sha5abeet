@@ -45,9 +45,46 @@
       align-items: center;
       margin-bottom: 15px;
     }
+
+    /* عناوين الأقسام وشريط الفلترة */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 24px 0 10px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 6px;
+    }
+    .section-header h2 {
+      font-size: 18px;
+      color: #38bdf8;
+      margin: 0;
+      border: none;
+      padding: 0;
+    }
+    .sort-bar {
+      display: flex;
+      gap: 6px;
+    }
+    .sort-btn {
+      width: auto;
+      padding: 3px 8px;
+      font-size: 11px;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .sort-btn.active {
+      background: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+      font-weight: bold;
+    }
     
-    /* الكروت والعناوين */
-    h2 { font-size: 18px; margin: 20px 0 10px; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+    /* الكروت */
     .card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 12px; border-right: 4px solid #3b82f6; line-height: 1.6; }
     .visitor-card { border-right-color: #10b981; }
     .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
@@ -186,7 +223,7 @@
         <span style="font-size: 20px; line-height: 1;">💡</span>
         <div>
           <span style="font-size: 11px; color: #38bdf8; font-weight: bold; display: block; margin-bottom: 2px;">سؤال الأسبوع:</span>
-          <p style="font-size: 13.5px; color: #f8fafc; margin: 0; font-weight: 500;">إيه أكتر موقف محرج حصل معاك ومش قادر تنساه؟</p>
+          <p style="font-size: 13.5px; color: #f8fafc; margin: 0; font-weight: 500;">قريبا</p>
         </div>
       </div>
 
@@ -196,12 +233,24 @@
       <button id="send-btn" onclick="sendThought()">إرسال الفكرة</button>
     </div>
 
-    <!-- أفكارك الخاصة -->
-    <h2>📌 خواطري وكتاباتي</h2>
+    <!-- أفكارك الخاصة مع الترتيب -->
+    <div class="section-header">
+      <h2>📌 خواطري وكتاباتي</h2>
+      <div class="sort-bar">
+        <button class="sort-btn active" id="owner-sort-new" onclick="setSort('owner', 'newest')">الأحدث</button>
+        <button class="sort-btn" id="owner-sort-top" onclick="setSort('owner', 'top')">الأعلى تقييماً 🔥</button>
+      </div>
+    </div>
     <div id="owner-list"><p style="color:#64748b;">جاري التحميل...</p></div>
 
-    <!-- أفكار الزوار المقبولة -->
-    <h2>💬 مشاركات الزوار</h2>
+    <!-- أفكار الزوار المقبولة مع الترتيب -->
+    <div class="section-header">
+      <h2>💬 مشاركات الزوار</h2>
+      <div class="sort-bar">
+        <button class="sort-btn active" id="visitor-sort-new" onclick="setSort('visitor', 'newest')">الأحدث</button>
+        <button class="sort-btn" id="visitor-sort-top" onclick="setSort('visitor', 'top')">الأعلى تقييماً 🔥</button>
+      </div>
+    </div>
     <div id="visitor-list"><p style="color:#64748b;">جاري التحميل...</p></div>
 
     <!-- حاوية الإعلان الإجبارية للتوسيط -->
@@ -227,7 +276,12 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwluFOIpSIN6gOYggwS4WWLS6bsDndtDUPcKOn34iSe_CzCxnYQxbxtKAHwrQ8XgK3D/exec";
 
     let currentName = localStorage.getItem('site_user') || '';
-    let allLoadedThoughts = []; // تخزين كل الخواطر لتشغيل الخاطرة العشوائية
+    let rawOwnerData = [];
+    let rawVisitorData = [];
+    let allLoadedThoughts = [];
+
+    let ownerSort = 'newest';
+    let visitorSort = 'newest';
 
     function saveName() {
       const val = document.getElementById('visitor-name').value.trim();
@@ -267,6 +321,21 @@
 
     function closeRandomModal() {
       document.getElementById('random-modal').style.display = 'none';
+    }
+
+    // دالة تغيير نوع الفرز والترتيب
+    function setSort(type, mode) {
+      if (type === 'owner') {
+        ownerSort = mode;
+        document.getElementById('owner-sort-new').classList.toggle('active', mode === 'newest');
+        document.getElementById('owner-sort-top').classList.toggle('active', mode === 'top');
+        renderOwnerThoughts();
+      } else {
+        visitorSort = mode;
+        document.getElementById('visitor-sort-new').classList.toggle('active', mode === 'newest');
+        document.getElementById('visitor-sort-top').classList.toggle('active', mode === 'top');
+        renderVisitorThoughts();
+      }
     }
 
     // منطق التبديل والإلغاء وحساب السكور الصافي
@@ -316,6 +385,15 @@
         }
       }
 
+      // تحديث القيمة في المصفوفة الأساسية أيضاً
+      const targetArray = sheetName === 'Owner' ? rawOwnerData : rawVisitorData;
+      const targetItem = targetArray.find(i => i.rowIndex === rowIndex);
+      if (targetItem) {
+        targetItem.upvotes = (parseInt(targetItem.upvotes) || 0) + upDelta;
+        targetItem.downvotes = (parseInt(targetItem.downvotes) || 0) + downDelta;
+        targetItem.score = targetItem.upvotes - targetItem.downvotes;
+      }
+
       scoreSpan.innerText = currentScore;
       upBtn.classList.toggle('active-up', newVoteState === 'up');
       downBtn.classList.toggle('active-down', newVoteState === 'down');
@@ -353,64 +431,92 @@
       `;
     }
 
-    async function loadAllThoughts() {
+    function renderOwnerThoughts() {
       const ownerDiv = document.getElementById('owner-list');
+      if (rawOwnerData.length === 0) {
+        ownerDiv.innerHTML = '<p style="color:#64748b;">مفيش خواطر مكتوبة لسه.</p>';
+        return;
+      }
+      
+      let list = [...rawOwnerData];
+      if (ownerSort === 'top') {
+        list.sort((a, b) => ((b.upvotes || 0) - (b.downvotes || 0)) - ((a.upvotes || 0) - (a.downvotes || 0)));
+      } else {
+        list.reverse();
+      }
+
+      ownerDiv.innerHTML = list.map(i => {
+        if (!i.thought) return '';
+        return `
+          <div class="card">
+            <p>${i.thought}</p>
+            <div class="card-footer">
+              <span class="card-meta">${i.date || ''}</span>
+              ${createVoteBarHTML('Owner', i.rowIndex, i.upvotes, i.downvotes)}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderVisitorThoughts() {
       const visitorDiv = document.getElementById('visitor-list');
+      if (rawVisitorData.length === 0) {
+        visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة حالياً.</p>';
+        return;
+      }
+
+      let list = [...rawVisitorData];
+      if (visitorSort === 'top') {
+        list.sort((a, b) => ((b.upvotes || 0) - (b.downvotes || 0)) - ((a.upvotes || 0) - (a.downvotes || 0)));
+      } else {
+        list.reverse();
+      }
+
+      visitorDiv.innerHTML = list.map((i, index) => {
+        if (!i.thought) return '';
+        return `
+          <div class="card visitor-card">
+            <p>${i.thought}</p>
+            <div class="card-footer">
+              <span class="card-meta">كتبها: <strong>${i.name}</strong></span>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                ${createVoteBarHTML('Visitors', i.rowIndex, i.upvotes, i.downvotes)}
+                <button class="report-btn" id="rep-btn-${index}" onclick="handleReport('${encodeURIComponent(i.name)}', '${encodeURIComponent(i.thought)}', 'rep-btn-${index}')">
+                  🚩 إبلاغ
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadAllThoughts() {
       allLoadedThoughts = [];
 
-      // 1. جلب أفكارك الخاصة من ورقة Owner
+      // 1. جلب أفكارك الخاصة
       try {
         const resOwner = await fetch(`${SCRIPT_URL}?sheet=Owner`);
         const ownerData = await resOwner.json();
-        
-        if (Array.isArray(ownerData) && ownerData.length > 0) {
-          ownerData.forEach(item => { if (item.thought) allLoadedThoughts.push(item); });
-          ownerDiv.innerHTML = ownerData.slice().reverse().map(i => {
-            if (!i.thought) return '';
-            return `
-              <div class="card">
-                <p>${i.thought}</p>
-                <div class="card-footer">
-                  <span class="card-meta">${i.date || ''}</span>
-                  ${createVoteBarHTML('Owner', i.rowIndex, i.upvotes, i.downvotes)}
-                </div>
-              </div>`;
-          }).join('');
-        } else {
-          ownerDiv.innerHTML = '<p style="color:#64748b;">مفيش خواطر مكتوبة لسه.</p>';
+        if (Array.isArray(ownerData)) {
+          rawOwnerData = ownerData.filter(item => item.thought);
+          rawOwnerData.forEach(item => allLoadedThoughts.push(item));
+          renderOwnerThoughts();
         }
       } catch (e) {
-        ownerDiv.innerHTML = '<p style="color:#ef4444;">مشكلة في تحميل الخواطر.</p>';
+        document.getElementById('owner-list').innerHTML = '<p style="color:#ef4444;">مشكلة في تحميل الخواطر.</p>';
       }
 
-      // 2. جلب أفكار الزوار المقبولة من ورقة Visitors
+      // 2. جلب أفكار الزوار المقبولة
       try {
         const resVisitors = await fetch(`${SCRIPT_URL}?sheet=Visitors&status=approved`);
         const visitorData = await resVisitors.json();
-        
-        if (Array.isArray(visitorData) && visitorData.length > 0) {
-          visitorData.forEach(item => { if (item.thought) allLoadedThoughts.push(item); });
-          visitorDiv.innerHTML = visitorData.slice().reverse().map((i, index) => {
-            if (!i.thought) return '';
-            return `
-              <div class="card visitor-card">
-                <p>${i.thought}</p>
-                <div class="card-footer">
-                  <span class="card-meta">كتبها: <strong>${i.name}</strong></span>
-                  <div style="display: flex; gap: 10px; align-items: center;">
-                    ${createVoteBarHTML('Visitors', i.rowIndex, i.upvotes, i.downvotes)}
-                    <button class="report-btn" id="rep-btn-${index}" onclick="handleReport('${encodeURIComponent(i.name)}', '${encodeURIComponent(i.thought)}', 'rep-btn-${index}')">
-                      🚩 إبلاغ
-                    </button>
-                  </div>
-                </div>
-              </div>`;
-          }).join('');
-        } else {
-          visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة حالياً.</p>';
+        if (Array.isArray(visitorData)) {
+          rawVisitorData = visitorData.filter(item => item.thought);
+          rawVisitorData.forEach(item => allLoadedThoughts.push(item));
+          renderVisitorThoughts();
         }
       } catch (e) {
-        visitorDiv.innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة.</p>';
+        document.getElementById('visitor-list').innerHTML = '<p style="color:#64748b;">لا توجد مشاركات منشورة.</p>';
       }
     }
 
