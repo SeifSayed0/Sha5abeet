@@ -12,13 +12,13 @@
     body { background-color: #0f172a; color: #f8fafc; min-height: 100vh; padding: 20px 10px; display: flex; justify-content: center; }
     .container { width: 100%; max-width: 650px; }
     
-    /* شاشة تسجيل الاسم */
-    #login-modal {
-      position: fixed; inset: 0; background: #0f172a; display: flex;
+    /* شاشة تسجيل الاسم والنافذة المنبثقة */
+    #login-modal, #random-modal {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: flex;
       flex-direction: column; justify-content: center; align-items: center;
       padding: 20px; z-index: 1000;
     }
-    .modal-box { background: #1e293b; padding: 25px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; }
+    .modal-box { background: #1e293b; padding: 25px; border-radius: 16px; width: 100%; max-width: 420px; text-align: center; border: 1px solid #334155; position: relative; }
 
     /* حقول الإدخال والأزرار */
     input, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 15px; }
@@ -36,6 +36,14 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
+    }
+
+    /* شريط الأكشن العلوي */
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
     }
     
     /* الكروت والعناوين */
@@ -131,22 +139,45 @@
       <button onclick="saveName()">دخول</button>
     </div>
   </div>
+
+  <!-- نافذة الخاطرة العشوائية -->
+  <div id="random-modal" style="display: none;">
+    <div class="modal-box">
+      <button onclick="closeRandomModal()" style="position: absolute; left: 15px; top: 15px; width: auto; padding: 2px 8px; background: transparent; color: #94a3b8; font-size: 18px; border: none;">✕</button>
+      <span style="font-size: 32px; display: block; margin-bottom: 8px;">🎲</span>
+      <h3 style="font-size: 16px; color: #38bdf8; margin-bottom: 12px;">خاطرة عشوائية</h3>
+      <p id="random-text" style="font-size: 15px; line-height: 1.7; color: #f8fafc; background: #0f172a; padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #334155; text-align: right;"></p>
+      <span id="random-author" style="font-size: 12px; color: #64748b; display: block; margin-bottom: 18px;"></span>
+      
+      <div style="display: flex; gap: 10px;">
+        <button onclick="showRandomThought()" style="background: #38bdf8; color: #0f172a;">فكرة تانية 🎲</button>
+        <button onclick="closeRandomModal()" style="background: #334155;">إغلاق</button>
+      </div>
+    </div>
+  </div>
   
   <div class="container" id="app" style="display:none;">
-    <header style="text-align: center; margin-bottom: 25px; position: relative;">
-      <!-- زر تواصل معنا أقصى اليسار -->
+    
+    <!-- الأزرار العلوية السريعة -->
+    <div class="header-actions">
       <a href="https://mail.google.com/mail/?view=cm&fs=1&to=seifsayed8927@gmail.com" 
          target="_blank" 
-         style="position: absolute; left: 0; top: 0; display: inline-flex; align-items: center; gap: 4px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 2px 8px; border-radius: 6px; font-size: 11px; text-decoration: none; width: auto;">
+         style="display: inline-flex; align-items: center; gap: 4px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 4px 10px; border-radius: 8px; font-size: 12px; text-decoration: none; width: auto;">
         ✉️ تواصل معنا
       </a>
-    
+
+      <button onclick="showRandomThought()" style="width: auto; padding: 4px 12px; font-size: 12px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px;">
+        🎲 خاطرة عشوائية
+      </button>
+    </div>
+
+    <header style="text-align: center; margin-bottom: 25px;">
       <p style="color: #94a3b8; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
         مرحباً <span id="user-display" style="color:#38bdf8; font-weight:bold;"></span> ☕
         <button onclick="editName()" style="width: auto; padding: 2px 8px; font-size: 12px; background: #334155; border-radius: 4px;">تعديل الاسم ✏️</button>
       </p>
       
-      <h1 style="font-size: 22px;">شخابيط!💭</h1>
+      <h1 style="font-size: 22px; margin-top: 5px;">شخابيط!💭</h1>
     </header>
 
     <!-- فورم الإرسال داخل الموقع مع سؤال الأسبوع -->
@@ -155,7 +186,7 @@
         <span style="font-size: 20px; line-height: 1;">💡</span>
         <div>
           <span style="font-size: 11px; color: #38bdf8; font-weight: bold; display: block; margin-bottom: 2px;">سؤال الأسبوع:</span>
-          <p style="font-size: 13.5px; color: #f8fafc; margin: 0; font-weight: 500;">قريبا</p>
+          <p style="font-size: 13.5px; color: #f8fafc; margin: 0; font-weight: 500;">إيه أكتر موقف محرج حصل معاك ومش قادر تنساه؟</p>
         </div>
       </div>
 
@@ -196,6 +227,7 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwluFOIpSIN6gOYggwS4WWLS6bsDndtDUPcKOn34iSe_CzCxnYQxbxtKAHwrQ8XgK3D/exec";
 
     let currentName = localStorage.getItem('site_user') || '';
+    let allLoadedThoughts = []; // تخزين كل الخواطر لتشغيل الخاطرة العشوائية
 
     function saveName() {
       const val = document.getElementById('visitor-name').value.trim();
@@ -219,6 +251,22 @@
       document.getElementById('app').style.display = 'block';
       document.getElementById('user-display').innerText = currentName;
       loadAllThoughts();
+    }
+
+    // منطق الخاطرة العشوائية
+    function showRandomThought() {
+      if (allLoadedThoughts.length === 0) {
+        alert("جاري تحميل الخواطر، حاول بعد ثوانٍ...");
+        return;
+      }
+      const randomItem = allLoadedThoughts[Math.floor(Math.random() * allLoadedThoughts.length)];
+      document.getElementById('random-text').innerText = randomItem.thought;
+      document.getElementById('random-author').innerText = randomItem.name ? `بقلم: ${randomItem.name}` : (randomItem.date ? `بتاريخ: ${randomItem.date}` : 'من خواطر صاحب المساحة');
+      document.getElementById('random-modal').style.display = 'flex';
+    }
+
+    function closeRandomModal() {
+      document.getElementById('random-modal').style.display = 'none';
     }
 
     // منطق التبديل والإلغاء وحساب السكور الصافي
@@ -308,6 +356,7 @@
     async function loadAllThoughts() {
       const ownerDiv = document.getElementById('owner-list');
       const visitorDiv = document.getElementById('visitor-list');
+      allLoadedThoughts = [];
 
       // 1. جلب أفكارك الخاصة من ورقة Owner
       try {
@@ -315,6 +364,7 @@
         const ownerData = await resOwner.json();
         
         if (Array.isArray(ownerData) && ownerData.length > 0) {
+          ownerData.forEach(item => { if (item.thought) allLoadedThoughts.push(item); });
           ownerDiv.innerHTML = ownerData.slice().reverse().map(i => {
             if (!i.thought) return '';
             return `
@@ -339,6 +389,7 @@
         const visitorData = await resVisitors.json();
         
         if (Array.isArray(visitorData) && visitorData.length > 0) {
+          visitorData.forEach(item => { if (item.thought) allLoadedThoughts.push(item); });
           visitorDiv.innerHTML = visitorData.slice().reverse().map((i, index) => {
             if (!i.thought) return '';
             return `
