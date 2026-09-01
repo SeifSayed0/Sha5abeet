@@ -384,6 +384,8 @@
     <header class="site-header"><div class="welcome-row"><span>مرحباً</span><span id="user-display" class="welcome-name"></span><span aria-hidden="true">☕</span><button class="edit-name-btn" type="button" onclick="editName()">تعديل الاسم ✏️</button></div><h1 class="site-title">شخابيط!💭</h1><p class="site-tagline">اكتب اللي في بالك، واقرأ شخابيط غيرك.</p><div class="stats-bar" aria-label="إحصائيات الموقع"><span class="stat-badge">📌 الخواطر: <strong id="total-thoughts-count">0</strong></span><span class="stat-badge">🔥 التفاعلات: <strong id="total-votes-count">0</strong></span></div></header>
 
     <main>
+      <input type="text" id="composer-author-name" placeholder="اسمك (اكتب أي اسم تحب تشارك بيه او غير اسمك من فوق)..." maxlength="40" style="margin-bottom:8px;">
+
       <section class="add-box" id="composer-section" aria-labelledby="composer-title"><div class="weekly-prompt"><span class="prompt-icon" aria-hidden="true">💡</span><div><span class="prompt-label">سؤال الأسبوع</span><p class="prompt-text" id="weekly-prompt-text">جاري تحميل السؤال... ✨</p></div></div><h2 id="composer-title" class="composer-title">مساحة فاضية للي يدور في بالك.. شخبط هنا</h2><p class="composer-note">هنقرأها وننزلها فوراً لو شبه المكان ☕</p><label class="sr-only" for="visitor-input">اكتب خاطرتك</label><textarea id="visitor-input" rows="4" maxlength="1200" placeholder="اكتب فكرتك أو إجابتك هنا..." enterkeyhint="send"></textarea><div class="composer-meta"><span>حد أقصى 1200 حرف</span><span id="char-count">0/1200</span></div><button class="primary-btn composer-submit" id="send-btn" type="button" onclick="sendThought()">شخبط وابعت ✍️ </button></section>
       <div id="category-bar" class="category-bar" aria-label="تصنيف الخواطر"></div>
       <section class="daily-card" id="daily-card" aria-labelledby="daily-heading" hidden>
@@ -1363,7 +1365,7 @@
       if(text.length < 2) return alert('الخاطرة قصيرة أوي 😅');
       if(text.length > 1200) return alert('الخاطرة طويلة. الحد الأقصى 1200 حرف.');
       
-      const author = currentName || null;
+      const inputAuthor = document.getElementById('composer-author-name')?.value.trim(); const author = inputAuthor || currentName || null; if(inputAuthor && !currentName) {   localStorage.setItem('site_user', inputAuthor);   currentName = inputAuthor;   document.getElementById('user-display').textContent = currentName; }
       const original = btn.textContent; 
       btn.textContent = 'جاري الإرسال...'; 
       btn.disabled = true; input.disabled = true;
