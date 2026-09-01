@@ -1105,3 +1105,338 @@
         localStorage.setItem('shakabeet_last_streak_notif', String(streak));
       }
     }
+      function showDailyThought(){
+      if(!allLoadedThoughts.length) return; 
+      const day = Math.floor(Date.now()/86400000), item = allLoadedThoughts[day % allLoadedThoughts.length];
+      document.getElementById('daily-text').textContent = item.thought || '';
+      document.getElementById('daily-author').textContent = item.name ? `بقلم: ${item.name}` : 'من صاحب المساحة';
+      document.getElementById('daily-card').hidden = false;
+    }
+
+    async function openAuthModal() {
+      const { data } = await supabaseClient.auth.getSession();
+      const user = data?.session?.user;
+      
+      const guestSec = document.getElementById('auth-guest-section');
+      const emailSec = document.getElementById('auth-email-section');
+      const userSec = document.getElementById('auth-user-info');
+      const dashBtn = document.getElementById('auth-dashboard-btn');
+      const emailDisplay = document.getElementById('auth-logged-email');
+
+      if (user) {
+        guestSec.style.display = 'none';
+        emailSec.style.display = 'none';
+        userSec.style.display = 'block';
+        emailDisplay.textContent = `مسجل بـ: ${user.email}`;
+
+        const isOwnerUser = await checkOwner();
+        if (isOwnerUser) {
+          dashBtn.style.display = 'block';
+          document.getElementById('auth-modal-logo').textContent = '👑';
+          document.getElementById('auth-title').textContent = 'أهلاً بك يا مالك المساحة';
+        } else {
+          dashBtn.style.display = 'none';
+          document.getElementById('auth-modal-logo').textContent = '👤';
+          document.getElementById('auth-title').textContent = 'حسابي';
+        }
+      } else {
+        guestSec.style.display = 'block';
+        emailSec.style.display = 'block';
+        userSec.style.display = 'none';
+        document.getElementById('auth-modal-logo').textContent = '👤';
+        document.getElementById('auth-title').textContent = 'تسجيل الدخول';
+      }
+
+      document.getElementById('auth-modal').style.display = 'flex';
+      document.body.classList.add('modal-open');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+
+    async function checkOwner(){
+      const { data, error } = await supabaseClient.rpc('is_owner');
+      return !error && data === true;
+    }
+
+    async function signInWithGoogle() {
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) alert('تعذر بدء تسجيل الدخول بجوجل، تأكد من إعدادات Supabase.');
+    }
+
+    async function ownerLogin(){
+      const email = document.getElementById('owner-email').value.trim(), password = document.getElementById('owner-password').value;
+      if(!email || !password) return alert('اكتب البريد وكلمة المرور.');
+      const { error } = await supabaseClient.auth.signInWithPassword({email, password});
+      if(error) return alert('بيانات الدخول غير صحيحة أو الحساب غير مسجل.');
+      if(!(await checkOwner())){
+        await supabaseClient.auth.signOut();
+        return alert('الحساب مسجل لكن غير مفعل كـ Owner في Supabase.');
+      }
+      closeAuthModal(); 
+      document.getElementById('main-auth-btn').textContent = '👑';
+      await openOwnerDashboard();
+    }
+
+    async function openOwnerDashboard(){
+      document.getElementById('owner-dashboard-modal').style.display = 'flex';
+      document.body.classList.add('modal-open');
+      await loadOwnerDashboard();
+    }
+
+    function closeOwnerDashboard(){
+      document.getElementById('owner-dashboard-modal').style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+
+    async function ownerLogout(){
+      await supabaseClient.auth.signOut();
+      closeOwnerDashboard();
+      document.getElementById('main-auth-btn').textContent = '👤';
+      alert('تم تسجيل خروج المالك.');
+    }
+
+    async function userLogout() {
+      await supabaseClient.auth.signOut();
+      closeAuthModal();
+      document.getElementById('main-auth-btn').textContent = '👤';
+      alert('تم تسجيل الخروج بنجاح.');
+    }
+
+    async function loadWeeklyPrompt(){
+      try {
+        const { data, error } = await supabaseClient
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'weekly_prompt')
+          .single();
+        if(!error && data?.value){
+          const promptEl = document.getElementById('weekly-prompt-text');
+          if(promptEl) promptEl.textContent = data.value;
+          const inputEl = document.getElementById('owner-weekly-prompt-input');
+          if(inputEl) inputEl.value = data.value;
+        }
+      } catch(err){
+        console.warn('Could not load weekly prompt', err);
+      }
+    }
+
+    async function updateWeeklyPrompt(){
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      const val = document.getElementById('owner-weekly-prompt-input').value.trim();
+      if(!val) return alert('اكتب السؤال أولاً.');
+      const { error } = await supabaseClient
+        .from('site_settings')
+        .upsert({ key: 'weekly_prompt', value: val, updated_at: new Date().toISOString() });
+      if(error) return alert('حدث خطأ أثناء تحديث السؤال.');
+      document.getElementById('weekly-prompt-text').textContent = val;
+      alert('تم تحديث سؤال الأسبوع بنجاح لجميع الزوار ✓');
+    }
+
+    async function loadOwnerDashboard(){
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      const pending = document.getElementById('owner-pending-list'), reports = document.getElementById('owner-reports-list');
+      pending.innerHTML = 'جاري التحميل...'; reports.innerHTML = 'جاري التحميل...';
+      const [{data:p, error:pe}, {data:r, error:re}] = await Promise.all([
+        supabaseClient.from('thoughts').select('id,author_name,text,status,created_at').eq('status','pending').order('created_at',{ascending:false}),
+        supabaseClient.from('reports').select('*').order('report_date',{ascending:false})
+      ]);
+      if(pe) pending.innerHTML = '<div class="owner-empty">تعذر تحميل المراجعات.</div>';
+      else pending.innerHTML = p?.length ? p.map(x=>`<div class="owner-item"><small>${escapeHTML(x.author_name||'مجهول')} · ${formatDate(x.created_at)}</small><p>${escapeHTML(x.text)}</p><div class="owner-item-actions"><button class="approve" onclick="ownerSetStatus(${x.id},'approved')">موافقة ✓</button><button class="reject" onclick="ownerDeleteThought(${x.id})">حذف 🗑️</button></div></div>`).join('') : '<div class="owner-empty">مفيش خواطر معلقة.</div>';
+      
+      if(re) reports.innerHTML = '<div class="owner-empty">تعذر تحميل البلاغات.</div>';
+      else reports.innerHTML = r?.length ? r.map(x=>`<div class="owner-item"><small>${escapeHTML(x.name||'مجهول')} · ${formatDate(x.report_date)}</small><p>${escapeHTML(x.thought||'')}</p></div>`).join('') : '<div class="owner-empty">مفيش بلاغات.</div>';
+      
+      await loadWeeklyPrompt();
+    }
+
+    async function ownerAddThought(){
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      const text = document.getElementById('owner-thought-text').value.trim(), author = document.getElementById('owner-thought-author').value.trim() || null;
+      if(!text) return alert('اكتب الخاطرة الأول.');
+      const { error } = await supabaseClient.from('thoughts').insert({author_name:author, text, status:'approved'});
+      if(error) return alert('حصل خطأ أثناء الإضافة.');
+      document.getElementById('owner-thought-text').value = '';
+      document.getElementById('owner-thought-author').value = '';
+      await loadOwnerDashboard(); await loadAllThoughts(); alert('اتضافت الخاطرة بنجاح ✓');
+    }
+
+    async function ownerSetStatus(id, status){
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      const { error } = await supabaseClient.from('thoughts').update({status}).eq('id', id);
+      if(error) return alert('حصل خطأ.');
+      await loadOwnerDashboard(); await loadAllThoughts();
+    }
+
+    async function ownerDeleteThought(id){
+      if(!confirm('تحذف الخاطرة دي؟')) return;
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      const { error } = await supabaseClient.from('thoughts').delete().eq('id', id);
+      if(error) return alert('حصل خطأ.');
+      await loadOwnerDashboard(); await loadAllThoughts();
+    }
+
+    async function loadGuestVoteStates(thoughtIds){
+      guestVoteStates = {};
+      if(!thoughtIds?.length) return;
+      try {
+        const { data, error } = await supabaseClient.rpc('get_guest_votes', {
+          p_guest_id: getGuestId(),
+          p_thought_ids: thoughtIds
+        });
+        if(error) throw error;
+        (data||[]).forEach(x=>{
+          guestVoteStates[x.thought_id] = Number(x.my_vote) === 1 ? 'up' : Number(x.my_vote) === -1 ? 'down' : '';
+        });
+      } catch(err){
+        console.warn('Could not load guest vote states', err);
+      }
+    }
+
+    async function loadAllThoughts(){
+      document.getElementById('owner-list').innerHTML = skeletons();
+      document.getElementById('visitor-list').innerHTML = skeletons();
+      allLoadedThoughts = [];
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('thoughts')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count')
+          .eq('status', 'approved')
+          .order('created_at', {ascending:false});
+
+        if(error) throw error;
+        const rows = (data || []).filter(i=>i?.text);
+        await loadGuestVoteStates(rows.map(i=>i.id));
+
+        rawOwnerData = rows.filter(i=>!i.author_name).map(i=>({
+          id: i.id, thought: i.text, name: '', date: formatDate(i.created_at), rawDate: i.created_at, category_id: i.category_id,
+          upvotes: i.upvotes_count || 0, downvotes: i.downvotes_count || 0
+        }));
+
+        rawVisitorData = rows.filter(i=>!!i.author_name).map(i=>({
+          id: i.id, thought: i.text, name: i.author_name, date: formatDate(i.created_at), rawDate: i.created_at, category_id: i.category_id,
+          upvotes: i.upvotes_count || 0, downvotes: i.downvotes_count || 0
+        }));
+
+        allLoadedThoughts = [...rawOwnerData, ...rawVisitorData];
+        renderOwnerThoughts(); renderVisitorThoughts(); updateStats();
+      } catch(err){
+        console.error('Supabase load error', err);
+        rawOwnerData = []; rawVisitorData = []; allLoadedThoughts = [];
+        document.getElementById('owner-list').innerHTML = errorState('مش قادرين نحمّل خواطرك دلوقتي.');
+        document.getElementById('visitor-list').innerHTML = errorState('مش قادرين نحمّل مشاركات الزوار دلوقتي.');
+      }
+    }
+
+    async function fireConfetti(){
+      try {
+        if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if(typeof window.confetti !== 'function'){
+          await new Promise((resolve,reject)=>{
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+            script.onload = resolve; script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+        if(typeof window.confetti === 'function') window.confetti({particleCount:70, spread:65, origin:{y:.65}});
+      } catch(err){
+        console.warn('Confetti unavailable', err);
+      }
+    }
+
+    async function sendThought(){
+      const input = document.getElementById('visitor-input'), text = input.value.trim(), btn = document.getElementById('send-btn');
+      if(!text){ input.focus(); return alert('اكتب حاجة الأول!'); }
+      if(text.length < 2) return alert('الخاطرة قصيرة أوي 😅');
+      if(text.length > 1200) return alert('الخاطرة طويلة. الحد الأقصى 1200 حرف.');
+      
+      const author = currentName || null;
+      const original = btn.textContent; 
+      btn.textContent = 'جاري الإرسال...'; 
+      btn.disabled = true; input.disabled = true;
+
+      try {
+        const { error } = await supabaseClient.from('thoughts').insert({author_name:author, text, status:'pending'});
+        if(error) throw error;
+        localStorage.removeItem('shakabeet_draft'); 
+        input.value = '';
+        localStorage.setItem('shakabeet_submissions', String((parseInt(localStorage.getItem('shakabeet_submissions')||'0',10)||0)+1));
+        document.getElementById('char-count').textContent = '0/1200';
+        addNotification('تم إرسال خاطرتك للمراجعة، ستظهر فور موافقة المالك 🎉', '✍️');
+        await fireConfetti(); 
+        alert('تم إرسال فكرتك بنجاح! هتظهر أول ما أوافق عليها 💙');
+      } catch(err){
+        console.error('Supabase submit error', err);
+        alert('الخاطرة لسه محفوظة عندك ❤️ حصلت مشكلة في الإرسال، حاول تاني.');
+      } finally {
+        btn.textContent = original; btn.disabled = false; input.disabled = false;
+      }
+    }
+
+    async function handleReport(encodedName, encodedThought, btnId){
+      const author = decodeURIComponent(encodedName), thought = decodeURIComponent(encodedThought), btn = document.getElementById(btnId);
+      if(!btn || btn.classList.contains('reported')) return;
+      if(!confirm('هل تريد الإبلاغ عن هذه المشاركة لمراجعتها؟')) return;
+      const original = btn.textContent;
+      btn.disabled = true; btn.textContent = '...';
+
+      try {
+        const { error } = await supabaseClient.from('reports').insert({name:author||'مجهول', thought, report_date:new Date().toISOString()});
+        if(error) throw error;
+        btn.textContent = 'تم ✓'; btn.classList.add('reported'); btn.title = 'تم الإبلاغ';
+        alert('شكراً لك، تم استلام البلاغ وسيتم مراجعة المحتوى.');
+      } catch(err){
+        console.error('Supabase report error', err);
+        btn.disabled = false; btn.textContent = original;
+        alert('حصلت مشكلة أثناء إرسال البلاغ، حاول مرة أخرى.');
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      trapModalFocus(e);
+      const zenOpen = document.getElementById('zen-modal').style.display === 'flex';
+      const randomOpen = document.getElementById('random-modal').style.display === 'flex';
+      if(zenOpen){
+        if(e.key === 'ArrowLeft') nextZenQuote();
+        else if(e.key === 'ArrowRight') prevZenQuote();
+        else if(e.key === 'Escape') closeZenMode();
+        return;
+      }
+      if(randomOpen && e.key === 'Escape') closeRandomModal();
+      if(e.key === 'Escape'){
+        if(document.getElementById('notifications-modal').style.display === 'flex') closeNotificationsModal();
+        if(document.getElementById('profile-modal').style.display === 'flex') closeProfile();
+        if(document.getElementById('achievements-modal').style.display === 'flex') closeAchievements();
+        if(document.getElementById('auth-modal').style.display === 'flex') closeAuthModal();
+        if(document.getElementById('owner-dashboard-modal').style.display === 'flex') closeOwnerDashboard();
+        if(document.getElementById('login-modal').style.display === 'flex') {
+          document.getElementById('login-modal').style.display = 'none';
+          document.body.classList.remove('modal-open');
+        }
+      }
+      if(e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+        e.preventDefault(); toggleSearchBar();
+      }
+    });
+
+    document.getElementById('visitor-name').addEventListener('keydown', e => { if(e.key==='Enter') saveName(); });
+    document.getElementById('random-modal').addEventListener('click', e => { if(e.target.id==='random-modal') closeRandomModal(); });
+    document.getElementById('profile-modal').addEventListener('click', e => { if(e.target.id==='profile-modal') closeProfile(); });
+    document.getElementById('achievements-modal').addEventListener('click', e => { if(e.target.id==='achievements-modal') closeAchievements(); });
+    document.getElementById('notifications-modal').addEventListener('click', e => { if(e.target.id==='notifications-modal') closeNotificationsModal(); });
+
+    // تشغيل فوري وتلقائي لكافة خواص الموقع
+    initSite();
+  </script>
+</body>
+</html>
+
