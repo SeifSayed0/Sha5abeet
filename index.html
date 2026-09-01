@@ -380,10 +380,10 @@
     <header class="site-header"><div class="welcome-row"><span>مرحباً</span><span id="user-display" class="welcome-name"></span><span aria-hidden="true">☕</span><button class="edit-name-btn" type="button" onclick="editName()">تعديل الاسم ✏️</button></div><h1 class="site-title">شخابيط!💭</h1><p class="site-tagline">اكتب اللي في بالك، واقرأ شخابيط غيرك.</p><div class="stats-bar" aria-label="إحصائيات الموقع"><span class="stat-badge">📌 الخواطر: <strong id="total-thoughts-count">0</strong></span><span class="stat-badge">🔥 التفاعلات: <strong id="total-votes-count">0</strong></span></div></header>
 
     <main>
-      <section class="add-box" id="composer-section" aria-labelledby="composer-title"><div class="weekly-prompt"><span class="prompt-icon" aria-hidden="true">💡</span><div><span class="prompt-label">سؤال الأسبوع</span><p class="prompt-text" id="weekly-prompt-text">جاري تحميل السؤال... ✨</p></div></div><h2 id="composer-title" class="composer-title">عندك إجابة أو خاطرة عايز تشاركها؟ ✨</h2><p class="composer-note">هتتعرض بعد المراجعة والموافقة.</p><label class="sr-only" for="visitor-input">اكتب خاطرتك</label><textarea id="visitor-input" rows="4" maxlength="1200" placeholder="اكتب فكرتك أو إجابتك هنا..." enterkeyhint="send"></textarea><div class="composer-meta"><span>حد أقصى 1200 حرف</span><span id="char-count">0/1200</span></div><button class="primary-btn composer-submit" id="send-btn" type="button" onclick="sendThought()">إرسال الفكرة ✨</button></section>
+      <section class="add-box" id="composer-section" aria-labelledby="composer-title"><div class="weekly-prompt"><span class="prompt-icon" aria-hidden="true">💡</span><div><span class="prompt-label">سؤال الأسبوع</span><p class="prompt-text" id="weekly-prompt-text">جاري تحميل السؤال... ✨</p></div></div><h2 id="composer-title" class="composer-title">مساحة فاضية للي يدور في بالك.. شخبط هنا</h2><p class="composer-note">هنقرأها وننزلها فوراً لو شبه المكان ☕</p><label class="sr-only" for="visitor-input">اكتب خاطرتك</label><textarea id="visitor-input" rows="4" maxlength="1200" placeholder="اكتب فكرتك أو إجابتك هنا..." enterkeyhint="send"></textarea><div class="composer-meta"><span>حد أقصى 1200 حرف</span><span id="char-count">0/1200</span></div><button class="primary-btn composer-submit" id="send-btn" type="button" onclick="sendThought()">شخبط وابعت ✍️ </button></section>
       <div id="category-bar" class="category-bar" aria-label="تصنيف الخواطر"></div>
       <section class="daily-card" id="daily-card" aria-labelledby="daily-heading" hidden>
-        <span class="daily-label" id="daily-heading">✨ شخابيطة اليوم</span>
+        <span class="daily-label" id="daily-heading">✨ شخبطة اليوم</span>
         <p class="daily-text" id="daily-text"></p><span class="daily-author" id="daily-author"></span>
       </section>
       <section class="discovery-bar" aria-label="استكشاف المحتوى">
@@ -603,7 +603,7 @@
         favs = favs.filter(favId => favId !== id);
       } else {
         favs.push(id);
-        addNotification('أضفت خاطرة جديدة إلى ركنك المفضل ⭐', '⭐');
+        addNotification('شيلتهالك في جيبك 🌟', '⭐');
       }
       localStorage.setItem('shakabeet_favs', JSON.stringify(favs));
       bumpLocalAction();
@@ -637,7 +637,7 @@
         btnElement.style.color = 'var(--success)';
         setTimeout(()=>{ btnElement.innerHTML = original; btnElement.style.color = ''; }, 1500);
       } catch {
-        alert('تعذر النسخ التلقائي، يمكنك نسخ النص يدويًا.');
+        alert('تعذر النسخ التلقائي، يمكنك معاك في الحافظة 📋 يدويًا.');
       }
     }
 
@@ -853,7 +853,7 @@
               </span>
               <div class="card-actions">
                 <button class="action-sub-btn fav-btn ${fav?'is-fav':''}" type="button" onclick="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'★':'☆'}</button>
-                <button class="action-sub-btn" type="button" onclick="copyThought('${enc(i.thought)}',this)" title="نسخ النص" aria-label="نسخ النص">📋</button>
+                <button class="action-sub-btn" type="button" onclick="copyThought('${enc(i.thought)}',this)" title="معاك في الحافظة 📋" aria-label="معاك في الحافظة 📋">📋</button>
                 <button class="action-sub-btn" type="button" onclick="shareAsImage('${enc(i.thought)}','',this)" title="مشاركة" aria-label="مشاركة الخاطرة">📸</button>
                 ${createVoteBarHTML('Owner', i.id, i.upvotes, i.downvotes)}
               </div>
@@ -881,7 +881,7 @@
               <span class="card-meta">كتبها: <button class="profile-link" type="button" onclick="openProfile('${enc(i.name||'زائر')}')">${escapeHTML(i.name||'زائر')}</button></span>
               <div class="card-actions">
                 <button class="action-sub-btn fav-btn ${fav?'is-fav':''}" type="button" onclick="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'★':'☆'}</button>
-                <button class="action-sub-btn" type="button" onclick="copyThought('${enc(i.thought)}',this)" title="نسخ النص" aria-label="نسخ النص">📋</button>
+                <button class="action-sub-btn" type="button" onclick="copyThought('${enc(i.thought)}',this)" title="معاك في الحافظة 📋" aria-label="معاك في الحافظة 📋">📋</button>
                 <button class="action-sub-btn" type="button" onclick="shareAsImage('${enc(i.thought)}','${enc(i.name||'')}',this)" title="مشاركة" aria-label="مشاركة الخاطرة">📸</button>
                 ${createVoteBarHTML('Visitors', i.id, i.upvotes, i.downvotes)}
                 <button class="action-sub-btn report-btn" id="${reportId}" type="button" onclick="handleReport('${enc(i.name||'')}','${enc(i.thought)}','${reportId}')" title="إبلاغ" aria-label="الإبلاغ عن المشاركة">🚩</button>
@@ -1033,7 +1033,7 @@
         ['📚','كاتب مميز','أرسلت 3 خواطر أو أكثر', submissions >= 3],
         ['🔥','متفاعل مستمر','قمت بأكثر من 10 تفاعلات', actions >= 10],
         ['🌟','جامع الأثر','حفظت 5 خواطر في المفضلة', favs >= 5],
-        ['📅','صديق الرواق','عدت للموقع 3 أيام متتالية', streak >= 3],
+        ['📅','صديق الرواق','عدت للموقع 3 أيام بنشوفك هنا.. منور المكان 🕯️', streak >= 3],
         ['🌙','عاشق الليل','استخدمت وضع الرواق وتصفحت 10 خواطر', actions >= 20]
       ];
 
@@ -1373,7 +1373,7 @@
         document.getElementById('char-count').textContent = '0/1200';
         addNotification('تم إرسال خاطرتك للمراجعة، ستظهر فور موافقة المالك 🎉', '✍️');
         await fireConfetti(); 
-        alert('تم إرسال فكرتك بنجاح! هتظهر أول ما أوافق عليها 💙');
+        alert('وصلت، هشوفها وأنزلها علطول تسلم ايدك ✨');
       } catch(err){
         console.error('Supabase submit error', err);
         alert('الخاطرة لسه محفوظة عندك ❤️ حصلت مشكلة في الإرسال، حاول تاني.');
