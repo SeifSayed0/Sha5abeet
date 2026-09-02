@@ -986,7 +986,7 @@
     
     
 
-    async function openProfile(encodedName){
+        async function openProfile(encodedName){
       const name = decodeURIComponent(encodedName); 
       profileAuthor = name; 
       const all = [...rawOwnerData,...rawVisitorData].filter(i=>String(i?.name||'صاحب المساحة')===name || (name===currentName && !i?.name));
@@ -996,18 +996,53 @@
       const saved = getFavoritesSafe().filter(id=>all.some(i=>id===`thought_${i.id}_${i.name||'owner'}`)).length;
       document.getElementById('profile-favorites').textContent = saved;
       
-      const stats = await getUserStats(name);
-      document.getElementById('stat-my-votes-count').textContent = stats.votesMade;
-      document.getElementById('stat-net-votes-received').textContent = stats.netVotes;
-      document.getElementById('stat-my-thoughts-count').textContent = stats.thoughtsCount;
-      document.getElementById('stat-pending-thoughts-count').textContent = stats.pendingCount;
+      // 1. تجميع ودمج كل التصويتات القديمة والجديدة
+      let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('vote_state_')) {
+          const val = localStorage.getItem(key);
+          if (val === 'up' || val === 'down') {
+            const id = key.replace('vote_state_', '');
+            myVotesList[id] = val === 'up' ? 1 : -1;
+          }
+        }
+      }
+      localStorage.setItem('shakabeet_my_votes_list', JSON.stringify(myVotesList));
+      const totalVotesMade = Object.keys(myVotesList).length;
+      document.getElementById('stat-my-votes-count').textContent = totalVotesMade;
+
+      // 2. صافي الفوتس
+      const totalUpReceived = all.reduce((acc, i) => acc + (parseInt(i.upvotes) || 0), 0);
+      const totalDownReceived = all.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
+      const netVotesReceived = totalUpReceived - totalDownReceived;
+      document.getElementById('stat-net-votes-received').textContent = netVotesReceived;
+
+      // 3. عدد الخواطر
+      document.getElementById('stat-my-thoughts-count').textContent = all.length;
+
+      // 4. الخواطر المعلقة
+      let pendingCount = 0;
+      try {
+        const { count } = await supabaseClient
+          .from('thoughts')
+          .select('*', { count: 'exact', head: true })
+          .eq('author_name', name)
+          .eq('status', 'pending');
+        pendingCount = count || 0;
+      } catch(e) {
+        pendingCount = 0;
+      }
+      document.getElementById('stat-pending-thoughts-count').textContent = pendingCount;
 
       updateFollowButton(); 
       lastFocusedElement = document.activeElement;
       document.getElementById('profile-modal').style.display = 'flex';
       document.body.classList.add('modal-open');
       document.getElementById('profile-follow-btn').focus();
-    }
+        }
+    
+    
 
     async function sendUserMessageToOwner(){
       const msgInput = document.getElementById('user-to-owner-msg');
