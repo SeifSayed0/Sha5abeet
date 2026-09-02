@@ -947,8 +947,8 @@
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem('shakabeet_following')||'[]')}catch{return[]} }
 
-          async function getUserStats(targetName){
-      // 1. تجميع كل التصويتات بدقة
+        async function getUserStats(targetName){
+      // 1. تجميع كل التصويتات
       let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -964,14 +964,18 @@
       const votesMade = Object.keys(myVotesList).length;
 
       const currentGuest = getGuestId();
-      const isMyProfile = (targetName === currentName || targetName === 'صاحب المساحة');
+      const isOwner = await checkOwner();
+      const isMyProfile = (targetName === currentName || targetName === 'صاحب المساحة' || (isOwner && !targetName));
 
-      // 2. تجميع الخواطر (مطابقة الـ ID أو مطابقة الاسم)
+      // 2. تجميع الخواطر
       const userThoughts = [...rawOwnerData, ...rawVisitorData].filter(i => {
+        // لو المالك فاتح بروفايله، يجمع خواطر صاحب المساحة اللي من غير اسم + خواطره
+        if (isOwner && isMyProfile) {
+          if (!i?.name || i?.name === 'صاحب المساحة' || i?.name === currentName) return true;
+        }
         if (targetName === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
         if (isMyProfile) {
-          // لو الخاطرة من نفس الجهاز أو متسجلة باسم المستخدم الحالي
-          return (i.guest_id && i.guest_id === currentGuest) || (i.name === targetName);
+          return (i.guest_id && i.guest_id === currentGuest) || (i.name && i.name === targetName);
         }
         return i?.name === targetName;
       });
@@ -980,21 +984,15 @@
       const totalDown = userThoughts.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
       const netVotes = totalUp - totalDown;
 
-      // 3. فحص الخواطر المعلقة باستعلام مباشر وسليم 100%
+      // 3. فحص الخواطر المعلقة
       let pendingCount = 0;
       try {
         if (isMyProfile) {
-          // استعلام بالـ guest_id وبالاسم في نفس الوقت لتجنب أخطاء صيغ Supabase
-          const [{ data: byGuest }, { data: byName }] = await Promise.all([
-            supabaseClient.from('thoughts').select('id').eq('status', 'pending').eq('guest_id', currentGuest),
-            supabaseClient.from('thoughts').select('id').eq('status', 'pending').eq('author_name', targetName)
+          const [{ count: cGuest }, { count: cName }] = await Promise.all([
+            supabaseClient.from('thoughts').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('guest_id', currentGuest),
+            supabaseClient.from('thoughts').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('author_name', targetName)
           ]);
-          
-          const combined = new Set([
-            ...(byGuest || []).map(x => x.id),
-            ...(byName || []).map(x => x.id)
-          ]);
-          pendingCount = combined.size;
+          pendingCount = Math.max(cGuest || 0, cName || 0);
         } else {
           const { count } = await supabaseClient
             .from('thoughts')
@@ -1014,12 +1012,16 @@
       const name = decodeURIComponent(encodedName); 
       profileAuthor = name; 
       const currentGuest = getGuestId();
-      const isMyProfile = (name === currentName || name === 'صاحب المساحة');
+      const isOwner = await checkOwner();
+      const isMyProfile = (name === currentName || name === 'صاحب المساحة' || (isOwner && !name));
 
       const all = [...rawOwnerData, ...rawVisitorData].filter(i => {
+        if (isOwner && isMyProfile) {
+          if (!i?.name || i?.name === 'صاحب المساحة' || i?.name === currentName) return true;
+        }
         if (name === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
         if (isMyProfile) {
-          return (i.guest_id && i.guest_id === currentGuest) || (i.name === name);
+          return (i.guest_id && i.guest_id === currentGuest) || (i.name && i.name === name);
         }
         return i?.name === name;
       });
@@ -1042,6 +1044,8 @@
       document.body.classList.add('modal-open');
       document.getElementById('profile-follow-btn').focus();
     }
+    
+
     
       
 
