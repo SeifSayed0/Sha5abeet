@@ -472,6 +472,22 @@
       try { return JSON.parse(localStorage.getItem('shakabeet_my_thought_ids') || '[]'); } catch { return []; }
     }
 
+    // ترقية وتوحيد الخواطر القديمة: وضع الـ guest_id في السيرفر لأي خاطرة مسجلة محلياً
+    async function syncLegacyThoughtsToGuestId() {
+      const localIds = getDeviceThoughtIds();
+      const guestId = getGuestId();
+      if (!localIds.length) return;
+      try {
+        await supabaseClient
+          .from('thoughts')
+          .update({ guest_id: guestId })
+          .in('id', localIds)
+          .is('guest_id', null);
+      } catch (err) {
+        console.warn('Legacy sync notice', err);
+      }
+    }
+
     let currentName = localStorage.getItem('site_user') || '';
     let rawOwnerData = [];
     let rawVisitorData = [];
@@ -610,9 +626,9 @@
       updateNotificationBadge();
       checkSocialHooks();
       checkRemoteNotifications();
-      loadAllThoughts().then(()=>{
+      loadAllThoughts().then(async ()=>{
         showDailyThought();
-        // ربط الخواطر السابقة التي أرسلها صاحب هذا الجهاز تلقائياً
+        // تجميع الخواطر القديمة وحفظها محلياً لمرة واحدة
         if (!localStorage.getItem('shakabeet_migrated_legacy')) {
           const myOldNames = ['Seif', currentName].filter(Boolean);
           const myOldIds = [...rawOwnerData, ...rawVisitorData]
@@ -626,6 +642,8 @@
             localStorage.setItem('shakabeet_migrated_legacy', 'true');
           }
         }
+        // رفع الـ guest_id للخواطر القديمة لتصبح موحدة في السيرفر
+        await syncLegacyThoughtsToGuestId();
       });
     }
 
@@ -967,7 +985,7 @@
     function getFollowed(){ try{return JSON.parse(localStorage.getItem('shakabeet_following')||'[]')}catch{return[]} }
 
     async function getUserStats(targetName){
-      // 1. تجميع كل التصويتات
+      // 1. حساب الفوتات المصوت بها من هذا الجهاز
       let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -986,7 +1004,7 @@
       const localIds = getDeviceThoughtIds();
       const isMyProfile = (targetName === currentName || targetName === 'صاحب المساحة');
 
-      // 2. تجميع الخواطر: الاعتماد على هوية الجهاز وقائمة المعرفات الخاصة به
+      // 2. تجميع الخواطر: الاعتماد المطلق على guest_id والسجل المحلي
       const userThoughts = [...rawOwnerData, ...rawVisitorData].filter(i => {
         if (isMyProfile) {
           const matchesGuest = (i.guest_id && i.guest_id === currentGuest);
@@ -1000,7 +1018,7 @@
       const totalDown = userThoughts.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
       const netVotes = totalUp - totalDown;
 
-      // 3. الخواطر المعلقة: دمج المعلق بسيرفر الـ guest_id والـ IDs المحلية
+      // 3. الخواطر المعلقة: دمج ما هو مسجل على السيرفر بـ guest_id مع المعلق المسجل محلياً
       let pendingCount = 0;
       try {
         if (isMyProfile) {
