@@ -1323,45 +1323,85 @@
       alert('تم تحديث سؤال الأسبوع بنجاح لجميع الزوار ✓');
     }
 
-    async function loadOwnerDashboard(){
+        async function loadOwnerDashboard(){
       if(!(await checkOwner())) return alert('غير مصرح.');
-      const pending = document.getElementById('owner-pending-list'), reports = document.getElementById('owner-reports-list'), msgsList = document.getElementById('owner-messages-list');
-      pending.innerHTML = 'جاري التحميل...'; reports.innerHTML = 'جاري التحميل...'; msgsList.innerHTML = 'جاري التحميل...';
+      const pending = document.getElementById('owner-pending-list');
+      const reports = document.getElementById('owner-reports-list');
+      const msgsList = document.getElementById('owner-messages-list');
       
-      const [{data:p, error:pe}, {data:r, error:re}, {data:m, error:me}] = await Promise.all([
-        supabaseClient.from('thoughts').select('id,author_name,text,status,created_at').eq('status','pending').order('created_at',{ascending:false}),
-        supabaseClient.from('reports').select('*').order('report_date',{ascending:false}),
-        supabaseClient.from('owner_messages').select('*').order('created_at', {ascending:false}).catch(()=>({data:null}))
-      ]);
+      pending.innerHTML = 'جاري التحميل...';
+      reports.innerHTML = 'جاري التحميل...';
+      msgsList.innerHTML = 'جاري التحميل...';
 
-      if(pe) pending.innerHTML = '<div class="owner-empty">تعذر تحميل المراجعات.</div>';
-      else pending.innerHTML = p?.length ? p.map(x=>`
-        <div class="owner-item">
-          <small>${escapeHTML(x.author_name||'مجهول')} · ${formatDate(x.created_at)}</small>
-          <p>${escapeHTML(x.text)}</p>
-          <div class="owner-item-actions" style="display:flex; gap:5px; margin-top:8px;">
-            <button class="approve" style="flex:1;" onclick="ownerSetStatus(${x.id},'approved')">موافقة ✓</button>
-            <button style="flex:1; background:var(--warning); color:#000;" onclick="ownerSendFeedbackPrompt(${x.id})">تعديل/ملاحظة ✏️</button>
-            <button class="reject" style="flex:1;" onclick="ownerDeleteThought(${x.id})">حذف 🗑️</button>
-          </div>
-        </div>`).join('') : '<div class="owner-empty">مفيش خواطر معلقة.</div>';
-      
-      if(re) reports.innerHTML = '<div class="owner-empty">تعذر تحميل البلاغات.</div>';
-      else reports.innerHTML = r?.length ? r.map(x=>`<div class="owner-item"><small>${escapeHTML(x.name||'مجهول')} · ${formatDate(x.report_date)}</small><p>${escapeHTML(x.thought||'')}</p></div>`).join('') : '<div class="owner-empty">مفيش بلاغات.</div>';
+      // 1. تحميل الخواطر المعلقة
+      try {
+        const { data: p, error: pe } = await supabaseClient
+          .from('thoughts')
+          .select('id,author_name,text,status,created_at')
+          .eq('status','pending')
+          .order('created_at',{ascending:false});
 
-      let allMsgs = m || [];
-      if(!allMsgs.length) {
-        try { allMsgs = JSON.parse(localStorage.getItem('shakabeet_owner_msgs') || '[]'); } catch(e){ allMsgs = []; }
+        if(pe || !p) throw pe;
+        pending.innerHTML = p.length ? p.map(x=>`
+          <div class="owner-item">
+            <small>${escapeHTML(x.author_name||'مجهول')} · ${formatDate(x.created_at)}</small>
+            <p>${escapeHTML(x.text)}</p>
+            <div class="owner-item-actions" style="display:flex; gap:5px; margin-top:8px;">
+              <button class="approve" style="flex:1;" onclick="ownerSetStatus(${x.id},'approved')">موافقة ✓</button>
+              <button style="flex:1; background:var(--warning); color:#000;" onclick="ownerSendFeedbackPrompt(${x.id})">تعديل/ملاحظة ✏️</button>
+              <button class="reject" style="flex:1;" onclick="ownerDeleteThought(${x.id})">حذف 🗑️</button>
+            </div>
+          </div>`).join('') : '<div class="owner-empty">مفيش خواطر معلقة.</div>';
+      } catch(err) {
+        pending.innerHTML = '<div class="owner-empty">تعذر تحميل المراجعات.</div>';
       }
-      msgsList.innerHTML = allMsgs.length ? allMsgs.map(x=>`
-        <div class="owner-item" style="background:#090d16; border:1px solid rgba(56,189,248,.3);">
-          <small style="color:var(--primary);">من: ${escapeHTML(x.sender_name || x.sender || 'مجهول')} · ${formatDate(x.created_at || x.date)}</small>
-          <p style="margin-top:4px;">${escapeHTML(x.message)}</p>
-        </div>`).join('') : '<div class="owner-empty">مفيش رسائل جديدة من المستخدمين.</div>';
+
+      // 2. تحميل البلاغات
+      try {
+        const { data: r, error: re } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .order('report_date',{ascending:false});
+
+        if(re || !r) throw re;
+        reports.innerHTML = r.length ? r.map(x=>`
+          <div class="owner-item">
+            <small>${escapeHTML(x.name||'مجهول')} · ${formatDate(x.report_date)}</small>
+            <p>${escapeHTML(x.thought||'')}</p>
+          </div>`).join('') : '<div class="owner-empty">مفيش بلاغات.</div>';
+      } catch(err) {
+        reports.innerHTML = '<div class="owner-empty">تعذر تحميل البلاغات.</div>';
+      }
+
+      // 3. تحميل رسائل المستخدمين
+      try {
+        const { data: m, error: me } = await supabaseClient
+          .from('owner_messages')
+          .select('*')
+          .order('created_at', {ascending:false});
+
+        let allMsgs = m || [];
+        if(!allMsgs.length) {
+          try { allMsgs = JSON.parse(localStorage.getItem('shakabeet_owner_msgs') || '[]'); } catch(e){ allMsgs = []; }
+        }
+        msgsList.innerHTML = allMsgs.length ? allMsgs.map(x=>`
+          <div class="owner-item" style="background:#090d16; border:1px solid rgba(56,189,248,.3);">
+            <small style="color:var(--primary);">من: ${escapeHTML(x.sender_name || x.sender || 'مجهول')} · ${formatDate(x.created_at || x.date)}</small>
+            <p style="margin-top:4px;">${escapeHTML(x.message)}</p>
+          </div>`).join('') : '<div class="owner-empty">مفيش رسائل جديدة من المستخدمين.</div>';
+      } catch(err) {
+        let localMsgs = [];
+        try { localMsgs = JSON.parse(localStorage.getItem('shakabeet_owner_msgs') || '[]'); } catch(e){}
+        msgsList.innerHTML = localMsgs.length ? localMsgs.map(x=>`
+          <div class="owner-item" style="background:#090d16; border:1px solid rgba(56,189,248,.3);">
+            <small style="color:var(--primary);">من: ${escapeHTML(x.sender_name || 'مجهول')}</small>
+            <p style="margin-top:4px;">${escapeHTML(x.message)}</p>
+          </div>`).join('') : '<div class="owner-empty">مفيش رسائل جديدة من المستخدمين.</div>';
+      }
 
       await loadWeeklyPrompt();
-    }
-
+        }
+    
     async function ownerSendFeedbackPrompt(id){
       const note = prompt('اكتب الملاحظة أو التعديل المطلوب إرساله لصاحب الخاطرة:');
       if(!note) return;
