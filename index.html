@@ -947,7 +947,8 @@
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem('shakabeet_following')||'[]')}catch{return[]} }
 
-    async function getUserStats(targetName){
+        async function getUserStats(targetName){
+      // 1. تجميع كل التصويتات بدقة
       let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -965,9 +966,16 @@
       const currentGuest = getGuestId();
       const isMyProfile = (targetName === currentName || targetName === 'صاحب المساحة');
 
-      const userThoughts = [...rawOwnerData,...rawVisitorData].filter(i => {
+      // 2. تجميع الخواطر (القديمة بالاسم + الجديدة بالـ guest_id)
+      const userThoughts = [...rawOwnerData, ...rawVisitorData].filter(i => {
         if (targetName === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
-        if (isMyProfile && i.guest_id) return i.guest_id === currentGuest;
+        
+        // لو بروفايلي: طابق الـ guest_id لو موجود، أو طابق الاسم لو خاطرة قديمة مفيهاش id
+        if (isMyProfile) {
+          if (i.guest_id && i.guest_id === currentGuest) return true;
+          if (!i.guest_id && i.name === targetName) return true;
+          return false;
+        }
         return i?.name === targetName;
       });
 
@@ -975,32 +983,52 @@
       const totalDown = userThoughts.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
       const netVotes = totalUp - totalDown;
 
+      // 3. فحص الخواطر المعلقة بالـ guest_id والاسم معاً
       let pendingCount = 0;
       try {
         let query = supabaseClient.from('thoughts').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+        
         if (isMyProfile) {
-          query = query.eq('guest_id', currentGuest);
+          // جلب المعلق بالجهاز أو بالاسم لو قديم
+          query = query.or(`guest_id.eq.${currentGuest},and(author_name.eq.${targetName},guest_id.is.null)`);
         } else {
           query = query.eq('author_name', targetName);
         }
-        const { count } = await query;
-        pendingCount = count || 0;
+        
+        const { count, error } = await query;
+        if (!error && count !== null) {
+          pendingCount = count;
+        } else {
+          // Fallback مباشر بالـ guest_id لو الـ or مش مدعومة في نسختك
+          const { count: cGuest } = await supabaseClient
+            .from('thoughts')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending')
+            .eq('guest_id', currentGuest);
+          pendingCount = cGuest || 0;
+        }
       } catch(e) {
         pendingCount = 0;
       }
 
       return { votesMade, netVotes, thoughtsCount: userThoughts.length, pendingCount };
-    }
-
+        }
+    
+    
+    
     async function openProfile(encodedName){
       const name = decodeURIComponent(encodedName); 
       profileAuthor = name; 
       const currentGuest = getGuestId();
       const isMyProfile = (name === currentName || name === 'صاحب المساحة');
 
-      const all = [...rawOwnerData,...rawVisitorData].filter(i => {
+      const all = [...rawOwnerData, ...rawVisitorData].filter(i => {
         if (name === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
-        if (isMyProfile && i.guest_id) return i.guest_id === currentGuest;
+        if (isMyProfile) {
+          if (i.guest_id && i.guest_id === currentGuest) return true;
+          if (!i.guest_id && i.name === name) return true;
+          return false;
+        }
         return i?.name === name;
       });
 
@@ -1022,6 +1050,7 @@
       document.body.classList.add('modal-open');
       document.getElementById('profile-follow-btn').focus();
     }
+
 
     async function sendUserMessageToOwner(){
       const msgInput = document.getElementById('user-to-owner-msg');
