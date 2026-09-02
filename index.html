@@ -947,8 +947,20 @@
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem('shakabeet_following')||'[]')}catch{return[]} }
 
-    async function getUserStats(targetName){
-      const myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
+        async function getUserStats(targetName){
+      // دمج وقراءة كل التصويتات القديمة والجديدة
+      let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('vote_state_')) {
+          const val = localStorage.getItem(key);
+          if (val === 'up' || val === 'down') {
+            const id = key.replace('vote_state_', '');
+            myVotesList[id] = val === 'up' ? 1 : -1;
+          }
+        }
+      }
+      localStorage.setItem('shakabeet_my_votes_list', JSON.stringify(myVotesList));
       const votesMade = Object.keys(myVotesList).length;
 
       const userThoughts = [...rawOwnerData,...rawVisitorData].filter(i=>String(i?.name||'صاحب المساحة')===targetName || (targetName===currentName && !i?.name));
@@ -970,6 +982,9 @@
 
       return { votesMade, netVotes, thoughtsCount: userThoughts.length, pendingCount };
     }
+    
+    
+    
 
     async function openProfile(encodedName){
       const name = decodeURIComponent(encodedName); 
