@@ -947,8 +947,7 @@
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem('shakabeet_following')||'[]')}catch{return[]} }
 
-        async function getUserStats(targetName){
-      // دمج وقراءة كل التصويتات القديمة والجديدة
+    async function getUserStats(targetName){
       let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -963,18 +962,28 @@
       localStorage.setItem('shakabeet_my_votes_list', JSON.stringify(myVotesList));
       const votesMade = Object.keys(myVotesList).length;
 
-      const userThoughts = [...rawOwnerData,...rawVisitorData].filter(i=>String(i?.name||'صاحب المساحة')===targetName || (targetName===currentName && !i?.name));
+      const currentGuest = getGuestId();
+      const isMyProfile = (targetName === currentName || targetName === 'صاحب المساحة');
+
+      const userThoughts = [...rawOwnerData,...rawVisitorData].filter(i => {
+        if (targetName === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
+        if (isMyProfile && i.guest_id) return i.guest_id === currentGuest;
+        return i?.name === targetName;
+      });
+
       const totalUp = userThoughts.reduce((acc, i) => acc + (parseInt(i.upvotes) || 0), 0);
       const totalDown = userThoughts.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
       const netVotes = totalUp - totalDown;
 
       let pendingCount = 0;
       try {
-        const { count } = await supabaseClient
-          .from('thoughts')
-          .select('*', { count: 'exact', head: true })
-          .eq('author_name', targetName)
-          .eq('status', 'pending');
+        let query = supabaseClient.from('thoughts').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+        if (isMyProfile) {
+          query = query.eq('guest_id', currentGuest);
+        } else {
+          query = query.eq('author_name', targetName);
+        }
+        const { count } = await query;
         pendingCount = count || 0;
       } catch(e) {
         pendingCount = 0;
@@ -982,67 +991,37 @@
 
       return { votesMade, netVotes, thoughtsCount: userThoughts.length, pendingCount };
     }
-    
-    
-    
 
-        async function openProfile(encodedName){
+    async function openProfile(encodedName){
       const name = decodeURIComponent(encodedName); 
       profileAuthor = name; 
-      const all = [...rawOwnerData,...rawVisitorData].filter(i=>String(i?.name||'صاحب المساحة')===name || (name===currentName && !i?.name));
+      const currentGuest = getGuestId();
+      const isMyProfile = (name === currentName || name === 'صاحب المساحة');
+
+      const all = [...rawOwnerData,...rawVisitorData].filter(i => {
+        if (name === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
+        if (isMyProfile && i.guest_id) return i.guest_id === currentGuest;
+        return i?.name === name;
+      });
+
       document.getElementById('profile-name').textContent = name;
       document.getElementById('profile-thoughts').textContent = all.length;
       document.getElementById('profile-votes').textContent = all.reduce((n,i)=>n+(parseInt(i.upvotes)||0)+(parseInt(i.downvotes)||0),0);
       const saved = getFavoritesSafe().filter(id=>all.some(i=>id===`thought_${i.id}_${i.name||'owner'}`)).length;
       document.getElementById('profile-favorites').textContent = saved;
       
-      // 1. تجميع ودمج كل التصويتات القديمة والجديدة
-      let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('vote_state_')) {
-          const val = localStorage.getItem(key);
-          if (val === 'up' || val === 'down') {
-            const id = key.replace('vote_state_', '');
-            myVotesList[id] = val === 'up' ? 1 : -1;
-          }
-        }
-      }
-      localStorage.setItem('shakabeet_my_votes_list', JSON.stringify(myVotesList));
-      const totalVotesMade = Object.keys(myVotesList).length;
-      document.getElementById('stat-my-votes-count').textContent = totalVotesMade;
-
-      // 2. صافي الفوتس
-      const totalUpReceived = all.reduce((acc, i) => acc + (parseInt(i.upvotes) || 0), 0);
-      const totalDownReceived = all.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
-      const netVotesReceived = totalUpReceived - totalDownReceived;
-      document.getElementById('stat-net-votes-received').textContent = netVotesReceived;
-
-      // 3. عدد الخواطر
-      document.getElementById('stat-my-thoughts-count').textContent = all.length;
-
-      // 4. الخواطر المعلقة
-      let pendingCount = 0;
-      try {
-        const { count } = await supabaseClient
-          .from('thoughts')
-          .select('*', { count: 'exact', head: true })
-          .eq('author_name', name)
-          .eq('status', 'pending');
-        pendingCount = count || 0;
-      } catch(e) {
-        pendingCount = 0;
-      }
-      document.getElementById('stat-pending-thoughts-count').textContent = pendingCount;
+      const stats = await getUserStats(name);
+      document.getElementById('stat-my-votes-count').textContent = stats.votesMade;
+      document.getElementById('stat-net-votes-received').textContent = stats.netVotes;
+      document.getElementById('stat-my-thoughts-count').textContent = stats.thoughtsCount;
+      document.getElementById('stat-pending-thoughts-count').textContent = stats.pendingCount;
 
       updateFollowButton(); 
       lastFocusedElement = document.activeElement;
       document.getElementById('profile-modal').style.display = 'flex';
       document.body.classList.add('modal-open');
       document.getElementById('profile-follow-btn').focus();
-        }
-    
-    
+    }
 
     async function sendUserMessageToOwner(){
       const msgInput = document.getElementById('user-to-owner-msg');
@@ -1567,7 +1546,7 @@
       try {
         const { data, error } = await supabaseClient
           .from('thoughts')
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,guest_id')
           .eq('status', 'approved')
           .order('created_at', {ascending:false});
 
@@ -1577,12 +1556,12 @@
 
         rawOwnerData = rows.filter(i=>!i.author_name).map(i=>({
           id: i.id, thought: i.text, name: '', date: formatDate(i.created_at), rawDate: i.created_at, category_id: i.category_id,
-          prompt_question: i.prompt_question, upvotes: i.upvotes_count || 0, downvotes: i.downvotes_count || 0
+          prompt_question: i.prompt_question, guest_id: i.guest_id, upvotes: i.upvotes_count || 0, downvotes: i.downvotes_count || 0
         }));
 
         rawVisitorData = rows.filter(i=>!!i.author_name).map(i=>({
           id: i.id, thought: i.text, name: i.author_name, date: formatDate(i.created_at), rawDate: i.created_at, category_id: i.category_id,
-          prompt_question: i.prompt_question, upvotes: i.upvotes_count || 0, downvotes: i.downvotes_count || 0
+          prompt_question: i.prompt_question, guest_id: i.guest_id, upvotes: i.upvotes_count || 0, downvotes: i.downvotes_count || 0
         }));
 
         allLoadedThoughts = [...rawOwnerData, ...rawVisitorData];
@@ -1640,6 +1619,7 @@
           author_name: author,
           text: text,
           status: 'pending',
+          guest_id: getGuestId(),
           prompt_question: answeringWeeklyPrompt || null
         };
 
