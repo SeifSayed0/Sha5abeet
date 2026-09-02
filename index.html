@@ -947,7 +947,7 @@
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem('shakabeet_following')||'[]')}catch{return[]} }
 
-        async function getUserStats(targetName){
+          async function getUserStats(targetName){
       // 1. تجميع كل التصويتات بدقة
       let myVotesList = JSON.parse(localStorage.getItem('shakabeet_my_votes_list') || '{}');
       for (let i = 0; i < localStorage.length; i++) {
@@ -966,15 +966,12 @@
       const currentGuest = getGuestId();
       const isMyProfile = (targetName === currentName || targetName === 'صاحب المساحة');
 
-      // 2. تجميع الخواطر (القديمة بالاسم + الجديدة بالـ guest_id)
+      // 2. تجميع الخواطر (مطابقة الـ ID أو مطابقة الاسم)
       const userThoughts = [...rawOwnerData, ...rawVisitorData].filter(i => {
         if (targetName === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
-        
-        // لو بروفايلي: طابق الـ guest_id لو موجود، أو طابق الاسم لو خاطرة قديمة مفيهاش id
         if (isMyProfile) {
-          if (i.guest_id && i.guest_id === currentGuest) return true;
-          if (!i.guest_id && i.name === targetName) return true;
-          return false;
+          // لو الخاطرة من نفس الجهاز أو متسجلة باسم المستخدم الحالي
+          return (i.guest_id && i.guest_id === currentGuest) || (i.name === targetName);
         }
         return i?.name === targetName;
       });
@@ -983,39 +980,36 @@
       const totalDown = userThoughts.reduce((acc, i) => acc + (parseInt(i.downvotes) || 0), 0);
       const netVotes = totalUp - totalDown;
 
-      // 3. فحص الخواطر المعلقة بالـ guest_id والاسم معاً
+      // 3. فحص الخواطر المعلقة باستعلام مباشر وسليم 100%
       let pendingCount = 0;
       try {
-        let query = supabaseClient.from('thoughts').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-        
         if (isMyProfile) {
-          // جلب المعلق بالجهاز أو بالاسم لو قديم
-          query = query.or(`guest_id.eq.${currentGuest},and(author_name.eq.${targetName},guest_id.is.null)`);
+          // استعلام بالـ guest_id وبالاسم في نفس الوقت لتجنب أخطاء صيغ Supabase
+          const [{ data: byGuest }, { data: byName }] = await Promise.all([
+            supabaseClient.from('thoughts').select('id').eq('status', 'pending').eq('guest_id', currentGuest),
+            supabaseClient.from('thoughts').select('id').eq('status', 'pending').eq('author_name', targetName)
+          ]);
+          
+          const combined = new Set([
+            ...(byGuest || []).map(x => x.id),
+            ...(byName || []).map(x => x.id)
+          ]);
+          pendingCount = combined.size;
         } else {
-          query = query.eq('author_name', targetName);
-        }
-        
-        const { count, error } = await query;
-        if (!error && count !== null) {
-          pendingCount = count;
-        } else {
-          // Fallback مباشر بالـ guest_id لو الـ or مش مدعومة في نسختك
-          const { count: cGuest } = await supabaseClient
+          const { count } = await supabaseClient
             .from('thoughts')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pending')
-            .eq('guest_id', currentGuest);
-          pendingCount = cGuest || 0;
+            .eq('author_name', targetName);
+          pendingCount = count || 0;
         }
       } catch(e) {
         pendingCount = 0;
       }
 
       return { votesMade, netVotes, thoughtsCount: userThoughts.length, pendingCount };
-        }
-    
-    
-    
+    }
+
     async function openProfile(encodedName){
       const name = decodeURIComponent(encodedName); 
       profileAuthor = name; 
@@ -1025,9 +1019,7 @@
       const all = [...rawOwnerData, ...rawVisitorData].filter(i => {
         if (name === 'صاحب المساحة') return !i?.name || i?.name === 'صاحب المساحة';
         if (isMyProfile) {
-          if (i.guest_id && i.guest_id === currentGuest) return true;
-          if (!i.guest_id && i.name === name) return true;
-          return false;
+          return (i.guest_id && i.guest_id === currentGuest) || (i.name === name);
         }
         return i?.name === name;
       });
@@ -1050,6 +1042,11 @@
       document.body.classList.add('modal-open');
       document.getElementById('profile-follow-btn').focus();
     }
+    
+      
+
+      
+    
 
 
     async function sendUserMessageToOwner(){
