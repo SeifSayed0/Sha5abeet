@@ -1499,7 +1499,7 @@
       const authorName = decodeURIComponent(encAuthor || 'مجهول');
       const thoughtText = decodeURIComponent(encText || '');
       const snippet = thoughtText.length > 35 ? thoughtText.slice(0, 35) + '...' : thoughtText;
-      const fullMessage = `💬 بخصوص خاطرتك ("${snippet}"): ${note}`;
+      const fullMessage = `💬 المالك بيقولك بخصوص خاطرتك("${snippet}"): ${note}`;
 
       try {
         const { error } = await supabaseClient.from('user_notifications').insert({
