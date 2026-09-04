@@ -2324,25 +2324,34 @@
 
       try {
         const currentGuest = getGuestId();
-        const payload = {
-          author_name: author,
-          text: text,
-          status: 'pending',
-          guest_id: currentGuest,
-          allow_comments: allowCommentsSelected,
-          prompt_question: answeringWeeklyPrompt || null
-        };
 
-        const { data, error } = await supabaseClient.from('thoughts').insert(payload).select('id');
-        if(error) throw error;
-        
-        if (data && data[0]?.id) {
-          let myLocalIds = getDeviceThoughtIds();
-          if (!myLocalIds.includes(data[0].id)) {
-            myLocalIds.push(data[0].id);
-            localStorage.setItem('shakabeet_my_thought_ids', JSON.stringify(myLocalIds));
-          }
-        }
+const { data: thoughtId, error } = await supabaseClient.rpc(
+  'submit_thought',
+  {
+    p_author_name: author,
+    p_text: text,
+    p_guest_id: currentGuest,
+    p_allow_comments: allowCommentsSelected,
+    p_prompt_question: answeringWeeklyPrompt || null
+  }
+);
+
+if (error) throw error;
+
+if (thoughtId) {
+  let myLocalIds = getDeviceThoughtIds();
+
+  if (!myLocalIds.includes(thoughtId)) {
+    myLocalIds.push(thoughtId);
+
+    localStorage.setItem(
+      'shakabeet_my_thought_ids',
+      JSON.stringify(myLocalIds)
+    );
+  }
+}
+          
+      
 
         localStorage.removeItem('shakabeet_draft'); 
         input.value = '';
