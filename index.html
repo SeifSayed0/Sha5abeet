@@ -1032,6 +1032,64 @@ const SHA5ABEET_CONFIG = Object.freeze({
       return id;
     }
 
+    /* ==================== GROWTH / EVENT TRACKING ==================== */
+    const ANALYTICS_SESSION_KEY = 'shakabeet_analytics_session';
+    const ANALYTICS_VIEWED_KEY = 'shakabeet_analytics_viewed';
+    let analyticsSessionId = sessionStorage.getItem(ANALYTICS_SESSION_KEY);
+    if(!analyticsSessionId){
+      analyticsSessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(ANALYTICS_SESSION_KEY, analyticsSessionId);
+    }
+
+    async function trackEvent(eventName, metadata = {}, thoughtId = null){
+      try{
+        if(!eventName) return;
+        const payload = {
+          event_name: String(eventName),
+          visitor_id: getGuestId(),
+          session_id: analyticsSessionId,
+          thought_id: thoughtId ?? null,
+          metadata: metadata && typeof metadata === 'object' ? metadata : {},
+          page_path: location.pathname + location.search,
+          referrer: document.referrer || null
+        };
+        const {error} = await DB.from('analytics_events').insert(payload);
+        if(error) console.warn('Analytics event failed:', eventName, error.message);
+      }catch(err){ console.warn('Analytics tracking failed:', eventName, err); }
+    }
+
+    function markThoughtViewed(thoughtId){
+      if(thoughtId === null || thoughtId === undefined) return;
+      try{
+        const key=String(thoughtId);
+        const viewed=new Set(JSON.parse(sessionStorage.getItem(ANALYTICS_VIEWED_KEY)||'[]'));
+        if(viewed.has(key)) return;
+        viewed.add(key);
+        sessionStorage.setItem(ANALYTICS_VIEWED_KEY, JSON.stringify([...viewed].slice(-500)));
+        trackEvent('view_thought', {}, thoughtId);
+      }catch(e){}
+    }
+
+    function observeThoughtViews(){
+      if(!('IntersectionObserver' in window)) return;
+      if(!window.__SHAKABEET_VIEW_OBSERVER){
+        window.__SHAKABEET_VIEW_OBSERVER = new IntersectionObserver(entries=>{
+          entries.forEach(entry=>{
+            if(entry.isIntersecting && entry.intersectionRatio >= 0.35){
+              markThoughtViewed(entry.target.dataset.thoughtId);
+              window.__SHAKABEET_VIEW_OBSERVER.unobserve(entry.target);
+            }
+          });
+        }, {threshold:[0.35]});
+      }
+      document.querySelectorAll('.card[data-thought-id]').forEach(el=>{
+        if(!el.dataset.analyticsObserved){
+          el.dataset.analyticsObserved='1';
+          window.__SHAKABEET_VIEW_OBSERVER.observe(el);
+        }
+      });
+    }
+
     function getDeviceThoughtIds() {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.deviceThoughtIds) || '[]'); } catch { return []; }
     }
@@ -1503,6 +1561,8 @@ updateAchievements();
         addNotification('شيلتهالك في جيبك 🌟', '⭐');
       }
       localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(favs));
+      if (favs.includes(id)) trackEvent('favorite', {action:'add'}, String(id).match(/thought_(\d+)_/)?.[1] || null);
+      else trackEvent('favorite', {action:'remove'}, String(id).match(/thought_(\d+)_/)?.[1] || null);
       bumpLocalAction();
       updateFavBadgeCount();
       if(AppState.thoughts.onlyFavoritesMode){
@@ -2013,7 +2073,9 @@ updateAchievements();
         down.classList.toggle('active-down', state === -1);
         scoreEl.classList.toggle('score-up', score > 0);
         scoreEl.classList.toggle('score-down', score < 0);
-        updateStats(true); bumpLocalAction();
+        updateStats(true);
+        trackEvent('vote', {value: state}, target.id);
+        bumpLocalAction();
       } catch(err){
         console.error('Supabase vote error', err);
         alert('حصلت مشكلة في تسجيل التصويت.');
@@ -2106,6 +2168,7 @@ updateAchievements();
           </article>`;
       }).join(''));
       refreshCommentCounts(list.map(i=>i.id));
+      observeThoughtViews();
     }
 
     function renderVisitorThoughts(){
@@ -2155,6 +2218,7 @@ updateAchievements();
           </article>`;
       }).join(''));
       refreshCommentCounts(list.map(i=>i.id));
+      observeThoughtViews();
     }
     function initHorizontalActionScrollers(){
       if(window.__SHAKABEET_ACTION_SCROLL_READY) return;
@@ -2182,6 +2246,7 @@ updateAchievements();
       const today = new Date().toISOString().slice(0,10), key = 'shakabeet_last_visit', streakKey = 'shakabeet_streak';
       const last = localStorage.getItem(key); 
       let streak = parseInt(localStorage.getItem(streakKey)||'0',10) || 0;
+      const isReturn = !!last && last !== today;
       if(last === today){} 
       else if(last){
         const d = new Date(last+'T00:00:00'), now = new Date(today+'T00:00:00'), diff = Math.round((now-d)/86400000);
@@ -2192,6 +2257,8 @@ updateAchievements();
       AppState.engagement.streakDays = streak;
       const pill = $id('streak-pill');
       if(pill) pill.textContent = `🔥 ${streak} ${streak===1?'يوم':'أيام'} متتالية`;
+      trackEvent('visit', {is_return: isReturn});
+      if(isReturn) trackEvent('return_visit', {days_since_last_visit: last ? Math.max(0, Math.round((new Date(today)-new Date(last))/86400000)) : null});
     }
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.following)||'[]')}catch{return[]} }
@@ -3560,6 +3627,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
         }
 
         localStorage.setItem(STORAGE_KEYS.submissions, String((parseInt(localStorage.getItem(STORAGE_KEYS.submissions)||'0',10)||0)+1));
+        trackEvent('first_thought', {}, returnedThoughtId || null);
         $id('char-count').textContent = `0/${APP_CONFIG.maxThoughtLength}`;
         addNotification('تم إرسال خاطرتك للمراجعة، ستظهر فور موافقة المالك 🎉', '✍️');
         await updateStats();
