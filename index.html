@@ -836,8 +836,7 @@ const SHA5ABEET_CONFIG = Object.freeze({
 
       <section aria-labelledby="owner-heading"><div class="section-header"><h2 id="owner-heading">📌 خواطري وكتاباتي</h2><div class="sort-bar"><button class="sort-btn active" id="owner-sort-new" type="button" data-action="setSort('owner','newest')">الأحدث</button><button class="sort-btn" id="owner-sort-top" type="button" data-action="setSort('owner','top')">الأعلى 🔥</button></div></div><div id="owner-list" aria-live="polite"></div></section>
       <section aria-labelledby="visitor-heading"><div class="section-header"><h2 id="visitor-heading">💬 مشاركات الزوار</h2><div class="sort-bar"><button class="sort-btn active" id="visitor-sort-new" type="button" data-action="setSort('visitor','newest')">الأحدث</button><button class="sort-btn" id="visitor-sort-top" type="button" data-action="setSort('visitor','top')">الأعلى 🔥</button></div></div><div id="visitor-list" aria-live="polite"></div></section>
-      
-      <div style="text-align: center; margin: 30px auto 15px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="text-align: center; margin: 30px auto 15px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <span style="font-size: 10px; color: var(--muted-2); margin-bottom: 6px; display: block;">— إعلان —</span>
         <iframe 
           srcdoc="<!DOCTYPE html><html><head><meta charset='UTF-8'><style>body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;background:transparent;overflow:hidden;}</style></head><body><script>atOptions={'key':'6d7858aea445c095a181cb5b1fab1a38','format':'iframe','height':250,'width':300,'params':{}};</script><script src='https://www.highrevenueformat.com/6d7858aea445c095a181cb5b1fab1a38/invoke.js'></script></body></html>"
@@ -845,11 +844,12 @@ const SHA5ABEET_CONFIG = Object.freeze({
           height="250" 
           frameborder="0" 
           scrolling="no"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          
-          style="border:0; overflow:hidden; width:300px; height:250px; max-width:100%;">
+          sandbox="allow-scripts allow-same-origin"
+          style="border:0; overflow:hidden; width:300px; height:250px; max-width:100%; pointer-events: none;">
         </iframe>
-      </div>
+            </div>
+      
+    
 
     </main>
   </div>
