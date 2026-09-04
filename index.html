@@ -1,4 +1,4 @@
-<!-- SHAKABEET FINAL: STATE + DATA ACCESS ARCHITECTURE REFACTOR PASSED -->
+!-- SHAKABEET FINAL: STATE + DATA ACCESS ARCHITECTURE REFACTOR PASSED -->
 <!-- SHAKABEET FINAL EXPANDED BUILD -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -3351,7 +3351,7 @@ updateAchievements();
       if(!(await checkOwner())) return alert('غير مصرح.');
       const text = $id('owner-thought-text').value.trim();
       if(!text) return alert('اكتب الخاطرة الأول.');
-      const { error } = await DB.from(DB_TABLES.thoughts).insert({author_name: null, text, status:'approved', allow_comments:false});
+      const { error } = await DB.from(DB_TABLES.thoughts).insert({author_name: null, text, status:'approved', allow_comments:true});
       if(error) return alert('حصل خطأ أثناء الإضافة.');
       $id('owner-thought-text').value = '';
       await loadOwnerDashboard(); await loadAllThoughts(); alert('اتضافت الخاطرة بنجاح ✓');
