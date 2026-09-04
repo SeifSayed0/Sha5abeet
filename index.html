@@ -279,7 +279,7 @@
     <div class="modal-box" style="max-width: 490px; max-height: 85vh; overflow-y: auto; text-align: right;">
       <button class="modal-close" type="button" onclick="closeGuideModal()" aria-label="إغلاق">✕</button>
       <div class="login-logo" style="margin-bottom: 8px;">🗺️</div>
-      <h2 id="guide-title" style="font-size: 18px; color: var(--primary); margin-bottom: 4px; text-align: center;">دليل الرواق في شخابيط ☕</h2>
+      <h2 id="guide-title" style="font-size: 18px; color: var(--primary); margin-bottom: 4px; text-align: center;">دليل شخابيط ☕</h2>
       <p class="modal-subtitle" style="text-align: center; margin-bottom: 16px;">كل اللي محتاج تعرفه عشان تعيش التجربة كاملة:</p>
 
       <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.7;">
@@ -294,7 +294,7 @@
         </div>
 
         <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid var(--danger); border-radius: 10px; padding: 10px;">
-          <strong style="color: var(--danger); display: block;">🗑️ طلب حذف خاطرة:</strong>
+          <strong style="color: var(--danger); display: block;">🗑️ طلب حذف خاطرة (يوم او يومين وتشتغل):</strong>
           <span>لو نشرت خاطرة وحبيت تحذفها، تقدر ترسل طلب حذف مباشر للأدمن لمراجعتها وحذفها.</span>
         </div>
 
@@ -309,7 +309,7 @@
         </div>
 
         <div style="background: #0b1220; border: 1px solid var(--border); border-radius: 10px; padding: 10px;">
-          <strong style="color: var(--primary); display: block;">💬 التحكم في الردود:</strong>
+          <strong style="color: var(--primary); display: block;">💬 (يوم او يومين ويشتغل) التحكم في الردود:</strong>
           <span>تقدر تفتح أو تقفل باب النقاش على خواطرك براحتك من علامة (<code>💬</code> / <code>🚫💬</code>) في أي وقت.</span>
         </div>
 
@@ -591,12 +591,12 @@
         <label class="sr-only" for="visitor-input">اكتب خاطرتك</label>
         <textarea id="visitor-input" rows="4" maxlength="1200" placeholder="اكتب فكرتك أو إجابتك هنا..." enterkeyhint="send"></textarea>
         
-        <div style="display:flex; justify-content:flex-start;">
+      <!--  <div style="display:flex; justify-content:flex-start;">
           <button type="button" id="comment-toggle-btn" class="comment-toggle-pill" onclick="toggleAllowComments()">
             <span class="pill-dot"></span>
             <span id="comment-toggle-text">💬 الردود مقفولة (اضغط لفتحها)</span>
           </button>
-        </div>
+        </div> -->
 
         <div class="composer-meta"><span>حد أقصى 1200 حرف</span><span id="char-count">0/1200</span></div>
         <button class="primary-btn composer-submit" id="send-btn" type="button" onclick="sendThought()">شخبط وابعت ✍️</button>
@@ -1239,11 +1239,11 @@
       div.innerHTML = list.map(i=>{
         const id = `thought_${i.id}_owner`, fav = getFavoritesSafe().includes(id);
         const promptHtml = i.prompt_question ? `<div class="prompt-ref-badge">💡 إجابة سؤال الأسبوع: ${escapeHTML(i.prompt_question)}</div>` : '';
-        const commentsBtnHtml = (i.allow_comments === true) ? `
+        const commentsBtnHtml = ("") ? `
           <button class="action-sub-btn" type="button" onclick="openCommentsModal(${i.id})" title="ردود ونقاش" aria-label="عرض الردود">💬 ردود</button>
         ` : '';
 
-        const authorToggleHtml = isMyThought(i) ? `
+         const authorToggleHtml = ("") ? `
           <button class="action-sub-btn" type="button" onclick="toggleThoughtCommentsState(${i.id}, ${i.allow_comments === true})" title="${i.allow_comments ? 'الردود مفتوحة (اضغط لقفلها)' : 'الردود مقفولة (اضغط لفتحها)'}">${i.allow_comments ? '💬' : '🚫💬'}</button>
           <button class="action-sub-btn req-del-btn" type="button" onclick="requestDeleteThought(${i.id})" title="طلب حذف خاطرتي">🗑️</button>
         ` : '';
@@ -1281,11 +1281,11 @@
       div.innerHTML = list.map((i,index)=>{
         const id = `thought_${i.id}_${i.name}`, fav = getFavoritesSafe().includes(id), reportId = `rep-btn-${i.id}-${index}`;
         const promptHtml = i.prompt_question ? `<div class="prompt-ref-badge">💡 إجابة سؤال الأسبوع: ${escapeHTML(i.prompt_question)}</div>` : '';
-        const commentsBtnHtml = (i.allow_comments === true) ? `
+        const commentsBtnHtml = ("") ? `
           <button class="action-sub-btn" type="button" onclick="openCommentsModal(${i.id})" title="ردود ونقاش" aria-label="عرض الردود">💬 ردود</button>
         ` : '';
 
-        const authorToggleHtml = isMyThought(i) ? `
+        const authorToggleHtml = ("") ? `
           <button class="action-sub-btn" type="button" onclick="toggleThoughtCommentsState(${i.id}, ${i.allow_comments === true})" title="${i.allow_comments ? 'الردود مفتوحة (اضغط لقفلها)' : 'الردود مقفولة (اضغط لفتحها)'}">${i.allow_comments ? '💬' : '🚫💬'}</button>
           <button class="action-sub-btn req-del-btn" type="button" onclick="requestDeleteThought(${i.id})" title="طلب حذف خاطرتي">🗑️</button>
         ` : '';
