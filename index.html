@@ -652,7 +652,7 @@ const SHA5ABEET_CONFIG = Object.freeze({
       <div id="growth-metrics" class="profile-stats" style="grid-template-columns:repeat(2,1fr);"></div>
       <div id="growth-insights" style="margin-top:12px;"></div>
       <div style="margin-top:14px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:11px;color:var(--muted);line-height:1.8;">
-        <b style="color:var(--text);">ملاحظة:</b> DAU/WAU هنا محسوبين كمؤشر <b>نشاط كتاب</b> من الخواطر المنشورة خلال اليوم/الأسبوع. القياس الحقيقي لكل الزوار يحتاج Event Tracking مركزي في قاعدة البيانات.
+        <b style="color:var(--text);">ملاحظة:</b> الأرقام هنا مبنية على <b>Event Tracking مركزي</b> من قاعدة البيانات، وبتفصل بين الزائر والكاتب والتفاعل بدل الاعتماد على أسماء الكتّاب.
       </div>
     </div>
   </div>
@@ -1874,6 +1874,7 @@ updateAchievements();
         });
 
         if(error) throw error;
+        trackEvent('comment', {}, String(AppState.comments.activeThoughtId));
         alert('وصل ردك! هيتنشر بعد المراجعة  ✨');
         $id('comment-text-input').value = '';
         closeCommentsModal();
@@ -2020,10 +2021,13 @@ updateAchievements();
         const shareData = {title:'شخابيط 💭', text:'خاطرة من شخابيط', url:assertSafeUrl(directUrl)};
         if(navigator.share && navigator.canShare?.({files:[file]})){
           await navigator.share({...shareData, files:[file]});
+          trackEvent('share', {method:'native_file'}, thoughtId || null);
         } else if(navigator.share){
           await navigator.share({...shareData, text:`${thought}\n\n— ${author||'شخابيط'}\n${assertSafeUrl(APP_CONFIG.shareBaseUrl)}`});
+          trackEvent('share', {method:'native_link'}, thoughtId || null);
         } else {
           downloadBlob(blob, file.name);
+          trackEvent('share', {method:'download'}, thoughtId || null);
         }
       } catch(err){
         if(err?.name !== 'AbortError'){ console.error(err); alert('تعذر تجهيز المشاركة حاليًا، حاول مرة أخرى.'); }
@@ -2456,6 +2460,7 @@ updateAchievements();
       let f = getFollowed();
       f = f.includes(AppState.profile.author) ? f.filter(x=>x!==AppState.profile.author) : [...f, AppState.profile.author];
       localStorage.setItem(STORAGE_KEYS.following, JSON.stringify(f));
+      trackEvent('follow', {action: f.includes(AppState.profile.author) ? 'add' : 'remove', author: AppState.profile.author});
       updateFollowButton(); updateAchievements();
     }
 
@@ -2996,20 +3001,42 @@ updateAchievements();
     async function openGrowthDashboard(){if(!(await checkOwner()))return alert('غير مصرح.');AppState.ui.lastFocusedElement=document.activeElement;$id('growth-dashboard-modal').style.display='flex';document.body.classList.add('modal-open');await refreshGrowthDashboard();}
     function closeGrowthDashboard(){$id('growth-dashboard-modal').style.display='none';document.body.classList.remove('modal-open');if(AppState.ui.lastFocusedElement?.focus)AppState.ui.lastFocusedElement.focus();}
     async function refreshGrowthDashboard(){
-      const loading=$id('growth-loading'),metrics=$id('growth-metrics'),insights=$id('growth-insights');if(loading)loading.style.display='block';
+      const loading=$id('growth-loading'),metrics=$id('growth-metrics'),insights=$id('growth-insights');
+      if(loading) loading.style.display='block';
       try{
-        const since7=new Date(Date.now()-7*86400000).toISOString(),since1=new Date(Date.now()-86400000).toISOString();
-        const [thoughtRes,commentRes]=await Promise.all([DB.from(DB_TABLES.thoughts).select('id,author_name,text,created_at,upvotes_count,downvotes_count,status').eq('status','approved'),DB.from(DB_TABLES.comments).select('thought_id,author_name,created_at,status').eq('status','approved').gte('created_at',since7)]);
-        if(thoughtRes.error)throw thoughtRes.error;if(commentRes.error)throw commentRes.error;
-        const thoughts=thoughtRes.data||[],comments=commentRes.data||[];
-        const authors=new Set(thoughts.map(x=>(x.author_name||'زائر').trim()).filter(Boolean)),todayAuthors=new Set(thoughts.filter(x=>x.created_at>=since1).map(x=>(x.author_name||'زائر').trim()).filter(Boolean)),weekAuthors=new Set(thoughts.filter(x=>x.created_at>=since7).map(x=>(x.author_name||'زائر').trim()).filter(Boolean));
-        const totalVotes=thoughts.reduce((n,x)=>n+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),avgPerAuthor=authors.size?thoughts.length/authors.size:0,recentThoughts=thoughts.filter(x=>x.created_at>=since7).length,recentComments=comments.length,recentVotes=thoughts.filter(x=>x.created_at>=since7).reduce((n,x)=>n+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),returning=authors.size?Math.round(weekAuthors.size/authors.size*100):0;
-        const top=thoughts.map(x=>({x,score:(Number(x.upvotes_count)||0)*2-(Number(x.downvotes_count)||0)})).sort((a,b)=>b.score-a.score).slice(0,5);
-        const cards=[['DAU · نشاط الكتاب',todayAuthors.size,'آخر 24 ساعة'],['WAU · نشاط الكتاب',weekAuthors.size,'آخر 7 أيام'],['خواطر / كاتب',avgPerAuthor.toFixed(1),'متوسط تراكمي'],['خواطر آخر 7 أيام',recentThoughts,'إنتاج حديث'],['ردود آخر 7 أيام',recentComments,'Engagement'],['فوت آخر 7 أيام',recentVotes,'Up + Down'],['عودة الكتاب',`${returning}%`,'مؤشر تقريبي من النشاط'],['إجمالي التفاعل',totalVotes,'على الخواطر المقبولة']];
-        if(metrics)metrics.innerHTML=cards.map(c=>`<div class="profile-stat"><strong>${escapeHTML(String(c[1]))}</strong><span>${escapeHTML(c[0])}<br>${escapeHTML(c[2])}</span></div>`).join('');
-        const best=top.map((o,i)=>`<div style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;"><b>#${i+1}</b> ${escapeHTML((o.x.text||'').slice(0,110))}${(o.x.text||'').length>110?'…':''}<span style="float:left;color:var(--primary);font-weight:800;">${o.score} نقطة</span></div>`).join('');
-        if(insights)insights.innerHTML=`<div style="border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);"><b>🧠 أفضل محتوى حاليًا</b>${best||'<div style="margin-top:8px;color:var(--muted);">مفيش بيانات كفاية.</div>'}</div><div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);font-size:12px;line-height:1.8;"><b>🎯 توصية المنتج</b><br>${recentThoughts<3?'ركّز على سؤال الأسبوع ودعوة الناس للكتابة لزيادة الإنتاج.':recentComments<3?'فعّل أسئلة تستدعي الردود وخلّي الخواطر قابلة للنقاش.':'المنتج عنده نشاط جيد؛ ركّز الآن على إعادة الزائر للكتابة والتفاعل مع الترند.'}</div>`;
-      }catch(err){logAppError('Growth dashboard failed',err);if(metrics)metrics.innerHTML='';if(insights)insights.innerHTML=errorState('تعذر تحليل بيانات النمو حاليًا.');}finally{if(loading)loading.style.display='none';}
+        const {data,error}=await DB.rpc('get_growth_analytics');
+        if(error) throw error;
+        const d=data||{}, m=d.metrics||{};
+        const cards=[
+          ['👀 زوار فريدون',m.unique_visitors||0,'آخر 7 أيام'],
+          ['✍️ كتاب جدد',m.new_writers||0,'أول خاطرة'],
+          ['⚡ التفعيل',`${Number(m.activation_rate||0).toFixed(1)}%`,'زائر كتب لأول مرة'],
+          ['🔁 العائدون',m.returning_visitors||0,'زاروا في أكثر من يوم'],
+          ['💬 ردود',m.comments||0,'أحداث تفاعل'],
+          ['🗳️ تصويت',m.votes||0,'إجمالي الأحداث'],
+          ['⭐ مفضلة',m.favorites||0,'إضافة/إزالة'],
+          ['📤 مشاركة',m.shares||0,'مشاركة ناجحة'],
+          ['➕ متابعة',m.follows||0,'إضافة/إزالة'],
+          ['📖 مشاهدات',m.thought_views||0,'مشاهدات خواطر']
+        ];
+        if(metrics) metrics.innerHTML=cards.map(c=>`<div class="profile-stat"><strong>${escapeHTML(String(c[1]))}</strong><span>${escapeHTML(c[0])}<br>${escapeHTML(c[2])}</span></div>`).join('');
+        const daily=(d.daily||[]).map(x=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;"><b>${escapeHTML(x.day||'')}</b><span>زوار ${Number(x.visitors)||0} · كتاب ${Number(x.writers)||0} · تفاعل ${Number(x.engaged)||0}</span></div>`).join('');
+        const refs=(d.referrers||[]).map(x=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span>${escapeHTML(x.referrer||'مباشر')}</span><b>${Number(x.visitors)||0}</b></div>`).join('');
+        if(insights) insights.innerHTML=`
+          <div style="border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);">
+            <b>📈 آخر 7 أيام</b>${daily||'<div style="margin-top:8px;color:var(--muted);">لسه مفيش بيانات كفاية.</div>'}
+          </div>
+          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);">
+            <b>🔗 مصادر الزيارات</b>${refs||'<div style="margin-top:8px;color:var(--muted);">لسه مفيش بيانات إحالة.</div>'}
+          </div>
+          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);font-size:12px;line-height:1.8;">
+            <b>🎯 قراءة سريعة</b><br>${Number(m.activation_rate||0)<10?'التفعيل لسه منخفض: أهم هدف دلوقتي نخلي الزائر يكتب أول خاطرة.':Number(m.returning_visitors||0)<2?'العودة ضعيفة: محتاجين سبب واضح يخلي الزائر يرجع تاني.':'الأرقام بدأت تتكوّن؛ ركّز على القناة اللي بتجيب زوار بيتفاعلوا ويكتبوا.'}
+          </div>`;
+      }catch(err){
+        logAppError('Growth dashboard failed',err);
+        if(metrics) metrics.innerHTML='';
+        if(insights) insights.innerHTML=errorState('تعذر تحليل بيانات النمو. تأكد إن SQL الخاص بالـ Analytics Dashboard اتشغّل بنجاح.');
+      }finally{ if(loading) loading.style.display='none'; }
     }
 
     function setOwnerTab(tabName) {
@@ -3626,8 +3653,10 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
           toggleTxt.textContent = '💬 الردود مقفولة (اضغط لفتحها)';
         }
 
-        localStorage.setItem(STORAGE_KEYS.submissions, String((parseInt(localStorage.getItem(STORAGE_KEYS.submissions)||'0',10)||0)+1));
-        trackEvent('first_thought', {}, returnedThoughtId || null);
+        const previousSubmissionCount = parseInt(localStorage.getItem(STORAGE_KEYS.submissions)||'0',10) || 0;
+        const isFirstThought = previousSubmissionCount === 0;
+        localStorage.setItem(STORAGE_KEYS.submissions, String(previousSubmissionCount + 1));
+        if(isFirstThought) trackEvent('first_thought', {}, returnedThoughtId || null);
         $id('char-count').textContent = `0/${APP_CONFIG.maxThoughtLength}`;
         addNotification('تم إرسال خاطرتك للمراجعة، ستظهر فور موافقة المالك 🎉', '✍️');
         await updateStats();
