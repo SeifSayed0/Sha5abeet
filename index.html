@@ -3006,36 +3006,88 @@ updateAchievements();
       try{
         const {data,error}=await DB.rpc('get_growth_analytics');
         if(error) throw error;
-        const d=data||{}, m=d.metrics||{};
+        const d=data||{}, m=d.metrics||{}, funnel=d.funnel||{}, retention=d.retention||{};
+        const interactions=d.interactions||{};
+        const esc=v=>escapeHTML(String(v??''));
+        const n=v=>Number(v)||0;
+        const pct=v=>`${n(v).toFixed(1)}%`;
+        const bar=(value,total)=>Math.max(0,Math.min(100,total?value/total*100:0));
         const cards=[
-          ['👀 زوار فريدون',m.unique_visitors||0,'آخر 7 أيام'],
-          ['✍️ كتاب جدد',m.new_writers||0,'أول خاطرة'],
-          ['⚡ التفعيل',`${Number(m.activation_rate||0).toFixed(1)}%`,'زائر كتب لأول مرة'],
-          ['🔁 العائدون',m.returning_visitors||0,'زاروا في أكثر من يوم'],
-          ['💬 ردود',m.comments||0,'أحداث تفاعل'],
-          ['🗳️ تصويت',m.votes||0,'إجمالي الأحداث'],
-          ['⭐ مفضلة',m.favorites||0,'إضافة/إزالة'],
-          ['📤 مشاركة',m.shares||0,'مشاركة ناجحة'],
-          ['➕ متابعة',m.follows||0,'إضافة/إزالة'],
-          ['📖 مشاهدات',m.thought_views||0,'مشاهدات خواطر']
+          ['👀','زوار فريدون',n(m.unique_visitors),'آخر 7 أيام'],
+          ['✍️','كتاب جدد',n(m.new_writers),'أول خاطرة'],
+          ['⚡','التفعيل',pct(m.activation_rate),'زائر كتب لأول مرة'],
+          ['🔁','العائدون',n(m.returning_visitors),'زاروا في أكثر من يوم'],
+          ['❤️','متفاعلون',n(m.engaged_visitors),'عملوا أي تفاعل'],
+          ['📖','مشاهدات',n(m.thought_views),'مشاهدة خواطر'],
+          ['💬','ردود',n(interactions.comments??m.comments),'إجمالي الأحداث'],
+          ['🗳️','تصويت',n(interactions.votes??m.votes),'إجمالي الأحداث'],
+          ['⭐','مفضلة',n(interactions.favorites??m.favorites),'إضافة/إزالة'],
+          ['📤','مشاركة',n(interactions.shares??m.shares),'مشاركة ناجحة'],
+          ['➕','متابعة',n(interactions.follows??m.follows),'إضافة/إزالة']
         ];
-        if(metrics) metrics.innerHTML=cards.map(c=>`<div class="profile-stat"><strong>${escapeHTML(String(c[1]))}</strong><span>${escapeHTML(c[0])}<br>${escapeHTML(c[2])}</span></div>`).join('');
-        const daily=(d.daily||[]).map(x=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;"><b>${escapeHTML(x.day||'')}</b><span>زوار ${Number(x.visitors)||0} · كتاب ${Number(x.writers)||0} · تفاعل ${Number(x.engaged)||0}</span></div>`).join('');
-        const refs=(d.referrers||[]).map(x=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span>${escapeHTML(x.referrer||'مباشر')}</span><b>${Number(x.visitors)||0}</b></div>`).join('');
+        if(metrics) metrics.innerHTML=cards.map(c=>`<div class="profile-stat"><strong>${esc(c[2])}</strong><span>${esc(c[0])} ${esc(c[1])}<br>${esc(c[3])}</span></div>`).join('');
+
+        const totalVisitors=n(funnel.visitors||m.unique_visitors), totalViewers=n(funnel.viewers), totalEngaged=n(funnel.engaged||m.engaged_visitors), totalWriters=n(funnel.writers||m.new_writers);
+        const funnelRows=[
+          ['👀','الزوار',totalVisitors,totalVisitors,'100%'],
+          ['📖','شافوا خاطرة',totalViewers,totalVisitors,pct(bar(totalViewers,totalVisitors))],
+          ['❤️','اتفاعلوا',totalEngaged,totalVisitors,pct(bar(totalEngaged,totalVisitors))],
+          ['✍️','كتبوا أول خاطرة',totalWriters,totalVisitors,pct(bar(totalWriters,totalVisitors))]
+        ];
+        const funnelHtml=funnelRows.map(r=>`<div style="margin-top:11px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><span>${esc(r[0])} ${esc(r[1])}</span><b>${esc(r[2])} <span style="color:var(--muted);font-weight:500">(${esc(r[4])})</span></b></div><div style="height:7px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:5px"><div style="height:100%;width:${r[3]?bar(r[2],r[3]):0}%;background:var(--accent);border-radius:99px"></div></div></div>`).join('');
+
+        const daily=(d.daily||[]).map(x=>`<div style="padding:9px 0;border-bottom:1px solid var(--border);font-size:12px"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(x.day||'')}</b><span>زوار ${n(x.visitors)} · كتاب ${n(x.writers)} · تفاعل ${n(x.engaged)}</span></div><div style="height:5px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:6px"><div style="height:100%;width:${bar(n(x.visitors),Math.max(...(d.daily||[]).map(y=>n(y.visitors)),1))}%;background:var(--accent);border-radius:99px"></div></div></div>`).join('');
+
+        const refs=(d.referrers||[]).map(x=>{
+          const v=n(x.visitors), e=n(x.engaged), w=n(x.writers);
+          return `<div style="padding:9px 0;border-bottom:1px solid var(--border);font-size:12px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58%">${esc(x.referrer||'مباشر')}</span><b>${v} زائر</b></div><div style="margin-top:4px;color:var(--muted)">متفاعلون ${e} · كتاب ${w} · تفاعل ${pct(x.engagement_rate)} · تفعيل ${pct(x.activation_rate)}</div><div style="height:5px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:5px"><div style="height:100%;width:${bar(v,totalVisitors)}%;background:var(--accent);border-radius:99px"></div></div></div>`;
+        }).join('');
+
+        const retentionRate=n(retention.retention_rate||m.retention_rate);
+        const retentionOne=n(retention.one_time_visitors||Math.max(0,totalVisitors-n(retention.returning_visitors||m.returning_visitors)));
+        const returning=n(retention.returning_visitors||m.returning_visitors);
+        const insight=Number(m.activation_rate||0)<10
+          ? 'التفعيل لسه منخفض؛ ركّز على تحويل الزائر من مجرد مشاهدة إلى كتابة أول خاطرة.'
+          : returning<2
+            ? 'العودة لسه ضعيفة؛ محتاجين سبب واضح يخلي الزائر يرجع تاني ويتابع محتوى جديد.'
+            : totalEngaged<totalViewers/4
+              ? 'المشاهدة كويسة لكن التفاعل أقل؛ جرّب أسئلة/خواطر تحفّز الرد والتصويت والمشاركة.'
+              : 'الأرقام بدأت تتكوّن؛ ركّز على مصادر الزيارات اللي بتجيب تفاعل وكتابة فعلية.';
+
         if(insights) insights.innerHTML=`
-          <div style="border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);">
-            <b>📈 آخر 7 أيام</b>${daily||'<div style="margin-top:8px;color:var(--muted);">لسه مفيش بيانات كفاية.</div>'}
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+            <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface-2)">
+              <b>🎯 مسار التحويل</b>${funnelHtml||'<div style="margin-top:8px;color:var(--muted)">لسه مفيش بيانات كفاية.</div>'}
+            </div>
+            <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface-2)">
+              <b>🔁 الاحتفاظ</b>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+                <div><strong style="font-size:20px">${returning}</strong><div style="color:var(--muted);font-size:11px">عائدون</div></div>
+                <div><strong style="font-size:20px">${pct(retentionRate)}</strong><div style="color:var(--muted);font-size:11px">معدل العودة</div></div>
+              </div>
+              <div style="margin-top:10px;font-size:11px;color:var(--muted)">مرة واحدة: ${retentionOne} · أكثر من يوم: ${returning}</div>
+              <div style="height:8px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:7px"><div style="height:100%;width:${Math.max(0,Math.min(100,retentionRate))}%;background:var(--accent);border-radius:99px"></div></div>
+            </div>
           </div>
-          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);">
-            <b>🔗 مصادر الزيارات</b>${refs||'<div style="margin-top:8px;color:var(--muted);">لسه مفيش بيانات إحالة.</div>'}
+          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface-2)">
+            <b>📈 الاتجاه اليومي</b>${daily||'<div style="margin-top:8px;color:var(--muted)">لسه مفيش بيانات كفاية.</div>'}
           </div>
-          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface-2);font-size:12px;line-height:1.8;">
-            <b>🎯 قراءة سريعة</b><br>${Number(m.activation_rate||0)<10?'التفعيل لسه منخفض: أهم هدف دلوقتي نخلي الزائر يكتب أول خاطرة.':Number(m.returning_visitors||0)<2?'العودة ضعيفة: محتاجين سبب واضح يخلي الزائر يرجع تاني.':'الأرقام بدأت تتكوّن؛ ركّز على القناة اللي بتجيب زوار بيتفاعلوا ويكتبوا.'}
+          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface-2)">
+            <b>🔗 جودة مصادر الزيارات</b>${refs||'<div style="margin-top:8px;color:var(--muted)">لسه مفيش بيانات إحالة.</div>'}
+          </div>
+          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface-2)">
+            <b>🧩 التفاعلات</b>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:9px">
+              ${[['💬',interactions.comments??m.comments],['🗳️',interactions.votes??m.votes],['⭐',interactions.favorites??m.favorites],['📤',interactions.shares??m.shares],['➕',interactions.follows??m.follows]].map(a=>`<div style="border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center"><div>${a[0]}</div><strong>${n(a[1])}</strong></div>`).join('')}
+            </div>
+          </div>
+          <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface-2);font-size:12px;line-height:1.8">
+            <b>🎯 قراءة سريعة</b><br>${esc(insight)}
           </div>`;
       }catch(err){
         logAppError('Growth dashboard failed',err);
         if(metrics) metrics.innerHTML='';
-        if(insights) insights.innerHTML=errorState('تعذر تحليل بيانات النمو. تأكد إن SQL الخاص بالـ Analytics Dashboard اتشغّل بنجاح.');
+        if(insights) insights.innerHTML=errorState('تعذر تحليل بيانات النمو. تأكد إن SQL الجديد الخاص بالـ Analytics Dashboard اتشغّل بنجاح.');
       }finally{ if(loading) loading.style.display='none'; }
     }
 
