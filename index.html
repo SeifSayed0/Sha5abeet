@@ -1,5 +1,12 @@
 <!-- SHAKABEET FINAL: STATE + DATA ACCESS ARCHITECTURE REFACTOR PASSED -->
 <!-- SHAKABEET FINAL EXPANDED BUILD -->
+
+<!-- SINGLE-FILE BUILD
+  This build intentionally keeps all UI, CSS, JavaScript, metadata, trust improvements,
+  accessibility preferences, and local quality hooks inside this HTML file.
+  robots.txt, sitemap.xml, manifest.json, and feed.xml are omitted because this build
+  is designed to be deployed as one file without broken auxiliary-file links.
+-->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -7,6 +14,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f6f2ea">
+  <meta name="color-scheme" content="light dark">
+  <meta name="format-detection" content="telephone=no">
   <meta name="description" content="شخابيط — مساحة حرة للخواطر والأفكار. اكتب، اقرأ، تفاعل، وخد خاطرة معاك.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://sha5abeet.vercel.app/">
@@ -517,6 +526,15 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 @keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
 @keyframes skeletonSweep{to{transform:translateX(-100%)}}
 
+
+/* ==================== QUALITY PATCH: TRUST + PERFORMANCE ==================== */
+.trust-note{display:flex;align-items:flex-start;gap:8px;margin:10px 0 12px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);color:var(--muted);font-size:11px;line-height:1.75;text-align:right}
+.trust-note .ic{width:16px;height:16px;color:var(--primary);margin-top:2px}
+.trust-note strong{color:var(--text)}
+.loading-skeleton{background:linear-gradient(90deg,var(--surface-2),var(--surface),var(--surface-2));background-size:200% 100%;animation:shakabeetShimmer 1.5s linear infinite;border-radius:10px;color:transparent!important}
+@keyframes shakabeetShimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}
+@media (max-width:520px){.trust-note{font-size:10.5px}}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head><body>
@@ -998,6 +1016,10 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 
         <h2 id="composer-title" class="composer-title">مساحة فاضية للي يدور في بالك.. شخبط هنا</h2>
         <p class="composer-note">هنقرأها وننزلها فوراً لو شبه المكان <svg class="ic" aria-hidden="true"><use href="#i-coffee"></use></svg></p>
+        <div class="trust-note" role="note">
+          <svg class="ic" aria-hidden="true"><use href="#i-shield"></use></svg>
+          <span><strong>مساحتك ليك.</strong> اكتب باسم مستعار أو بدون اسم. كل مشاركة تمر بمراجعة بسيطة، وتقدر تطلب حذفها في أي وقت.</span>
+        </div>
         <label class="sr-only" for="visitor-input">اكتب خاطرتك</label>
         <textarea id="visitor-input" rows="4" maxlength="1200" placeholder="اكتب فكرتك أو إجابتك هنا..." enterkeyhint="send"></textarea>
         
@@ -1042,7 +1064,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
             'params' : {}
           };
         </script>
-        <script src="https://www.highrevenueformat.com/6d7858aea445c095a181cb5b1fab1a38/invoke.js"></script>
+        <script src="https://www.highrevenueformat.com/6d7858aea445c095a181cb5b1fab1a38/invoke.js" async></script>
       </div>
     </main>
   </div>
@@ -4053,5 +4075,26 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
 })();
 </script>
 
+
+<script>
+/* QUALITY PATCH: local-only hooks; no external data is sent. */
+(function initQualityHooks(){
+  const key='shakabeet_quality_events';
+  function record(name){
+    try{
+      const events=JSON.parse(localStorage.getItem(key)||'[]');
+      events.push({name,at:new Date().toISOString(),path:location.pathname});
+      localStorage.setItem(key,JSON.stringify(events.slice(-50)));
+    }catch(_){/* storage may be unavailable */}
+  }
+  window.addEventListener('error',()=>record('js_error'),{passive:true});
+  window.addEventListener('unhandledrejection',()=>record('promise_error'),{passive:true});
+  document.addEventListener('click',e=>{
+    const el=e.target.closest?.('#send-btn,#visitor-input');
+    if(el?.id==='send-btn') record('start_submit');
+    if(el?.id==='visitor-input') record('start_writing');
+  },{passive:true});
+})();
+</script>
 </body>
 </html>
