@@ -100,6 +100,15 @@ const SHA5ABEET_CONFIG = Object.freeze({
 
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px;
 }
+[data-theme="dark"]{
+  --bg:#151918;--surface:#202624;--surface-2:#29302d;--surface-3:#343d39;
+  --border:#3b4742;--border-strong:#53615b;--input-bg:#1d2422;
+  --text:#f3f0e9;--muted:#b6c0ba;--muted-2:#98a49d;
+  --primary:#83c8c8;--primary-strong:#a3dddd;--primary-soft:#243b3b;
+  --success:#88c69f;--danger:#e58b85;--warning:#dfb66c;
+  --shadow:0 10px 28px rgba(0,0,0,.22);--shadow-lg:0 22px 60px rgba(0,0,0,.42);
+  --ring:0 0 0 4px rgba(131,200,200,.2)
+}
 
 /* ---------------------------- 2. RESET ---------------------------- */
 *{box-sizing:border-box}
@@ -122,6 +131,12 @@ body{
   line-height:1.7;
   -webkit-font-smoothing:antialiased;
 }
+[data-theme="dark"] body{background:radial-gradient(circle at 50% -10%,#27302d 0,var(--bg) 48%,#111514 100%)}
+[data-theme="dark"] .header-actions{background:rgba(21,25,24,.94);border-bottom-color:rgba(83,97,91,.8)}
+[data-theme="dark"] .header-actions.is-scrolled{background:rgba(21,25,24,.72);border-bottom-color:rgba(83,97,91,.45)}
+[data-theme="dark"] #bottom-nav-v3{background:rgba(32,38,36,.94)}
+[data-theme="dark"] .modal-box input,[data-theme="dark"] .modal-box textarea,[data-theme="dark"] .modal-box select{background:var(--input-bg)}
+[data-theme="dark"] #visitor-input{background:var(--input-bg)}
 .ic{width:18px;height:18px;display:inline-block;flex:0 0 auto;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .container,.app-container,main{max-width:720px;margin-inline:auto}
 
@@ -381,6 +396,9 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .modal-box{background:var(--surface);border:1px solid var(--border);width:min(100%,420px);max-height:min(90dvh,760px);overflow-y:auto;overscroll-behavior:contain;border-radius:24px;box-shadow:var(--shadow-lg);padding:22px;color:var(--text);text-align:center;position:relative}
 .modal-box button,.modal-box input,.modal-box textarea,.modal-box select{min-height:42px}
 .modal-box input,.modal-box textarea,.modal-box select{background:#fdfbf6;border:1px solid var(--border);color:var(--text);border-radius:13px}
+.comments-preview-scroll{max-height:190px;overflow-y:auto;overscroll-behavior:contain;flex:0 1 auto;scrollbar-width:thin}
+.comments-preview-scroll .thought-text{margin:0}
+#comments-list{min-height:90px;max-height:none!important;flex:1 1 0!important;overflow-y:auto;overscroll-behavior:contain}
 .modal-box h2,.modal-box h3{text-align:center;color:var(--text);line-height:1.5}
 .modal-subtitle{text-align:center;color:var(--muted);line-height:1.8;font-size:13.5px;margin:6px 0 16px}
 .modal-heading{font-size:17px;color:var(--text);font-weight:900;margin-bottom:12px}
@@ -536,6 +554,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 21s6.5-6.2 6.5-11A6.5 6.5 0 0 0 5.5 10c0 4.8 6.5 11 6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></g></symbol>
       <symbol id="i-save" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 4.5h11l3 3V19a.6.6 0 0 1-.6.6H5.6A.6.6 0 0 1 5 19V5.1a.6.6 0 0 1 0-.6Z"/><path d="M8 4.5V9h7V4.5"/><path d="M8 14h8v5.6H8Z"/></g></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></symbol>
       <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.6"/></g></symbol>
       <symbol id="i-repeat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h11.5A3.5 3.5 0 0 1 19 11v1"/><path d="M20 16.5H8.5A3.5 3.5 0 0 1 5 13v-1"/><path d="M7 4.5L4 7.5l3 3M17 19.5l3-3-3-3"/></g></symbol>
       <symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5.5c2.4-1 5.3-1 8 0v13c-2.7-1-5.6-1-8 0v-13Z"/><path d="M20 5.5c-2.4-1-5.3-1-8 0v13c2.7-1 5.6-1 8 0v-13Z"/></g></symbol>
@@ -709,7 +728,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       <h2 id="comments-title" style="font-size:17px; margin-bottom:4px;">الردود والخواطر</h2>
       <p class="modal-subtitle" style="margin-bottom:10px; font-size:12px;">شوف الخاطرة الأول، وبعدها اقرأ الردود وسيب ردك <svg class="ic" aria-hidden="true"><use href="#i-coffee"></use></svg></p>
 
-      <div id="comments-thought-preview" style="background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin:4px 0 10px; text-align:right;">
+      <div id="comments-thought-preview" class="comments-preview-scroll" style="background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin:4px 0 10px; text-align:right;">
         <p id="comments-thought-text" class="thought-text" style="font-size:14px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere;"></p>
         <div id="comments-thought-meta" style="font-size:10px; color:var(--muted-2); margin-top:7px;"></div>
       </div>
@@ -718,7 +737,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <strong style="font-size:13px; color:var(--primary);"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> الكومنتات</strong>
         <span id="comments-count-label" style="font-size:11px; color:var(--muted);">0 كومنت</span>
       </div>
-      <div id="comments-list" style="flex:1; overflow-y:auto; margin:8px 0; padding-right:2px; max-height:260px;"></div>
+      <div id="comments-list" style="flex:1 1 0; overflow-y:auto; margin:8px 0; padding-right:2px; min-height:90px;"></div>
       
       <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
         <div style="font-size:11px; color:var(--muted); margin-bottom:4px;"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg> اكتب كومنتك على الخاطرة</div>
@@ -930,6 +949,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
           <svg class="ic" aria-hidden="true"><use href="#i-bell"></use></svg> <span id="notif-count-badge" class="badge-count" style="display:none; background:var(--danger); color:#fff; border-radius:99px; padding:1px 5px;">0</span>
         </button>
         <button class="icon-action-btn" type="button" data-action="toggleSearchBar()" title="بحث" aria-label="بحث"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg></button>
+        <button class="icon-action-btn" id="theme-toggle-btn" type="button" data-action="toggleDarkMode()" title="تفعيل الوضع الداكن" aria-label="تفعيل الوضع الداكن"><svg class="ic" aria-hidden="true"><use href="#i-moon"></use></svg></button>
         <button class="icon-action-btn" id="compact-fav-btn" type="button" data-action="toggleFavoritesMode()" title="المفضلة" aria-label="عرض المفضلة"><svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg> <span id="fav-count-badge" class="badge-count">0</span></button>
         <button class="icon-action-btn" type="button" data-action="openZenMode()" title="وضع الرواق" aria-label="فتح وضع الرواق"><svg class="ic" aria-hidden="true"><use href="#i-coffee"></use></svg></button>
         <button class="icon-action-btn" type="button" data-action="showRandomThought()" title="خاطرة عشوائية" aria-label="خاطرة عشوائية"><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg></button>
@@ -1566,8 +1586,31 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       let ld=document.getElementById('dynamic-thought-schema');if(!ld){ld=document.createElement('script');ld.id='dynamic-thought-schema';ld.type='application/ld+json';document.head.appendChild(ld);}ld.textContent=JSON.stringify({'@context':'https://schema.org','@type':'Article','headline':title,'description':desc,'url':location.href,'author':{'@type':'Person','name':thought.author_name||'صاحب المساحة'},'datePublished':thought.created_at||new Date().toISOString()});
     }
 
+    function updateThemeButton(isDark){
+      const btn=$id('theme-toggle-btn');
+      if(!btn) return;
+      btn.innerHTML=`<svg class="ic" aria-hidden="true"><use href="#i-${isDark?'sun':'moon'}"></use></svg>`;
+      btn.title=isDark?'تفعيل الوضع الفاتح':'تفعيل الوضع الداكن';
+      btn.setAttribute('aria-label',btn.title);
+      btn.classList.toggle('active-fav',isDark);
+    }
+    function initDarkMode(){
+      let saved='light';
+      try { saved=localStorage.getItem('shakabeet_theme')||'light'; } catch(e) {}
+      const isDark=saved==='dark';
+      document.documentElement.dataset.theme=isDark?'dark':'light';
+      updateThemeButton(isDark);
+    }
+    function toggleDarkMode(){
+      const isDark=document.documentElement.dataset.theme!=='dark';
+      document.documentElement.dataset.theme=isDark?'dark':'light';
+      try { localStorage.setItem('shakabeet_theme',isDark?'dark':'light'); } catch(e) {}
+      updateThemeButton(isDark);
+    }
+
     function initSite(){
       $id('app').style.display = 'block';
+      initDarkMode();
       $id('user-display').textContent = AppState.user.currentName || 'صديقنا';
       updateFavBadgeCount(); 
       initComposer(); 
@@ -2190,10 +2233,10 @@ updateAchievements();
         ` : '';
 
         const authorToggleHtml = isMyThought(i) ? `
-          <button class="action-sub-btn" type="button" data-action="toggleThoughtCommentsState(${i.id}, ${i.allow_comments === true})" title="${i.allow_comments ? 'الردود مفتوحة (اضغط لقفلها)' : 'الردود مقفولة (اضغط لفتحها)'}">${i.allow_comments ? '<svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg>' : '<svg class="ic" aria-hidden="true"><use href="#i-message-off"></use></svg>'}</button>
+          <button class="action-sub-btn has-label" type="button" data-action="toggleThoughtCommentsState(${i.id}, ${i.allow_comments === true})" title="${i.allow_comments ? 'الردود مفتوحة (اضغط لقفلها)' : 'الردود مقفولة (اضغط لفتحها)'}">${i.allow_comments ? '<svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">قفل الردود</span>' : '<svg class="ic" aria-hidden="true"><use href="#i-message-off"></use></svg><span class="action-label">فتح الردود</span>'}</button>
         ` : '';
         const deleteThoughtHtml = isMyThought(i) ? `
-          <button class="action-sub-btn req-del-btn" type="button" data-action="requestDeleteThought(${i.id})" title="طلب حذف خاطرتي"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg></button>
+          <button class="action-sub-btn has-label req-del-btn" type="button" data-action="requestDeleteThought(${i.id})" title="طلب حذف خاطرتي"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="action-label">حذف الخاطرة</span></button>
         ` : '';
 
         return `
@@ -2242,10 +2285,10 @@ updateAchievements();
         ` : '';
 
         const authorToggleHtml = isMyThought(i) ? `
-          <button class="action-sub-btn" type="button" data-action="toggleThoughtCommentsState(${i.id}, ${i.allow_comments === true})" title="${i.allow_comments ? 'الردود مفتوحة (اضغط لقفلها)' : 'الردود مقفولة (اضغط لفتحها)'}">${i.allow_comments ? '<svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg>' : '<svg class="ic" aria-hidden="true"><use href="#i-message-off"></use></svg>'}</button>
+          <button class="action-sub-btn has-label" type="button" data-action="toggleThoughtCommentsState(${i.id}, ${i.allow_comments === true})" title="${i.allow_comments ? 'الردود مفتوحة (اضغط لقفلها)' : 'الردود مقفولة (اضغط لفتحها)'}">${i.allow_comments ? '<svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">قفل الردود</span>' : '<svg class="ic" aria-hidden="true"><use href="#i-message-off"></use></svg><span class="action-label">فتح الردود</span>'}</button>
         ` : '';
         const deleteThoughtHtml = isMyThought(i) ? `
-          <button class="action-sub-btn req-del-btn" type="button" data-action="requestDeleteThought(${i.id})" title="طلب حذف خاطرتي"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg></button>
+          <button class="action-sub-btn has-label req-del-btn" type="button" data-action="requestDeleteThought(${i.id})" title="طلب حذف خاطرتي"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="action-label">حذف الخاطرة</span></button>
         ` : '';
 
         return `
@@ -3849,6 +3892,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     sendThought,
     setDiscovery,
     scrollToDiscovery,
+    toggleDarkMode,
     toggleActionMenu,
     setSort,
     loadAllThoughts,
