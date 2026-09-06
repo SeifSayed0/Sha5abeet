@@ -137,6 +137,9 @@ body{
 [data-theme="dark"] #bottom-nav-v3{background:rgba(32,38,36,.94)}
 [data-theme="dark"] .modal-box input,[data-theme="dark"] .modal-box textarea,[data-theme="dark"] .modal-box select{background:var(--input-bg)}
 [data-theme="dark"] #visitor-input{background:var(--input-bg)}
+[data-theme="dark"] .weekly-prompt{background:linear-gradient(135deg,#1d3433,#202a28);border-color:#36514e}
+[data-theme="dark"] .daily-card{background:#0b100f;color:#f4f1ea;box-shadow:0 12px 32px rgba(0,0,0,.32)}
+[data-theme="dark"] .daily-card::after{background:rgba(131,200,200,.08)}
 .ic{width:18px;height:18px;display:inline-block;flex:0 0 auto;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .container,.app-container,main{max-width:720px;margin-inline:auto}
 
@@ -184,7 +187,7 @@ h1,h2,h3{font-weight:800}
 .search-close-btn{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;color:var(--muted);border-radius:var(--radius-xs);display:grid;place-items:center}
 .search-close-btn:hover{background:var(--surface-2);color:var(--text)}
 
-@media (max-width:899px){.compact-btn-group{max-width:100%;overflow-x:auto;padding-bottom:2px} .header-actions{align-items:flex-start}.contact-btn{display:inline-flex;flex:0 0 auto}.icon-action-btn{flex:0 0 42px}}
+@media (max-width:899px){.compact-btn-group{max-width:100%;overflow:visible;padding-bottom:2px} .header-actions{align-items:flex-start}.contact-btn{display:inline-flex;flex:0 0 auto}.icon-action-btn{flex:0 0 42px}}
 @media (min-width:900px){
   .container{max-width:760px}
   .site-header{padding-top:34px}
@@ -474,8 +477,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
   .site-title{font-size:36px}
   .header-actions{margin:6px 0 16px;max-width:none}
   .contact-btn{display:none}
-  .compact-btn-group{width:100%;justify-content:flex-end}
-  .icon-action-btn{width:40px;min-width:40px}
+  .compact-btn-group{width:100%;justify-content:center;gap:1px;overflow:visible}
+  .icon-action-btn{width:36px;min-width:36px;height:38px}
   .search-input-wrapper input{min-height:44px;font-size:16px}
   .add-box{padding:15px;border-radius:22px}
   .weekly-prompt{display:flex;align-items:flex-start;gap:10px;padding:13px}
@@ -945,9 +948,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     <div class="header-actions" aria-label="أدوات الموقع">
       <a class="contact-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to=seifsayed8927@gmail.com" target="_blank" rel="noopener noreferrer" aria-label="التواصل معنا عبر البريد"><svg class="ic" aria-hidden="true"><use href="#i-mail"></use></svg> تواصل معنا</a>
       <div class="compact-btn-group">
-        <button class="icon-action-btn" id="notif-bell-btn" type="button" data-action="openNotificationsModal()" title="التنبيهات" aria-label="التنبيهات">
-          <svg class="ic" aria-hidden="true"><use href="#i-bell"></use></svg> <span id="notif-count-badge" class="badge-count" style="display:none; background:var(--danger); color:#fff; border-radius:99px; padding:1px 5px;">0</span>
-        </button>
         <button class="icon-action-btn" type="button" data-action="toggleSearchBar()" title="بحث" aria-label="بحث"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg></button>
         <button class="icon-action-btn" id="theme-toggle-btn" type="button" data-action="toggleDarkMode()" title="تفعيل الوضع الداكن" aria-label="تفعيل الوضع الداكن"><svg class="ic" aria-hidden="true"><use href="#i-moon"></use></svg></button>
         <button class="icon-action-btn" id="compact-fav-btn" type="button" data-action="toggleFavoritesMode()" title="المفضلة" aria-label="عرض المفضلة"><svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg> <span id="fav-count-badge" class="badge-count">0</span></button>
@@ -955,6 +955,9 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <button class="icon-action-btn" type="button" data-action="showRandomThought()" title="خاطرة عشوائية" aria-label="خاطرة عشوائية"><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg></button>
         <button class="icon-action-btn" type="button" data-action="openAchievements()" title="إنجازاتي" aria-label="فتح إنجازاتي"><svg class="ic" aria-hidden="true"><use href="#i-trophy"></use></svg></button>
         <button class="icon-action-btn" id="main-auth-btn" type="button" data-action="openAuthModal()" title="الحساب والتسجيل" aria-label="الحساب"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg></button>
+        <button class="icon-action-btn" id="notif-bell-btn" type="button" data-action="openNotificationsModal()" title="التنبيهات" aria-label="التنبيهات">
+          <svg class="ic" aria-hidden="true"><use href="#i-bell"></use></svg> <span id="notif-count-badge" class="badge-count" style="display:none; background:var(--danger); color:#fff; border-radius:99px; padding:1px 5px;">0</span>
+        </button>
       </div>
     </div>
     <div id="search-popup-bar"><div class="search-input-wrapper"><label class="sr-only" for="search-input">البحث</label><input type="search" id="search-input" placeholder="ابحث في الخواطر أو اسم الكاتب..." data-action="handleSearch(this.value)" autocomplete="off"><button class="search-close-btn" type="button" data-action="closeSearchBar()" aria-label="إغلاق البحث"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div><div id="search-tools" style="display:none;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:.84rem;color:var(--muted);"><span id="search-result-count">0 نتيجة</span><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="filter-btn active" id="search-sort-new" data-action="setSearchSort('newest')">الأحدث</button><button type="button" class="filter-btn" id="search-sort-top" data-action="setSearchSort('top')">الأكثر تفاعلًا</button></div></div></div>
