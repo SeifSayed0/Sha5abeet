@@ -1062,9 +1062,10 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       getGuestVotes: 'get_guest_votes',
       isOwner: 'is_owner',
       setWeeklyPrompt: 'set_weekly_prompt_v2',
-      fetchNotifications: 'fetch_my_device_notifications',
+      fetchNotifications: 'fetch_my_device_notifications_v2',
       markNotificationsRead: 'mark_my_notifications_read',
-      sendNotification: 'send_thought_notification'
+      sendNotification: 'send_thought_notification',
+      sendOwnerMessageReply: 'send_owner_message_reply'
     });
 
     /* ==================== STAGE 6: CONSTANTS & CONFIG ==================== */
@@ -2500,6 +2501,7 @@ updateAchievements();
       try {
         const { error } = await DB.from(DB_TABLES.ownerMessages).insert({
           sender_name: author,
+          guest_id: getGuestId(),
           message: text,
           created_at: new Date().toISOString()
         });
@@ -3340,6 +3342,9 @@ updateAchievements();
           <div class="owner-item" style="background:var(--primary-soft); border:1px solid rgba(62,138,147,.3);">
             <small style="color:var(--primary);">من: ${escapeHTML(x.sender_name || x.sender || 'مجهول')} · ${formatDate(x.created_at || x.date)}</small>
             <p style="margin-top:4px;">${escapeHTML(x.message)}</p>
+            <div class="owner-item-actions" style="margin-top:8px;">
+              <button class="primary-btn" style="padding:8px;font-size:11px;margin-top:0;" type="button" data-action="ownerReplyToUserMessage('${enc(String(x.id ?? ''))}','${enc(String(x.guest_id || ''))}','${enc(String(x.sender_name || x.sender || 'المستخدم'))}')"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ${x.guest_id ? 'رد على المستخدم' : 'رد على المستخدم (قديم)'}</button>
+            </div>
           </div>`).join('') : '<div class="owner-empty">مفيش رسائل جديدة من المستخدمين.</div>');
       } catch(err) {
         setHTML(msgsList, '<div class="owner-empty">مفيش رسائل جديدة من المستخدمين.</div>');
@@ -3388,6 +3393,37 @@ updateAchievements();
       const { error } = await DB.from(DB_TABLES.comments).delete().eq('id', commentId);
       if(error) return alert('حصل خطأ.');
       await loadOwnerDashboard();
+    }
+
+    async function ownerReplyToUserMessage(messageId, guestId, senderName){
+      messageId = decodeURIComponent(messageId || '');
+      guestId = decodeURIComponent(guestId || '');
+      senderName = decodeURIComponent(senderName || '');
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      let targetGuestId = String(guestId || '').trim();
+      if(!targetGuestId){
+        const recoveredGuestId = prompt(`الرسالة دي قديمة ومفيش لها Guest ID محفوظ.\n\nلو معاك Guest ID بتاع صاحب الرسالة، اكتبه هنا عشان الرد يوصله في الإشعارات.\n\nGuest ID:`);
+        if(!recoveredGuestId) return;
+        targetGuestId = recoveredGuestId.trim();
+        if(targetGuestId.length < 10) return alert('Guest ID غير صالح.');
+      }
+
+      const reply = prompt(`اكتب ردك لـ ${senderName || 'المستخدم'}:`);
+      if(!reply) return;
+      const text = reply.trim();
+      if(!text) return;
+
+      try{
+        const { error } = await DB.rpc(DB_RPC.sendOwnerMessageReply, {
+          p_guest_id: targetGuestId,
+          p_message: text
+        });
+        if(error) throw error;
+        alert('تم إرسال الرد، وهيظهر لصاحب الرسالة في الإشعارات.');
+      }catch(err){
+        console.error(err);
+        alert('حدث خطأ أثناء إرسال الرد.');
+      }
     }
 
     // إرسال الملاحظة بالـ RPC المستخرج للـ guest_id آلياً
