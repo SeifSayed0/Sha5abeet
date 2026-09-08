@@ -3068,8 +3068,12 @@ updateAchievements();
     async function emailLogin(){
       const email=$id('auth-email').value.trim(), password=$id('auth-password').value;
       if(!email||!password) return alert('اكتب البريد وكلمة المرور.');
-      const {error}=await DB.auth.signInWithPassword({email,password});
+      const {data,error}=await DB.auth.signInWithPassword({email,password});
       if(error) return alert(error.message||'بيانات الدخول غير صحيحة.');
+      // ثبّت الجلسة محليًا قبل فتح نافذة الحسابات، خصوصًا على الموبايل.
+      try {
+        if(!data?.session){ await DB.auth.refreshSession(); }
+      } catch(e) {}
       await openAuthModal();
     }
 
@@ -3094,7 +3098,12 @@ updateAchievements();
     }
 
     async function openAuthModal() {
-      const { data } = await DB.auth.getSession();
+      let { data } = await DB.auth.getSession();
+      // لا تعتبر المستخدم Logged out لمجرد أن getSession لم يقرأ الجلسة في أول محاولة.
+      if(!data?.session){
+        try { await DB.auth.refreshSession(); } catch(e) {}
+        try { data = (await DB.auth.getSession()).data; } catch(e) {}
+      }
       const user = data?.session?.user;
       hide($id('auth-login-section')); hide($id('auth-signup-section')); hide($id('account-create-section')); hide($id('auth-logged-section')); hide($id('auth-owner-section'));
       if(user){
@@ -3120,28 +3129,8 @@ updateAchievements();
     }
 
     async function checkOwner(){
-      // Owner actions must use the live Supabase session. A stale/missing
-      // client session can make the RPC return false even while the dashboard is open.
-      try {
-        let { data: sessionData } = await DB.auth.getSession();
-        if(!sessionData?.session){
-          try { await DB.auth.refreshSession(); } catch(e) {}
-          sessionData = (await DB.auth.getSession()).data;
-        }
-        if(!sessionData?.session) return false;
-
-        let { data, error } = await DB.rpc(DB_RPC.isOwner);
-        if(error){
-          try {
-            await DB.auth.refreshSession();
-            ({ data, error } = await DB.rpc(DB_RPC.isOwner));
-          } catch(e) {}
-        }
-        return !error && data === true;
-      } catch(e) {
-        console.error('Owner session check failed:', e);
-        return false;
-      }
+      const { data, error } = await DB.rpc(DB_RPC.isOwner);
+      return !error && data === true;
     }
 
     async function signInWithGoogle() {
