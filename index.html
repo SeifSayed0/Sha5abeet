@@ -2268,21 +2268,24 @@ updateAchievements();
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 1000);
     }
+    const voteInFlight = new Set();
     async function handleVote(sheetName, id, targetType, btnElement){
       const target = (sheetName==='Owner'?AppState.user.rawOwnerData:AppState.user.rawVisitorData).find(i=>i.id===id);
       if(!target) return;
-      const guestId = getGuestId();
       const voteValue = targetType === 'up' ? 1 : -1;
-      const wrapper = btnElement.closest('.vote-bar');
+      const wrapper = btnElement?.closest('.vote-bar');
+      if(!wrapper) return;
       const up = wrapper.querySelector('.up-btn'), down = wrapper.querySelector('.down-btn'), scoreEl = wrapper.querySelector('.vote-score');
-      btnElement.disabled = true;
+      if(voteInFlight.has(Number(id))) return;
+      voteInFlight.add(Number(id));
+      if(up) up.disabled = true;
+      if(down) down.disabled = true;
 
       try {
-        let session = null;
-        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
-        if(session?.user && !AccountState?.current?.id){
-          await loadMyAccounts();
-        }
+        // مهم: لا نعمل loadMyAccounts هنا؛ لأنه ممكن يعمل re-render للخواطر
+        // أثناء الضغط ويخلي الزر القديم يختفي أو يمنع الطلب. الـ RPC نفسه
+        // يقدر يحدد أول حساب للمستخدم لو الـ active account لسه مش مثبت.
+        const guestId = getGuestId();
         const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
           p_thought_id: target.id,
           p_guest_id: guestId,
@@ -2313,7 +2316,9 @@ updateAchievements();
         console.error('Supabase vote error', err);
         alert('حصلت مشكلة في تسجيل التصويت.');
       } finally {
-        btnElement.disabled = false;
+        voteInFlight.delete(Number(id));
+        if(up) up.disabled = false;
+        if(down) down.disabled = false;
       }
     }
 
@@ -4161,12 +4166,8 @@ updateAchievements();
       try {
         // لو فيه Session، نتأكد إن الحساب النشط اتحدد قبل ما نطلب حالة الفوتات.
         // ده يمنع إن الصفحة تفتح والحساب لسه بيتحمّل فتظهر الفوتات القديمة كأنها مش موجودة.
-        let session = null;
-        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
-        if(session?.user && !AccountState?.current?.id){
-          try { await loadMyAccounts(); } catch(e) {}
-        }
-
+        // لا نحمّل الحسابات أثناء جلب حالات الفوتات؛ ذلك قد يعيد رسم الصفحة
+        // بالتزامن مع ضغط المستخدم. الـ RPC يحدد الهوية المسجلة بنفسه.
         const { data, error } = await DB.rpc(DB_RPC.getGuestVotes, {
           p_guest_id: getGuestId(),
           p_thought_ids: thoughtIds
