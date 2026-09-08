@@ -1065,7 +1065,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       fetchNotifications: 'fetch_my_device_notifications_v2',
       markNotificationsRead: 'mark_my_notifications_read',
       sendNotification: 'send_thought_notification',
-      sendOwnerMessageReply: 'send_owner_message_reply'
+      sendOwnerMessageReply: 'send_owner_message_reply',
+      clearNotifications: 'clear_my_device_notifications'
     });
 
     /* ==================== STAGE 6: CONSTANTS & CONFIG ==================== */
@@ -2710,7 +2711,10 @@ updateAchievements();
         const {data,error}=await DB.rpc(DB_RPC.fetchNotifications,{p_guest_id:guestId});
         if(error) throw error;
         let added=0;
-        (data||[]).forEach(n=>{
+        // addNotification() puts each new item at the front (unshift),
+        // so process the server's newest->oldest result in reverse order
+        // to keep the final UI order newest->oldest.
+        (data||[]).slice().reverse().forEach(n=>{
           const ok=addNotification(n.message,n.icon||'edit',null,{id:`remote-${n.id}`,date:n.created_at||n.date,remote:true,thoughtId:n.thought_id});
           if(ok) added++;
         });
@@ -2742,7 +2746,7 @@ updateAchievements();
           return `<div ${clickAttr} style="background:${seen?'var(--surface-2)':'var(--primary-soft)'}; border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:8px; display:flex; align-items:center; gap:10px; ${n.actionTab?'cursor:pointer;':''}">
             <span class="notification-icon" style="font-size:20px;">${notificationIcon(n.icon)}</span>
             <div style="flex:1;">
-              <p style="font-size:13px; margin:0; color:var(--text);">${escapeHTML(n.text)}</p>
+              <p style="font-size:13px; margin:0; color:var(--text); white-space:pre-line;">${escapeHTML(n.text)}</p>
               <small style="color:var(--muted-2); font-size:10px;">${escapeHTML(formatNotificationDate(n.date))}${!seen?' · جديد':''}${n.actionTab?' · اضغط للمراجعة <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>':''}</small>
             </div>
           </div>`;
@@ -2769,11 +2773,23 @@ updateAchievements();
       updateNotificationBadge();
     }
 
-    function clearAllNotifications(){
+    async function clearAllNotifications(){
+      const guestId=getGuestId();
+      try{
+        // Clear server-side notifications too; otherwise the next sync
+        // immediately adds the remote notifications back.
+        if(guestId){
+          const {error}=await DB.rpc(DB_RPC.clearNotifications,{p_guest_id:guestId});
+          if(error) throw error;
+        }
+      }catch(e){
+        console.warn('Remote notification clear failed',e);
+        alert('اتمسحت التنبيهات المحفوظة على الجهاز، لكن حصلت مشكلة في مسح التنبيهات المتزامنة. حاول مرة تانية.');
+      }
       localStorage.removeItem(STORAGE_KEYS.notifications);
       localStorage.removeItem(STORAGE_KEYS.notificationSeen);
       updateNotificationBadge();
-      openNotificationsModal();
+      await openNotificationsModal();
     }
 
     function checkSocialHooks(){
