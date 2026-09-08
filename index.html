@@ -2278,6 +2278,11 @@ updateAchievements();
       btnElement.disabled = true;
 
       try {
+        let session = null;
+        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+        if(session?.user && !AccountState?.current?.id){
+          await loadMyAccounts();
+        }
         const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
           p_thought_id: target.id,
           p_guest_id: guestId,
@@ -3393,6 +3398,12 @@ updateAchievements();
       AccountState.current=AccountState.accounts.find(a=>a.is_current)||AccountState.accounts[0]||null;
       if(AccountState.current){
         migrateLegacyLocalStateToAccount(AccountState.current.id);
+        // بعد تثبيت الحساب النشط، أعد تحميل حالات الفوتات الظاهرة حتى لا تظل الصفحة على حالة الضيف القديمة.
+        const visibleIds = [...new Set([
+          ...(AppState.user.rawOwnerData||[]).map(x=>x?.id),
+          ...(AppState.user.rawVisitorData||[]).map(x=>x?.id)
+        ].filter(Boolean))];
+        if(visibleIds.length) setTimeout(()=>loadGuestVoteStates(visibleIds).then(()=>{ renderOwnerThoughts(); renderVisitorThoughts(); }),0);
         AppState.user.currentName = AccountState.current.display_name || AccountState.current.username || '';
         if($id('user-display')) $id('user-display').textContent = AppState.user.currentName || 'صديقنا';
         if($id('visitor-name')) $id('visitor-name').value = AppState.user.currentName;
@@ -4148,6 +4159,14 @@ updateAchievements();
       AppState.engagement.guestVoteStates = {};
       if(!thoughtIds?.length) return;
       try {
+        // لو فيه Session، نتأكد إن الحساب النشط اتحدد قبل ما نطلب حالة الفوتات.
+        // ده يمنع إن الصفحة تفتح والحساب لسه بيتحمّل فتظهر الفوتات القديمة كأنها مش موجودة.
+        let session = null;
+        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+        if(session?.user && !AccountState?.current?.id){
+          try { await loadMyAccounts(); } catch(e) {}
+        }
+
         const { data, error } = await DB.rpc(DB_RPC.getGuestVotes, {
           p_guest_id: getGuestId(),
           p_thought_ids: thoughtIds
