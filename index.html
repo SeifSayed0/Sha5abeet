@@ -2384,9 +2384,9 @@ updateAchievements();
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
                 <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>':'<svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg>'}<span class="action-label">حفظ</span></button>
+                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleMyRepost(${i.id},this)" title="ريشير" aria-label="ريشير"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">ريشير</span></button>
                 <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
                 <div class="action-menu" hidden>
-                  <button type="button" data-action="toggleMyRepost(${i.id},this)" title="الريشير متاح بعد تسجيل الدخول"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg> ريشير</button>
                   <button type="button" data-action="copyThought('${enc(i.thought)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg> نسخ النص</button>
                   <button type="button" data-action="copyThoughtLink(${i.id},this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ الرابط</button>
                   <button type="button" data-action="shareAsImage('${enc(i.thought)}','${enc(ownerDisplayName)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg> مشاركة</button>
@@ -2436,9 +2436,9 @@ updateAchievements();
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
                 <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>':'<svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg>'}<span class="action-label">حفظ</span></button>
+                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleMyRepost(${i.id},this)" title="ريشير" aria-label="ريشير"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">ريشير</span></button>
                 <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
                 <div class="action-menu" hidden>
-                  <button type="button" data-action="toggleMyRepost(${i.id},this)" title="الريشير متاح بعد تسجيل الدخول"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg> ريشير</button>
                   <button type="button" data-action="copyThought('${enc(i.thought)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg> نسخ النص</button>
                   <button type="button" data-action="copyThoughtLink(${i.id},this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ الرابط</button>
                   <button type="button" data-action="shareAsImage('${enc(i.thought)}','${enc(displayName)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg> مشاركة</button>
