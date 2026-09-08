@@ -782,7 +782,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       </div>
 
       <div id="auth-login-section">
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 10px;font-size:12px;color:var(--muted);font-weight:800;">تسجيل الدخول <span style="display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted-2);font-size:11px;">غير متاح حاليًا</span></div>
+        <div style="text-align:center;margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:700;">سجل دخولك لحفظ ونقل خواطرك لأي جهاز</div>
         <button class="primary-btn" style="background:#fff; color:#241f1a; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; border:1px solid var(--border);" type="button" data-action="signInWithGoogle()">
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
           الدخول عبر Google
@@ -1072,6 +1072,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         signInWithOAuth(options) { return supabaseClient.auth.signInWithOAuth(options); },
         signInWithPassword(options) { return supabaseClient.auth.signInWithPassword(options); },
         signUp(options) { return supabaseClient.auth.signUp(options); },
+        resetPasswordForEmail(email, options) { return supabaseClient.auth.resetPasswordForEmail(email, options); },
         onAuthStateChange(callback) { return supabaseClient.auth.onAuthStateChange(callback); },
         signOut() { return supabaseClient.auth.signOut({ scope: 'local' }); }
       }
@@ -1637,18 +1638,9 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     }
 
     async function bootstrapAccountSystem(){
-      try{
-        let {data}=await DB.auth.getSession();
-        if(!data?.session?.user){
-          try { data=(await DB.auth.refreshSession())?.data; } catch(e) {}
-        }
-        if(!data?.session?.user) return;
-        const accounts=await loadMyAccounts();
-        if(Array.isArray(accounts) && !accounts.length && !(await checkOwner())){
-          await openAuthModal();
-          openAccountCreate();
-        }
-      }catch(err){ logAppError('Account bootstrap failed',err); }
+      // Deprecated: authentication state is now driven by onAuthStateChange.
+      // Kept as a no-op so older callers cannot trigger account UI transitions.
+      return;
     }
 
     function initSite(){
@@ -1673,7 +1665,8 @@ updateAchievements();
         await openThoughtFromUrl();
         await restoreOpenCommentsAfterRefresh();
       });
-      bootstrapAccountSystem();
+      // Account bootstrap is intentionally disabled here.
+      // Auth state is handled only by Supabase onAuthStateChange below.
     }
 
     function toggleSearchBar() {
@@ -2996,23 +2989,32 @@ updateAchievements();
     }
 
     function normalizeUsername(value){ return String(value||'').trim().toLowerCase().replace(/^@+/, ''); }
-    function showLoginForm(){ hide($id('auth-signup-section')); hide($id('account-create-section')); show($id('auth-login-section')); }
-    function showSignupForm(){ hide($id('auth-login-section')); hide($id('account-create-section')); show($id('auth-signup-section')); }
+    function showLoginForm(){
+      hide($id('auth-signup-section'));
+      hide($id('account-create-section'));
+      hide($id('auth-owner-section'));
+      hide($id('auth-logged-section'));
+      show($id('auth-login-section'));
+    }
+    function showSignupForm(){
+      hide($id('auth-login-section'));
+      hide($id('account-create-section'));
+      hide($id('auth-owner-section'));
+      hide($id('auth-logged-section'));
+      show($id('auth-signup-section'));
+    }
     async function showAccountLoginView(){
       hide($id('account-create-section'));
       hide($id('auth-owner-section'));
       let session = null;
       try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
-      if(!session){
-        try { session = (await DB.auth.refreshSession())?.data?.session || null; } catch(e) {}
-      }
       if(session?.user){
         hide($id('auth-login-section'));
         hide($id('auth-signup-section'));
         show($id('auth-logged-section'));
         $id('auth-logged-email').textContent = session.user.email || 'حساب Google';
-        const accounts = await loadMyAccounts();
-        if(Array.isArray(accounts)) return;
+        await loadMyAccounts();
+        return;
       }
       hide($id('auth-logged-section'));
       show($id('auth-login-section'));
@@ -3099,10 +3101,9 @@ updateAchievements();
       if(!email||!password) return alert('اكتب البريد وكلمة المرور.');
       const {data,error}=await DB.auth.signInWithPassword({email,password});
       if(error) return alert(error.message||'بيانات الدخول غير صحيحة.');
-      let session=data?.session || null;
-      if(!session){ try { session=(await DB.auth.getSession())?.data?.session || null; } catch(e) {} }
-      if(!session){ try { session=(await DB.auth.refreshSession())?.data?.session || null; } catch(e) {} }
-      if(!session) return alert('تم تسجيل الدخول لكن جلسة الحساب لم تثبت. حاول مرة أخرى.');
+      const session=data?.session || (await DB.auth.getSession()).data?.session || null;
+      if(!session?.user) return alert('تمت المصادقة لكن لم يتم تثبيت جلسة الحساب. اقفل النافذة وافتحها مرة أخرى أو حاول الدخول مجددًا.');
+      await loadMyAccounts();
       await openAuthModal();
     }
 
@@ -3121,17 +3122,14 @@ updateAchievements();
     async function sendPasswordReset(){
       const email=$id('auth-email').value.trim();
       if(!email) return alert('اكتب بريدك الإلكتروني الأول.');
-      const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+      const {error}=await DB.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
       if(error) return alert(error.message||'تعذر إرسال رابط استعادة كلمة المرور.');
       alert('بعتنالك رابط استعادة كلمة المرور على البريد.');
     }
 
     async function openAuthModal() {
-      let { data } = await DB.auth.getSession();
-      if(!data?.session){
-        try { await DB.auth.refreshSession(); } catch(e) {}
-        try { data = (await DB.auth.getSession()).data; } catch(e) {}
-      }
+      let data = null;
+      try { data = (await DB.auth.getSession()).data; } catch(e) { data = null; }
       let ownerSession = null;
       try { ownerSession = (await OWNER_DB.auth.getSession()).data?.session || null; } catch(e) {}
       const user = data?.session?.user;
@@ -4213,21 +4211,51 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     ownerDismissDeleteRequest,
     });
 
-    DB.auth.onAuthStateChange((_event, session) => {
+    DB.auth.onAuthStateChange((event, session) => {
+      // Never call signOut() or refreshSession() from this listener.
+      // It only synchronizes UI/data with the already-persisted Supabase session.
+      console.info('[شخابيط][USER AUTH]', event, session?.user ? 'session-present' : 'no-session');
       setTimeout(async () => {
-        if(session?.user) { try { await loadMyAccounts(); } catch(e){} }
+        try {
+          if(event === 'SIGNED_IN' && session?.user){
+            await loadMyAccounts();
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
+          } else if(event === 'SIGNED_OUT'){
+            AccountState = { current:null, accounts:[] };
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
+          }
+        } catch(e) { logAppError('User auth state handling failed', e); }
       }, 0);
     });
-    OWNER_DB.auth.onAuthStateChange((_event, session) => {
+
+    OWNER_DB.auth.onAuthStateChange((event, session) => {
+      // Owner auth is isolated by its own storageKey and local sign-out scope.
+      console.info('[شخابيط][OWNER AUTH]', event, session?.user ? 'session-present' : 'no-session');
       setTimeout(async () => {
-        if(session?.user){
-          try { await checkOwnerPendingNotifications(); } catch(e){}
-          try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>'; } catch(e){}
-        }
+        try {
+          if(event === 'SIGNED_IN' && session?.user){
+            await checkOwnerPendingNotifications();
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>'; } catch(e) {}
+          } else if(event === 'SIGNED_OUT'){
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
+          }
+        } catch(e) { logAppError('Owner auth state handling failed', e); }
       }, 0);
     });
 
     initSite();
+
+    // One-time session sync after page initialization; this never logs out or refreshes.
+    (async () => {
+      try {
+        const userSession = (await DB.auth.getSession())?.data?.session || null;
+        if(userSession?.user) await loadMyAccounts();
+      } catch(e) { logAppError('Initial user session sync failed', e); }
+      try {
+        const ownerSession = (await OWNER_DB.auth.getSession())?.data?.session || null;
+        if(ownerSession?.user) await checkOwnerPendingNotifications();
+      } catch(e) { logAppError('Initial owner session sync failed', e); }
+    })();
   </script>
 <script>
 /* ==================== STAGE 5: EVENT DELEGATION ====================
