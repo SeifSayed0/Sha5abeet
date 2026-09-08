@@ -1060,7 +1060,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
   <script>
     const SUPABASE_URL = "https://wrugthhpgqdwwbnxlenj.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydWd0aGhwZ3Fkd3dibnhsZW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMDkzNDMsImV4cCI6MjEwMzc4NTM0M30.Jpl7TTDZ12mrqocSV84aiWVpFECqlwo_uXkePnpdlow";
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 
     /* ==================== DATA ACCESS LAYER ==================== */
     // كل تعاملات البيانات تمر من هنا. يفضل عدم استخدام supabaseClient مباشرة داخل منطق الواجهة.
@@ -1632,10 +1632,13 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 
     async function bootstrapAccountSystem(){
       try{
-        const {data}=await DB.auth.getSession();
+        let {data}=await DB.auth.getSession();
+        if(!data?.session?.user){
+          try { data=(await DB.auth.refreshSession())?.data; } catch(e) {}
+        }
         if(!data?.session?.user) return;
         const accounts=await loadMyAccounts();
-        if(!accounts.length && !(await checkOwner())){
+        if(Array.isArray(accounts) && !accounts.length && !(await checkOwner())){
           await openAuthModal();
           openAccountCreate();
         }
@@ -2989,9 +2992,22 @@ updateAchievements();
     function normalizeUsername(value){ return String(value||'').trim().toLowerCase().replace(/^@+/, ''); }
     function showLoginForm(){ hide($id('auth-signup-section')); hide($id('account-create-section')); show($id('auth-login-section')); }
     function showSignupForm(){ hide($id('auth-login-section')); hide($id('account-create-section')); show($id('auth-signup-section')); }
-    function showAccountLoginView(){
+    async function showAccountLoginView(){
       hide($id('account-create-section'));
       hide($id('auth-owner-section'));
+      let session = null;
+      try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+      if(!session){
+        try { session = (await DB.auth.refreshSession())?.data?.session || null; } catch(e) {}
+      }
+      if(session?.user){
+        hide($id('auth-login-section'));
+        hide($id('auth-signup-section'));
+        show($id('auth-logged-section'));
+        $id('auth-logged-email').textContent = session.user.email || 'حساب Google';
+        const accounts = await loadMyAccounts();
+        if(Array.isArray(accounts)) return;
+      }
       hide($id('auth-logged-section'));
       show($id('auth-login-section'));
     }
@@ -3006,8 +3022,15 @@ updateAchievements();
     function openAccountCreate(){ hide($id('auth-logged-section')); hide($id('auth-login-section')); hide($id('auth-signup-section')); show($id('account-create-section')); setTimeout(()=> $id('account-username')?.focus(),80); }
 
     async function loadMyAccounts(){
-      const {data,error}=await DB.rpc(DB_RPC.getMyAccounts);
-      if(error){ logAppError('Load accounts failed',error); AccountState.accounts=[]; return []; }
+      let result = await DB.rpc(DB_RPC.getMyAccounts);
+      if(result?.error){
+        try {
+          await DB.auth.refreshSession();
+          result = await DB.rpc(DB_RPC.getMyAccounts);
+        } catch(e) {}
+      }
+      const {data,error}=result || {};
+      if(error){ logAppError('Load accounts failed',error); return null; }
       AccountState.accounts=Array.isArray(data)?data:[];
       AccountState.current=AccountState.accounts.find(a=>a.is_current)||AccountState.accounts[0]||null;
       const box=$id('my-accounts-box');
@@ -3070,10 +3093,10 @@ updateAchievements();
       if(!email||!password) return alert('اكتب البريد وكلمة المرور.');
       const {data,error}=await DB.auth.signInWithPassword({email,password});
       if(error) return alert(error.message||'بيانات الدخول غير صحيحة.');
-      // ثبّت الجلسة محليًا قبل فتح نافذة الحسابات، خصوصًا على الموبايل.
-      try {
-        if(!data?.session){ await DB.auth.refreshSession(); }
-      } catch(e) {}
+      let session=data?.session || null;
+      if(!session){ try { session=(await DB.auth.getSession())?.data?.session || null; } catch(e) {} }
+      if(!session){ try { session=(await DB.auth.refreshSession())?.data?.session || null; } catch(e) {} }
+      if(!session) return alert('تم تسجيل الدخول لكن جلسة الحساب لم تثبت. حاول مرة أخرى.');
       await openAuthModal();
     }
 
