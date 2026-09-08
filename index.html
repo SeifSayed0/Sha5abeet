@@ -1074,6 +1074,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       },
       auth: {
         getSession() { return supabaseClient.auth.getSession(); },
+        refreshSession() { return supabaseClient.auth.refreshSession(); },
+        getUser() { return supabaseClient.auth.getUser(); },
         signInWithOAuth(options) { return supabaseClient.auth.signInWithOAuth(options); },
         signInWithPassword(options) { return supabaseClient.auth.signInWithPassword(options); },
         signUp(options) { return supabaseClient.auth.signUp(options); },
@@ -3025,8 +3027,28 @@ updateAchievements();
       const bio=String($id('account-bio')?.value||'').trim();
       if(!/^[a-z0-9_]{3,30}$/.test(username)) return alert('اسم المستخدم لازم يكون 3-30 حرف إنجليزي صغير أو أرقام أو _.');
       if(!displayName) return alert('اكتب الاسم الظاهر.');
+
+      // تأكيد أن جلسة Supabase ما زالت موجودة قبل استدعاء الـ RPC.
+      // ده يمنع خطأ "not authenticated" الناتج عن access token قديم/غير متزامن.
+      let {data:sessionData}=await DB.auth.getSession();
+      if(!sessionData?.session){
+        const refreshed=await DB.auth.refreshSession();
+        sessionData=refreshed?.data;
+      } else {
+        // تجديد هادئ للجلسة لو أمكن، مع الاحتفاظ بالجلسة الحالية لو فشل التجديد.
+        try{
+          const refreshed=await DB.auth.refreshSession();
+          if(refreshed?.data?.session) sessionData=refreshed.data;
+        }catch(e){}
+      }
+      if(!sessionData?.session) return alert('لازم تسجل الدخول الأول قبل إنشاء حساب شخابيط.');
+
       const {data,error}=await DB.rpc(DB_RPC.createAccount,{p_username:username,p_display_name:displayName,p_bio:bio,p_guest_id:getGuestId()});
-      if(error){ logAppError('Create account failed',error); return alert(error.message||'تعذر إنشاء الحساب.'); }
+      if(error){
+        logAppError('Create account failed',error);
+        if(/not authenticated/i.test(error.message||'')) return alert('جلسة تسجيل الدخول انتهت. اقفل النافذة وسجّل الدخول مرة تانية ثم أنشئ الحساب.');
+        return alert(error.message||'تعذر إنشاء الحساب.');
+      }
       AccountState.current=Array.isArray(data)?data[0]:data;
       await loadMyAccounts();
       showToast('اتعمل الحساب بنجاح ✓ والداتا القديمة المرتبطة بالـ Guest ID فضلت معزولة وآمنة.');
