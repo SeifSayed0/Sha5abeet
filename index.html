@@ -1105,6 +1105,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     const DB_RPC = Object.freeze({
       submitThought: 'submit_thought',
       toggleComments: 'toggle_my_thought_comments',
+      toggleCommentsByAccount: 'toggle_my_thought_comments_by_account',
+      requestDeleteMyThought: 'request_my_thought_delete',
       toggleVote: 'toggle_guest_vote',
       getGuestVotes: 'get_guest_votes',
       isOwner: 'is_owner',
@@ -1199,9 +1201,14 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.deviceThoughtIds) || '[]'); } catch { return []; }
     }
 
-    // التحقق الآمن: الاعتماد على IDs المحفوظة محلياً في جهاز الكاتب فقط
+    // ملكية الخاطرة مرتبطة بالحساب النشط، وليس بالجهاز.
+    // الـ localStorage يظل fallback للخواطر القديمة غير المرتبطة بحساب.
     function isMyThought(thought) {
       if (!thought) return false;
+      const activeAccountId = AccountState?.current?.id ? String(AccountState.current.id) : '';
+      const thoughtAccountId = thought?.account_id ? String(thought.account_id) : '';
+      if (activeAccountId && thoughtAccountId) return activeAccountId === thoughtAccountId;
+      if (activeAccountId && !thoughtAccountId) return false;
       const myIds = getDeviceThoughtIds();
       return myIds.includes(thought.id);
     }
@@ -1806,54 +1813,56 @@ updateAchievements();
       if (touchEndX - AppState.ui.touchStartX > 50) prevZenQuote();
     }, {passive: true});
 
-    // دالة طلب حذف خاطرة من صاحبها الحقيقي
+    // طلب حذف خاطرة مملوكة للحساب النشط (يعمل من أي جهاز)
     async function requestDeleteThought(thoughtId) {
       const target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
       if(!target || !isMyThought(target)) {
-        return alert('عفواً، هذه الخاطرة ليست ملكاً لجهازك ولا يمكنك طلب حذفها.');
+        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك طلب حذفها.');
+      }
+
+      if(!AccountState?.current?.id) {
+        return alert('سجّل الدخول بحسابك أولاً.');
       }
 
       if(!confirm('هل تريد بالتأكيد إرسال طلب للأدمن لحذف هذه الخاطرة؟')) return;
 
       try {
-        const { error } = await DB.from(DB_TABLES.deleteRequests).insert({
-          thought_id: thoughtId,
-          guest_id: getGuestId(),
-          author_name: target.name || AppState.user.currentName || 'صديقنا',
-          thought_text: target.thought,
-          status: 'pending'
+        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, {
+          p_thought_id: thoughtId
         });
-
         if(error) throw error;
-        alert('تم إرسال طلب الحذف للأدمن بنجاح، وهيراجع الطلب ويحذفها متقلقش');
+        alert('تم إرسال طلب الحذف للأدمن بنجاح، وهيراجع الطلب ويحذفها متقلقش 🗑️');
       } catch(err) {
         console.error(err);
-        alert('حدث خطأ أثناء إرسال طلب الحذف، حاول مرة أخرى.');
+        alert(err?.message || 'حدث خطأ أثناء إرسال طلب الحذف، حاول مرة أخرى.');
       }
     }
 
-    // تبديل حالة الردود عبر الـ RPC الآمن (Secret Bearer Token)
+    // تبديل حالة الردود للحساب النشط (يعمل من أي جهاز)
     async function toggleThoughtCommentsState(thoughtId, currentStatus) {
       let target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
       if(!target){
-        const {data,error}=await DB.from(DB_TABLES.thoughts).select('id,text,author_name,allow_comments,created_at,category_id,upvotes_count,downvotes_count,prompt_question').eq('id',thoughtId).maybeSingle();
+        const {data,error}=await DB.from(DB_TABLES.thoughts)
+          .select('id,text,author_name,allow_comments,created_at,category_id,upvotes_count,downvotes_count,prompt_question,account_id')
+          .eq('id',thoughtId).maybeSingle();
         if(error) return alert('تعذر التحقق من ملكية الخاطرة حاليًا.');
-        target=data ? {id:data.id,thought:data.text,name:data.author_name||'',date:formatDate(data.created_at),rawDate:data.created_at,category_id:data.category_id,prompt_question:data.prompt_question,allow_comments:data.allow_comments===true,upvotes:data.upvotes_count||0,downvotes:data.downvotes_count||0} : null;
+        target=data ? {
+          id:data.id, thought:data.text, name:data.author_name||'', date:formatDate(data.created_at), rawDate:data.created_at,
+          category_id:data.category_id, prompt_question:data.prompt_question, allow_comments:data.allow_comments===true,
+          upvotes:data.upvotes_count||0, downvotes:data.downvotes_count||0, account_id:data.account_id||null
+        } : null;
       }
       if(!target || !isMyThought(target)) {
-        return alert('عفواً، هذه الخاطرة ليست ملكاً لجهازك ولا يمكنك تعديل إعداداتها.');
+        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك تعديل إعداداتها.');
       }
+      if(!AccountState?.current?.id) return alert('سجّل الدخول بحسابك أولاً.');
 
       const newStatus = !currentStatus;
       try {
-        // الـ RPC تتحقق من ملكية الخاطرة وتنفذ التعديل بأمان.
-        // لا نعتمد على قيمة data لأن الدالة قد ترجع void/null أو شكلاً مختلفاً رغم نجاح التعديل.
-        const { data, error } = await DB.rpc(DB_RPC.toggleComments, {
+        const { error } = await DB.rpc(DB_RPC.toggleCommentsByAccount, {
           p_thought_id: thoughtId,
-          p_secret_guest_id: getGuestId(),
           p_new_status: newStatus
         });
-
         if(error) throw error;
         target.allow_comments = newStatus;
         try { localStorage.setItem(`thought_comments_state_${thoughtId}`, newStatus ? '1' : '0'); } catch(e) {}
@@ -1862,7 +1871,7 @@ updateAchievements();
         renderVisitorThoughts();
       } catch(err) {
         console.error(err);
-        alert('حدث خطأ أثناء تعديل إعدادات الردود.');
+        alert(err?.message || 'حدث خطأ أثناء تعديل إعدادات الردود.');
       }
     }
 
@@ -3819,7 +3828,7 @@ updateAchievements();
         const visitorFrom = AppState.pagination.visitorPage * pageSize;
 
         const ownerQuery = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id')
           .eq('status','approved')
           .or('author_name.is.null,author_name.eq.""')
           .order('created_at',{ascending:false})
@@ -3827,7 +3836,7 @@ updateAchievements();
           .range(ownerFrom, ownerFrom + pageSize);
 
         const visitorQuery = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id')
           .eq('status','approved')
           .not('author_name','is',null)
           .neq('author_name','')
@@ -3859,8 +3868,8 @@ updateAchievements();
           allow_comments:getEffectiveCommentsState(i.id,i.allow_comments),
           upvotes:i.upvotes_count||0,
           downvotes:i.downvotes_count||0,
-          account_id:null,
-          account:null
+          account_id:i.account_id || null,
+          account: i.account_id ? (AccountCache.get(String(i.account_id)) || null) : null
         });
 
         AppState.user.rawOwnerData=[...AppState.user.rawOwnerData,...ownerRowsRaw.map(i=>mapThought(i,true))];
