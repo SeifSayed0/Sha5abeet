@@ -1399,7 +1399,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     function mapDiscoveryRow(i){
       return {id:i.id, thought:i.text, name:i.author_name||'', date:formatDate(i.created_at), rawDate:i.created_at,
         category_id:i.category_id, prompt_question:i.prompt_question, allow_comments:getEffectiveCommentsState(i.id, i.allow_comments),
-        upvotes:i.upvotes_count||0, downvotes:i.downvotes_count||0, account_id:i.account_id||null};
+        upvotes:i.upvotes_count||0, downvotes:i.downvotes_count||0, account_id:i.account_id||null, guest_id:i.guest_id||null};
     }
 
     function discoveryCacheKey(mode, query){
@@ -1899,32 +1899,27 @@ updateAchievements();
       if (touchEndX - AppState.ui.touchStartX > 50) prevZenQuote();
     }, {passive: true});
 
-    // طلب حذف خاطرة مملوكة للحساب النشط (يعمل من أي جهاز)
+    // طلب حذف خاطرة: الحساب المسجل أو Guest ID نفسه صاحب الخاطرة
     async function requestDeleteThought(thoughtId) {
       const target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
-      if(!target || !isMyThought(target)) {
-        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك طلب حذفها.');
-      }
-
-      if(!AccountState?.current?.id) {
-        return alert('سجّل الدخول بحسابك أولاً.');
-      }
-
+      const guestId=getGuestId();
+      const activeAccountId=AccountState?.current?.id ? String(AccountState.current.id) : '';
+      const targetAccountId=target?.account_id ? String(target.account_id) : '';
+      const guestOwns=!activeAccountId && getDeviceThoughtIds().some(x=>String(x)===String(thoughtId));
+      const accountOwns=activeAccountId && targetAccountId && activeAccountId===targetAccountId;
+      if(!target || (!accountOwns && !guestOwns)) return alert('عفواً، الخاطرة دي مش بتاعتك ولا يمكنك طلب حذفها.');
       if(!confirm('هل تريد بالتأكيد إرسال طلب للأدمن لحذف هذه الخاطرة؟')) return;
-
       try {
-        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, {
-          p_thought_id: thoughtId
-        });
+        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, { p_thought_id: thoughtId, p_guest_id: guestId });
         if(error) throw error;
         alert('تم إرسال طلب الحذف للأدمن بنجاح، وهيراجع الطلب ويحذفها متقلقش 🗑️');
       } catch(err) {
-        console.error(err);
+        console.error('Delete request error',err);
         alert(err?.message || 'حدث خطأ أثناء إرسال طلب الحذف، حاول مرة أخرى.');
       }
     }
 
-    // تبديل حالة الردود للحساب النشط (يعمل من أي جهاز)
+    // تبديل حالة الردود: الحساب المسجل أو Guest ID نفسه صاحب الخاطرة
     async function toggleThoughtCommentsState(thoughtId, currentStatus) {
       let target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
       if(!target){
@@ -1938,25 +1933,28 @@ updateAchievements();
           upvotes:data.upvotes_count||0, downvotes:data.downvotes_count||0, account_id:data.account_id||null
         } : null;
       }
-      if(!target || !isMyThought(target)) {
-        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك تعديل إعداداتها.');
-      }
-      if(!AccountState?.current?.id) return alert('سجّل الدخول بحسابك أولاً.');
+      if(!target) return alert('الخاطرة غير متاحة حاليًا.');
+      const guestId=getGuestId();
+      const activeAccountId=AccountState?.current?.id ? String(AccountState.current.id) : '';
+      const targetAccountId=target?.account_id ? String(target.account_id) : '';
+      const guestOwns=!activeAccountId && getDeviceThoughtIds().some(x=>String(x)===String(thoughtId));
+      const accountOwns=activeAccountId && targetAccountId && activeAccountId===targetAccountId;
+      if(!accountOwns && !guestOwns) return alert('عفواً، الخاطرة دي مش بتاعتك.');
 
-      const newStatus = !currentStatus;
+      const newStatus=!currentStatus;
       try {
-        const { error } = await DB.rpc(DB_RPC.toggleCommentsByAccount, {
+        const { error } = await DB.rpc(DB_RPC.toggleComments, {
           p_thought_id: thoughtId,
+          p_guest_id: guestId,
           p_new_status: newStatus
         });
         if(error) throw error;
-        target.allow_comments = newStatus;
+        target.allow_comments=newStatus;
         try { localStorage.setItem(`thought_comments_state_${thoughtId}`, newStatus ? '1' : '0'); } catch(e) {}
         alert(newStatus ? 'تم فتح باب الردود على خاطرتك بنجاح' : 'تم قفل باب الردود على خاطرتك بنجاح');
-        renderOwnerThoughts();
-        renderVisitorThoughts();
+        renderOwnerThoughts(); renderVisitorThoughts();
       } catch(err) {
-        console.error(err);
+        console.error('Toggle comments error',err);
         alert(err?.message || 'حدث خطأ أثناء تعديل إعدادات الردود.');
       }
     }
