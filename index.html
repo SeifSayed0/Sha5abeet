@@ -1041,8 +1041,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       <section aria-labelledby="owner-heading"><div class="section-header"><h2 id="owner-heading"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg> خواطر المكان</h2><div class="sort-bar"><button class="sort-btn active" id="owner-sort-new" type="button" data-action="setSort('owner','newest')">الأحدث</button><button class="sort-btn" id="owner-sort-top" type="button" data-action="setSort('owner','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="owner-list" aria-live="polite"></div></section>
       <section aria-labelledby="visitor-heading"><div class="section-header"><h2 id="visitor-heading"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> مشاركات الزوار</h2><div class="sort-bar"><button class="sort-btn active" id="visitor-sort-new" type="button" data-action="setSort('visitor','newest')">الأحدث</button><button class="sort-btn" id="visitor-sort-top" type="button" data-action="setSort('visitor','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="visitor-list" aria-live="polite"></div></section>
       
-      <!--
-<div style="text-align: center; margin: 30px auto 15px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div style="text-align: center; margin: 30px auto 15px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <span style="font-size: 10px; color: var(--muted-2); margin-bottom: 6px; display: block;">— إعلان —</span>
         <script>
           atOptions = {
@@ -1055,7 +1054,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         </script>
         <script src="https://www.highrevenueformat.com/6d7858aea445c095a181cb5b1fab1a38/invoke.js"></script>
       </div>
--->
     </main>
   </div>
   
@@ -3122,27 +3120,26 @@ updateAchievements();
     }
 
     async function checkOwner(){
+      // Owner actions must use the live Supabase session. A stale/missing
+      // client session can make the RPC return false even while the dashboard is open.
       try {
-        let session = null;
-        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
-        if(!session?.user){
-          try { session = (await DB.auth.refreshSession())?.data?.session || null; } catch(e) {}
+        let { data: sessionData } = await DB.auth.getSession();
+        if(!sessionData?.session){
+          try { await DB.auth.refreshSession(); } catch(e) {}
+          sessionData = (await DB.auth.getSession()).data;
         }
-        if(!session?.user){
-          try { session = (await DB.auth.getUser())?.data?.user ? session : session; } catch(e) {}
-        }
-        if(!session?.user) return false;
+        if(!sessionData?.session) return false;
 
-        let result = await DB.rpc(DB_RPC.isOwner);
-        if(result.error){
+        let { data, error } = await DB.rpc(DB_RPC.isOwner);
+        if(error){
           try {
             await DB.auth.refreshSession();
-            result = await DB.rpc(DB_RPC.isOwner);
+            ({ data, error } = await DB.rpc(DB_RPC.isOwner));
           } catch(e) {}
         }
-        return !result.error && (result.data === true || result.data === 'true');
+        return !error && data === true;
       } catch(e) {
-        console.warn('Owner authorization check failed', e);
+        console.error('Owner session check failed:', e);
         return false;
       }
     }
@@ -3743,35 +3740,29 @@ updateAchievements();
     async function loadAllThoughts(reset = true){
       if(reset){ invalidateGlobalStats(); AppState.thoughts.discoveryCache.clear(); AppState.thoughts.discoveryResults=null; }
       if(AppState.pagination.feedLoading) return;
-      if(!reset && !AppState.pagination.ownerHasMore && !AppState.pagination.visitorHasMore) return;
 
       AppState.pagination.feedLoading = true;
       if(reset){
         AppState.pagination.ownerPage = 0;
         AppState.pagination.visitorPage = 0;
-        AppState.pagination.ownerHasMore = true;
-        AppState.pagination.visitorHasMore = true;
+        AppState.pagination.ownerHasMore = false;
+        AppState.pagination.visitorHasMore = false;
         AppState.thoughts.allLoadedThoughts = [];
         AppState.user.rawOwnerData = [];
         AppState.user.rawVisitorData = [];
         setHTML($id('owner-list'), skeletons());
         setHTML($id('visitor-list'), skeletons());
-      } else {
-        setText($id('feed-load-more'), 'جاري تحميل المزيد...');
       }
 
-      try {
-        const pageSize = APP_CONFIG.feedPageSize;
-        const ownerFrom = AppState.pagination.ownerPage * pageSize;
-        const visitorFrom = AppState.pagination.visitorPage * pageSize;
-
+      try{
+        // تحميل كل الخواطر المنشورة مرة واحدة للحفاظ على سلوك V2 الأصلي:
+        // كل الخواطر تظهر فورًا بدل ما المستخدم يضطر يضغط "تحميل المزيد".
         const ownerQuery = DB.from(DB_TABLES.thoughts)
           .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
           .eq('status','approved')
           .or('author_name.is.null,author_name.eq.""')
           .order('created_at',{ascending:false})
-          .order('id',{ascending:false})
-          .range(ownerFrom, ownerFrom + pageSize);
+          .order('id',{ascending:false});
 
         const visitorQuery = DB.from(DB_TABLES.thoughts)
           .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
@@ -3779,32 +3770,16 @@ updateAchievements();
           .not('author_name','is',null)
           .neq('author_name','')
           .order('created_at',{ascending:false})
-          .order('id',{ascending:false})
-          .range(visitorFrom, visitorFrom + pageSize);
+          .order('id',{ascending:false});
 
-        const results = await Promise.allSettled([ownerQuery, visitorQuery]);
-        const ownerResult = results[0].status === 'fulfilled' ? results[0].value : {data:null,error:results[0].reason};
-        const visitorResult = results[1].status === 'fulfilled' ? results[1].value : {data:null,error:results[1].reason};
+        const [ownerResult,visitorResult] = await Promise.all([ownerQuery,visitorQuery]);
+        if(ownerResult.error) throw ownerResult.error;
+        if(visitorResult.error) throw visitorResult.error;
 
-        if(ownerResult.error) logAppError('Owner feed pagination error', ownerResult.error);
-        if(visitorResult.error) logAppError('Visitor feed pagination error', visitorResult.error);
+        const ownerRowsRaw=(ownerResult.data||[]).filter(i=>i?.text);
+        const visitorRowsRaw=(visitorResult.data||[]).filter(i=>i?.text);
+        const rows=[...ownerRowsRaw,...visitorRowsRaw];
 
-        const ownerRaw = ownerResult.error ? [] : (ownerResult.data || []).filter(i=>i?.text);
-        const visitorRaw = visitorResult.error ? [] : (visitorResult.data || []).filter(i=>i?.text);
-        const ownerRowsRaw = ownerRaw.slice(0, pageSize);
-        const visitorRowsRaw = visitorRaw.slice(0, pageSize);
-
-        if(!ownerResult.error){
-          AppState.pagination.ownerHasMore = ownerRaw.length > pageSize;
-          AppState.pagination.ownerPage += 1;
-        }
-        if(!visitorResult.error){
-          AppState.pagination.visitorHasMore = visitorRaw.length > pageSize;
-          AppState.pagination.visitorPage += 1;
-        }
-        if(ownerResult.error && visitorResult.error) throw ownerResult.error || visitorResult.error;
-
-        const rows = [...ownerRowsRaw, ...visitorRowsRaw];
         await hydrateThoughtAccounts(rows);
         await loadGuestVoteStates(rows.map(i=>i.id));
 
@@ -3823,8 +3798,8 @@ updateAchievements();
           account:null
         });
 
-        AppState.user.rawOwnerData=[...AppState.user.rawOwnerData,...ownerRowsRaw.map(i=>mapThought(i,true))];
-        AppState.user.rawVisitorData=[...AppState.user.rawVisitorData,...visitorRowsRaw.map(i=>mapThought(i,false))];
+        AppState.user.rawOwnerData=ownerRowsRaw.map(i=>mapThought(i,true));
+        AppState.user.rawVisitorData=visitorRowsRaw.map(i=>mapThought(i,false));
         AppState.thoughts.allLoadedThoughts=[...AppState.user.rawOwnerData,...AppState.user.rawVisitorData];
 
         renderOwnerThoughts();
@@ -3833,13 +3808,11 @@ updateAchievements();
         await updateStats();
       }catch(err){
         logAppError('Supabase thoughts load error',err);
-        if(reset){
-          AppState.user.rawOwnerData=[];
-          AppState.user.rawVisitorData=[];
-          AppState.thoughts.allLoadedThoughts=[];
-          setHTML($id('owner-list'),errorState('مش قادرين نحمّل خواطرك دلوقتي.'));
-          setHTML($id('visitor-list'),errorState('مش قادرين نحمّل مشاركات الزوار دلوقتي.'));
-        }
+        AppState.user.rawOwnerData=[];
+        AppState.user.rawVisitorData=[];
+        AppState.thoughts.allLoadedThoughts=[];
+        setHTML($id('owner-list'),errorState('مش قادرين نحمّل خواطرك دلوقتي.'));
+        setHTML($id('visitor-list'),errorState('مش قادرين نحمّل مشاركات الزوار دلوقتي.'));
       }finally{
         AppState.pagination.feedLoading=false;
         renderFeedPagination();
