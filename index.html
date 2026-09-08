@@ -3343,7 +3343,7 @@ updateAchievements();
             <small style="color:var(--primary);">من: ${escapeHTML(x.sender_name || x.sender || 'مجهول')} · ${formatDate(x.created_at || x.date)}</small>
             <p style="margin-top:4px;">${escapeHTML(x.message)}</p>
             <div class="owner-item-actions" style="margin-top:8px;">
-              <button class="primary-btn" style="padding:8px;font-size:11px;margin-top:0;" type="button" data-action="ownerReplyToUserMessage('${enc(String(x.id ?? ''))}','${enc(String(x.guest_id || ''))}','${enc(String(x.sender_name || x.sender || 'المستخدم'))}')"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ${x.guest_id ? 'رد على المستخدم' : 'رد على المستخدم (قديم)'}</button>
+              <button class="primary-btn owner-reply-btn" style="padding:8px;font-size:11px;margin-top:0;" type="button" data-message-id="${enc(String(x.id ?? ''))}" data-guest-id="${enc(String(x.guest_id || ''))}" data-sender-name="${enc(String(x.sender_name || x.sender || 'المستخدم'))}"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ${x.guest_id ? 'رد على المستخدم' : 'رد على المستخدم (قديم)'}</button>
             </div>
           </div>`).join('') : '<div class="owner-empty">مفيش رسائل جديدة من المستخدمين.</div>');
       } catch(err) {
@@ -3416,7 +3416,8 @@ updateAchievements();
       try{
         const { error } = await DB.rpc(DB_RPC.sendOwnerMessageReply, {
           p_guest_id: targetGuestId,
-          p_message: text
+          p_message: text,
+          p_owner_message_id: String(messageId || '').trim() || null
         });
         if(error) throw error;
         alert('تم إرسال الرد، وهيظهر لصاحب الرسالة في الإشعارات.');
@@ -3425,6 +3426,19 @@ updateAchievements();
         alert('حدث خطأ أثناء إرسال الرد.');
       }
     }
+
+    // Direct click handler for owner reply buttons (bypasses generic action parsing).
+    document.addEventListener('click', function(e){
+      const btn = e.target.closest('.owner-reply-btn');
+      if(!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ownerReplyToUserMessage(
+        btn.getAttribute('data-message-id') || '',
+        btn.getAttribute('data-guest-id') || '',
+        btn.getAttribute('data-sender-name') || 'المستخدم'
+      );
+    }, true);
 
     // إرسال الملاحظة بالـ RPC المستخرج للـ guest_id آلياً
     async function ownerSendFeedbackPrompt(id, encAuthor, encText){
