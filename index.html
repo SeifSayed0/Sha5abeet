@@ -979,7 +979,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div style="display:flex; justify-content:flex-start;">
           <button type="button" id="comment-toggle-btn" class="comment-toggle-pill" data-action="toggleAllowComments()">
             <span class="pill-dot"></span>
-            <span id="comment-toggle-text"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> الردود مقفولة (اضغط لفتحها)</span>
+            <span id="comment-toggle-text"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> الردود مفتوحة (جاهزة للنقاش)</span>
           </button>
         </div>
 
@@ -1175,7 +1175,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       },
       comments: {
         activeThoughtId: null,
-        allowCommentsSelected: false,
+        allowCommentsSelected: true,
         page: 0,
         total: 0,
         loading: false,
@@ -1606,6 +1606,7 @@ updateAchievements();
       checkOwnerPendingNotifications();
       loadAllThoughts().then(async ()=>{
         await showDailyThought();
+      scheduleDailyThoughtRefresh();
         await openThoughtFromUrl();
         await restoreOpenCommentsAfterRefresh();
       });
@@ -2835,25 +2836,35 @@ updateAchievements();
       }
     }
 
-    async function showDailyThought(){
-      if(!AppState.thoughts.allLoadedThoughts.length) return; 
+    function getCairoDateKey(date = new Date()){
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(date);
+    }
 
+    async function showDailyThought(){
+      if(!AppState.thoughts.allLoadedThoughts.length) return;
+
+      const todayStr = getCairoDateKey();
       let selectedItem = null;
 
+      // Owner's manual choice is valid for the current Cairo calendar day only.
+      // Once 00:00 arrives, the daily thought automatically rolls to the next one.
       try {
         const { data } = await DB
           .from(DB_TABLES.settings)
-          .select('value')
+          .select('value,updated_at')
           .eq('key', 'daily_thought_id')
           .single();
 
-        if (data?.value) {
+        if (data?.value && data?.updated_at && getCairoDateKey(new Date(data.updated_at)) === todayStr) {
           selectedItem = AppState.thoughts.allLoadedThoughts.find(t => String(t.id) === String(data.value));
         }
       } catch(e){}
 
+      // No current-day manual choice: derive the same stable thought for everyone.
+      // The date is based on Cairo, so the change happens at exactly 00:00 Egypt time.
       if (!selectedItem) {
-        const todayStr = new Date().toISOString().slice(0, 10);
         let hash = 0;
         for (let i = 0; i < todayStr.length; i++) {
           hash = (hash << 5) - hash + todayStr.charCodeAt(i);
@@ -2868,6 +2879,20 @@ updateAchievements();
         $id('daily-author').textContent = selectedItem.name ? `بقلم: ${selectedItem.name}` : (AppState.user.currentName || 'صديقنا');
         $id('daily-card').hidden = false;
       }
+    }
+
+    function scheduleDailyThoughtRefresh(){
+      const tick = async () => {
+        await showDailyThought();
+        const now = new Date();
+        const next = new Date(now.getTime() + 60 * 1000);
+        setTimeout(tick, 60 * 1000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
+      };
+      // Check frequently around midnight; showDailyThought itself is date-stable.
+      setTimeout(async function midnightCheck(){
+        await showDailyThought();
+        setTimeout(midnightCheck, 60 * 1000);
+      }, 60 * 1000);
     }
 
     async function ownerRefreshDailyThought(){
