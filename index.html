@@ -3122,8 +3122,29 @@ updateAchievements();
     }
 
     async function checkOwner(){
-      const { data, error } = await DB.rpc(DB_RPC.isOwner);
-      return !error && data === true;
+      try {
+        let session = null;
+        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+        if(!session?.user){
+          try { session = (await DB.auth.refreshSession())?.data?.session || null; } catch(e) {}
+        }
+        if(!session?.user){
+          try { session = (await DB.auth.getUser())?.data?.user ? session : session; } catch(e) {}
+        }
+        if(!session?.user) return false;
+
+        let result = await DB.rpc(DB_RPC.isOwner);
+        if(result.error){
+          try {
+            await DB.auth.refreshSession();
+            result = await DB.rpc(DB_RPC.isOwner);
+          } catch(e) {}
+        }
+        return !result.error && (result.data === true || result.data === 'true');
+      } catch(e) {
+        console.warn('Owner authorization check failed', e);
+        return false;
+      }
     }
 
     async function signInWithGoogle() {
@@ -3722,29 +3743,35 @@ updateAchievements();
     async function loadAllThoughts(reset = true){
       if(reset){ invalidateGlobalStats(); AppState.thoughts.discoveryCache.clear(); AppState.thoughts.discoveryResults=null; }
       if(AppState.pagination.feedLoading) return;
+      if(!reset && !AppState.pagination.ownerHasMore && !AppState.pagination.visitorHasMore) return;
 
       AppState.pagination.feedLoading = true;
       if(reset){
         AppState.pagination.ownerPage = 0;
         AppState.pagination.visitorPage = 0;
-        AppState.pagination.ownerHasMore = false;
-        AppState.pagination.visitorHasMore = false;
+        AppState.pagination.ownerHasMore = true;
+        AppState.pagination.visitorHasMore = true;
         AppState.thoughts.allLoadedThoughts = [];
         AppState.user.rawOwnerData = [];
         AppState.user.rawVisitorData = [];
         setHTML($id('owner-list'), skeletons());
         setHTML($id('visitor-list'), skeletons());
+      } else {
+        setText($id('feed-load-more'), 'جاري تحميل المزيد...');
       }
 
-      try{
-        // تحميل كل الخواطر المنشورة مرة واحدة للحفاظ على سلوك V2 الأصلي:
-        // كل الخواطر تظهر فورًا بدل ما المستخدم يضطر يضغط "تحميل المزيد".
+      try {
+        const pageSize = APP_CONFIG.feedPageSize;
+        const ownerFrom = AppState.pagination.ownerPage * pageSize;
+        const visitorFrom = AppState.pagination.visitorPage * pageSize;
+
         const ownerQuery = DB.from(DB_TABLES.thoughts)
           .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
           .eq('status','approved')
           .or('author_name.is.null,author_name.eq.""')
           .order('created_at',{ascending:false})
-          .order('id',{ascending:false});
+          .order('id',{ascending:false})
+          .range(ownerFrom, ownerFrom + pageSize);
 
         const visitorQuery = DB.from(DB_TABLES.thoughts)
           .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
@@ -3752,16 +3779,32 @@ updateAchievements();
           .not('author_name','is',null)
           .neq('author_name','')
           .order('created_at',{ascending:false})
-          .order('id',{ascending:false});
+          .order('id',{ascending:false})
+          .range(visitorFrom, visitorFrom + pageSize);
 
-        const [ownerResult,visitorResult] = await Promise.all([ownerQuery,visitorQuery]);
-        if(ownerResult.error) throw ownerResult.error;
-        if(visitorResult.error) throw visitorResult.error;
+        const results = await Promise.allSettled([ownerQuery, visitorQuery]);
+        const ownerResult = results[0].status === 'fulfilled' ? results[0].value : {data:null,error:results[0].reason};
+        const visitorResult = results[1].status === 'fulfilled' ? results[1].value : {data:null,error:results[1].reason};
 
-        const ownerRowsRaw=(ownerResult.data||[]).filter(i=>i?.text);
-        const visitorRowsRaw=(visitorResult.data||[]).filter(i=>i?.text);
-        const rows=[...ownerRowsRaw,...visitorRowsRaw];
+        if(ownerResult.error) logAppError('Owner feed pagination error', ownerResult.error);
+        if(visitorResult.error) logAppError('Visitor feed pagination error', visitorResult.error);
 
+        const ownerRaw = ownerResult.error ? [] : (ownerResult.data || []).filter(i=>i?.text);
+        const visitorRaw = visitorResult.error ? [] : (visitorResult.data || []).filter(i=>i?.text);
+        const ownerRowsRaw = ownerRaw.slice(0, pageSize);
+        const visitorRowsRaw = visitorRaw.slice(0, pageSize);
+
+        if(!ownerResult.error){
+          AppState.pagination.ownerHasMore = ownerRaw.length > pageSize;
+          AppState.pagination.ownerPage += 1;
+        }
+        if(!visitorResult.error){
+          AppState.pagination.visitorHasMore = visitorRaw.length > pageSize;
+          AppState.pagination.visitorPage += 1;
+        }
+        if(ownerResult.error && visitorResult.error) throw ownerResult.error || visitorResult.error;
+
+        const rows = [...ownerRowsRaw, ...visitorRowsRaw];
         await hydrateThoughtAccounts(rows);
         await loadGuestVoteStates(rows.map(i=>i.id));
 
@@ -3780,8 +3823,8 @@ updateAchievements();
           account:null
         });
 
-        AppState.user.rawOwnerData=ownerRowsRaw.map(i=>mapThought(i,true));
-        AppState.user.rawVisitorData=visitorRowsRaw.map(i=>mapThought(i,false));
+        AppState.user.rawOwnerData=[...AppState.user.rawOwnerData,...ownerRowsRaw.map(i=>mapThought(i,true))];
+        AppState.user.rawVisitorData=[...AppState.user.rawVisitorData,...visitorRowsRaw.map(i=>mapThought(i,false))];
         AppState.thoughts.allLoadedThoughts=[...AppState.user.rawOwnerData,...AppState.user.rawVisitorData];
 
         renderOwnerThoughts();
@@ -3790,11 +3833,13 @@ updateAchievements();
         await updateStats();
       }catch(err){
         logAppError('Supabase thoughts load error',err);
-        AppState.user.rawOwnerData=[];
-        AppState.user.rawVisitorData=[];
-        AppState.thoughts.allLoadedThoughts=[];
-        setHTML($id('owner-list'),errorState('مش قادرين نحمّل خواطرك دلوقتي.'));
-        setHTML($id('visitor-list'),errorState('مش قادرين نحمّل مشاركات الزوار دلوقتي.'));
+        if(reset){
+          AppState.user.rawOwnerData=[];
+          AppState.user.rawVisitorData=[];
+          AppState.thoughts.allLoadedThoughts=[];
+          setHTML($id('owner-list'),errorState('مش قادرين نحمّل خواطرك دلوقتي.'));
+          setHTML($id('visitor-list'),errorState('مش قادرين نحمّل مشاركات الزوار دلوقتي.'));
+        }
       }finally{
         AppState.pagination.feedLoading=false;
         renderFeedPagination();
