@@ -793,6 +793,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <button class="primary-btn" type="button" data-action="emailLogin()">تسجيل الدخول</button>
         <button class="secondary-btn" type="button" data-action="showSignupForm()" style="margin-top:7px;">إنشاء حساب جديد</button>
         <button class="link-btn" type="button" data-action="sendPasswordReset()" style="margin-top:7px;background:none;border:0;color:var(--primary);cursor:pointer;">نسيت كلمة المرور؟</button>
+        <button class="secondary-btn" type="button" data-action="showOwnerLoginForm()" style="margin-top:10px;">دخول المالك</button>
       </div>
 
       <div id="auth-signup-section" style="display:none;">
@@ -815,9 +816,11 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 
       <div id="auth-user-info" style="display:none;"></div>
       <div id="auth-owner-section" style="display:none; margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:right;font-weight:700;">دخول المالك إلى لوحة شخابيط</div>
         <input id="owner-email" type="email" placeholder="بريد المالك" autocomplete="email">
         <input id="owner-password" type="password" placeholder="كلمة مرور المالك" autocomplete="current-password">
-        <button class="secondary-btn" type="button" data-action="ownerLogin()">دخول المالك</button>
+        <button class="primary-btn" type="button" data-action="ownerLogin()">دخول المالك <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg></button>
+        <button class="link-btn" type="button" data-action="showAccountLoginView()" style="margin-top:7px;background:none;border:0;color:var(--primary);cursor:pointer;">رجوع لتسجيل دخول المستخدم</button>
       </div>
     </div>
   </div>
@@ -2984,7 +2987,20 @@ updateAchievements();
     function normalizeUsername(value){ return String(value||'').trim().toLowerCase().replace(/^@+/, ''); }
     function showLoginForm(){ hide($id('auth-signup-section')); hide($id('account-create-section')); show($id('auth-login-section')); }
     function showSignupForm(){ hide($id('auth-login-section')); hide($id('account-create-section')); show($id('auth-signup-section')); }
-    function showAccountLoginView(){ hide($id('account-create-section')); show($id('auth-logged-section')); }
+    function showAccountLoginView(){
+      hide($id('account-create-section'));
+      hide($id('auth-owner-section'));
+      hide($id('auth-logged-section'));
+      show($id('auth-login-section'));
+    }
+    function showOwnerLoginForm(){
+      hide($id('auth-login-section'));
+      hide($id('auth-signup-section'));
+      hide($id('account-create-section'));
+      hide($id('auth-logged-section'));
+      show($id('auth-owner-section'));
+      setTimeout(()=> $id('owner-email')?.focus(),80);
+    }
     function openAccountCreate(){ hide($id('auth-logged-section')); hide($id('auth-login-section')); hide($id('auth-signup-section')); show($id('account-create-section')); setTimeout(()=> $id('account-username')?.focus(),80); }
 
     async function loadMyAccounts(){
@@ -4005,6 +4021,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     showLoginForm,
     openAccountCreate,
     showAccountLoginView,
+    showOwnerLoginForm,
     createAccountProfile,
     switchAccount,
     ownerLogin,
