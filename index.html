@@ -2477,15 +2477,35 @@ updateAchievements();
 
     function recordVisit(){
       const today = new Date().toISOString().slice(0,10);
-      const key = accountStorageKey(STORAGE_KEYS.lastVisit);
-      const streakKey = accountStorageKey(STORAGE_KEYS.streak);
-      const last = localStorage.getItem(key);
-      let streak = parseInt(localStorage.getItem(streakKey)||'0',10) || 0;
-      if(last === today){} 
-      else if(last){
-        const d = new Date(last+'T00:00:00'), now = new Date(today+'T00:00:00'), diff = Math.round((now-d)/86400000);
-        streak = diff === 1 ? streak+1 : 1;
-      } else streak = 1;
+      const scopedLastKey = accountStorageKey(STORAGE_KEYS.lastVisit);
+      const scopedStreakKey = accountStorageKey(STORAGE_KEYS.streak);
+
+      // Preserve the existing streak when moving between the old Guest/device
+      // storage and the new account-scoped storage. Never overwrite a real
+      // existing streak with 1 just because the current storage namespace changed.
+      let key = scopedLastKey;
+      let streakKey = scopedStreakKey;
+      let last = localStorage.getItem(key);
+      let storedStreak = parseInt(localStorage.getItem(streakKey)||'0',10) || 0;
+
+      if(!last && !AccountState?.current?.id){
+        const legacyLast = localStorage.getItem(STORAGE_KEYS.lastVisit);
+        const legacyStreak = parseInt(localStorage.getItem(STORAGE_KEYS.streak)||'0',10) || 0;
+        if(legacyLast){ last = legacyLast; storedStreak = Math.max(storedStreak, legacyStreak); }
+      }
+
+      let streak = storedStreak;
+      if(last === today) {
+        // Same-day visit: keep the streak exactly as it is.
+      } else if(last) {
+        const d = new Date(last+'T00:00:00');
+        const now = new Date(today+'T00:00:00');
+        const diff = Math.round((now-d)/86400000);
+        streak = diff === 1 ? Math.max(1, storedStreak)+1 : 1;
+      } else {
+        streak = storedStreak > 0 ? storedStreak : 1;
+      }
+
       localStorage.setItem(key, today);
       localStorage.setItem(streakKey, String(streak));
       AppState.engagement.streakDays = streak;
