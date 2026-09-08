@@ -284,7 +284,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .action-menu[hidden]{display:none!important}.action-menu button{min-height:42px;text-align:right;border-radius:9px;padding:8px 10px;color:var(--text);font-size:12px;display:flex;align-items:center;gap:8px}
 .action-menu button:hover{background:var(--surface-2)}
 .action-menu .danger{color:var(--danger)}
-.fav-btn.is-fav{color:var(--warning);background:#f8f0dd}.report-btn:hover,.report-btn.reported{color:var(--danger);background:rgba(177,84,80,.09)}
+.fav-btn.is-fav{color:var(--warning);background:#f8f0dd}
+.report-btn:hover,.report-btn.reported{color:var(--danger);background:rgba(177,84,80,.09)}
 .req-del-btn:hover{color:var(--danger);background:rgba(177,84,80,.09)}
 
 .vote-bar{flex:0 0 auto;display:inline-flex;align-items:center;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:3px;gap:2px;direction:ltr}
@@ -306,12 +307,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .skeleton-line.short{width:42%}
 .skeleton-line.medium{width:70%}
 
-/* accounts */
-.account-switch-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);margin-bottom:7px}
-.account-switch-card .account-meta{min-width:0;text-align:right}
-.account-switch-card strong,.account-switch-card span{display:block;overflow-wrap:anywhere}
-.account-switch-card span{font-size:11px;color:var(--muted)}
-.account-switch-btn{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;cursor:pointer;font-weight:700}
 /* profile / achievements / weekly answers */
 .profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
 .profile-stat{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 6px;text-align:center}
@@ -757,55 +752,40 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     <div class="modal-box">
       <button class="modal-close" type="button" data-action="closeAuthModal()" aria-label="إغلاق"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
       <div class="login-logo" id="auth-modal-logo"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg></div>
-      <h2 id="auth-title">الحساب</h2>
-      <p class="modal-subtitle" id="auth-subtitle">حسابك وهويتك في شخابيط</p>
-
-      <div id="auth-logged-section" style="display:none;">
-        <div style="background:rgba(62,138,147,.08); border:1px solid rgba(62,138,147,.25); border-radius:12px; padding:12px; margin:12px 0; text-align:right;">
-          <div style="font-size:12px;color:var(--muted);">مسجل بـ</div>
-          <strong id="auth-logged-email" style="display:block;margin-top:3px;overflow-wrap:anywhere;"></strong>
-        </div>
-        <div id="my-accounts-box" style="margin:12px 0; text-align:right;"></div>
-        <button class="primary-btn" type="button" data-action="openAccountCreate()">＋ إضافة حساب</button>
-        <button class="secondary-btn" type="button" data-action="userLogout()" style="margin-top:7px;">تسجيل الخروج</button>
+      <h2 id="auth-title">الملف والحساب</h2>
+      <p class="modal-subtitle" id="auth-subtitle">بياناتك وأثرك في شخابيط</p>
+      
+      <div style="background:rgba(62,138,147,.08); border:1px solid rgba(62,138,147,.25); border-radius:12px; padding:12px; margin:12px 0; text-align:right; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>عملت كام فوت:</span><strong id="auth-stat-my-votes" style="color:var(--primary);">0</strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>اتعملك كام فوت:</span><strong id="auth-stat-net-votes" style="color:var(--success);">0</strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>كتبت كام خاطرة:</span><strong id="auth-stat-my-thoughts" style="color:var(--primary);">0</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>خواطرك المعلقة:</span><strong id="auth-stat-pending" style="color:var(--warning);">0</strong></div>
       </div>
 
-      <div id="auth-login-section">
+      <div id="auth-msg-to-owner-box" style="margin:12px 0; border-top:1px solid var(--border); padding-top:10px; text-align:right;">
+        <span style="font-size:12px; color:var(--primary); font-weight:700; display:block; margin-bottom:4px;"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ابعت رسالة للمالك (خاصة):</span>
+        <textarea id="user-to-owner-msg" placeholder="اكتب رسالتك للمالك هنا..." style="min-height:70px; font-size:13px; margin:4px 0;"></textarea>
+        <button class="primary-btn" style="padding:8px; font-size:13px; margin-top:4px;" type="button" data-action="sendUserMessageToOwner()">إرسال للمالك <svg class="ic" aria-hidden="true"><use href="#i-mail"></use></svg></button>
+      </div>
+
+      <div id="auth-guest-section">
         <button class="primary-btn" style="background:#fff; color:#241f1a; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; border:1px solid var(--border);" type="button" data-action="signInWithGoogle()">
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
           الدخول عبر Google
         </button>
-        <div style="margin:10px 0; font-size:12px; color:var(--muted);">— أو بالبريد الإلكتروني —</div>
-        <input id="auth-email" type="email" placeholder="البريد الإلكتروني" autocomplete="email">
-        <input id="auth-password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-        <button class="primary-btn" type="button" data-action="emailLogin()">تسجيل الدخول</button>
-        <button class="secondary-btn" type="button" data-action="showSignupForm()" style="margin-top:7px;">إنشاء حساب جديد</button>
-        <button class="link-btn" type="button" data-action="sendPasswordReset()" style="margin-top:7px;background:none;border:0;color:var(--primary);cursor:pointer;">نسيت كلمة المرور؟</button>
+        <div style="margin:10px 0; font-size:12px; color:var(--muted);">— أو للمالك بالبريد —</div>
       </div>
 
-      <div id="auth-signup-section" style="display:none;">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:right;">بعد إنشاء الحساب هنخلي الـ Guest ID الحالي مرتبط بالحساب، من غير ما نخلطك مع أي مستخدم تاني.</div>
-        <input id="signup-email" type="email" placeholder="البريد الإلكتروني" autocomplete="email">
-        <input id="signup-password" type="password" placeholder="كلمة المرور (8 أحرف على الأقل)" autocomplete="new-password">
-        <input id="signup-password-confirm" type="password" placeholder="تأكيد كلمة المرور" autocomplete="new-password">
-        <button class="primary-btn" type="button" data-action="emailSignup()">إنشاء الحساب</button>
-        <button class="secondary-btn" type="button" data-action="showLoginForm()" style="margin-top:7px;">عندي حساب بالفعل</button>
+      <div id="auth-email-section">
+        <input id="owner-email" type="email" placeholder="البريد الإلكتروني" autocomplete="email">
+        <input id="owner-password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+        <button class="secondary-btn" type="button" data-action="ownerLogin()">دخول المالك بالباسورد</button>
       </div>
 
-      <div id="account-create-section" style="display:none;">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:right;">اختار هوية شخابيط للحساب. تقدر تعمل حسابين كحد أقصى تحت نفس تسجيل الدخول.</div>
-        <input id="account-username" type="text" placeholder="اسم المستخدم — مثال: seif" autocomplete="off" maxlength="30">
-        <input id="account-display-name" type="text" placeholder="الاسم الظاهر" autocomplete="off" maxlength="40">
-        <textarea id="account-bio" placeholder="نبذة قصيرة (اختياري)" maxlength="160" style="min-height:70px;"></textarea>
-        <button class="primary-btn" type="button" data-action="createAccountProfile()">إنشاء الحساب</button>
-        <button class="secondary-btn" type="button" data-action="showAccountLoginView()" style="margin-top:7px;">رجوع</button>
-      </div>
-
-      <div id="auth-user-info" style="display:none;"></div>
-      <div id="auth-owner-section" style="display:none; margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">
-        <input id="owner-email" type="email" placeholder="بريد المالك" autocomplete="email">
-        <input id="owner-password" type="password" placeholder="كلمة مرور المالك" autocomplete="current-password">
-        <button class="secondary-btn" type="button" data-action="ownerLogin()">دخول المالك</button>
+      <div id="auth-user-info" style="display:none;">
+        <p style="margin-bottom:12px; font-size:14px; color:var(--primary);" id="auth-logged-email"></p>
+        <button class="primary-btn" id="auth-dashboard-btn" style="display:none; margin-bottom:8px;" type="button" data-action="openOwnerDashboard()">فتح لوحة التحكم <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg></button>
+        <button class="secondary-btn" type="button" data-action="userLogout()">تسجيل الخروج</button>
       </div>
     </div>
   </div>
@@ -1061,8 +1041,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         getSession() { return supabaseClient.auth.getSession(); },
         signInWithOAuth(options) { return supabaseClient.auth.signInWithOAuth(options); },
         signInWithPassword(options) { return supabaseClient.auth.signInWithPassword(options); },
-        signUp(options) { return supabaseClient.auth.signUp(options); },
-        onAuthStateChange(callback) { return supabaseClient.auth.onAuthStateChange(callback); },
         signOut() { return supabaseClient.auth.signOut(); }
       }
     };
@@ -1074,8 +1052,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       deleteRequests: 'delete_requests',
       reports: 'reports',
       ownerMessages: 'owner_messages',
-      settings: 'site_settings',
-      accounts: 'accounts'
+      settings: 'site_settings'
     });
 
     const DB_RPC = Object.freeze({
@@ -1089,9 +1066,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       markNotificationsRead: 'mark_my_notifications_read',
       sendNotification: 'send_thought_notification',
       sendOwnerMessageReply: 'send_owner_message_reply',
-      clearNotifications: 'clear_my_device_notifications',
-      createAccount: 'create_my_account',
-      getMyAccounts: 'get_my_accounts',
+      clearNotifications: 'clear_my_device_notifications'
     });
 
     /* ==================== STAGE 6: CONSTANTS & CONFIG ==================== */
@@ -1613,18 +1588,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       updateThemeButton(isDark);
     }
 
-    async function bootstrapAccountSystem(){
-      try{
-        const {data}=await DB.auth.getSession();
-        if(!data?.session?.user) return;
-        const accounts=await loadMyAccounts();
-        if(!accounts.length && !(await checkOwner())){
-          await openAuthModal();
-          openAccountCreate();
-        }
-      }catch(err){ logAppError('Account bootstrap failed',err); }
-    }
-
     function initSite(){
       $id('app').style.display = 'block';
       initDarkMode();
@@ -1647,7 +1610,6 @@ updateAchievements();
         await openThoughtFromUrl();
         await restoreOpenCommentsAfterRefresh();
       });
-      bootstrapAccountSystem();
     }
 
     function toggleSearchBar() {
@@ -2297,8 +2259,7 @@ updateAchievements();
         return;
       }
       setHTML(div, list.map((i,index)=>{
-        const displayName = i.account?.display_name || i.name || 'زائر';
-        const id = `thought_${i.id}_${displayName}`, fav = getFavoritesSafe().includes(id), reportId = `rep-btn-${i.id}-${index}`;
+        const id = `thought_${i.id}_${i.name}`, fav = getFavoritesSafe().includes(id), reportId = `rep-btn-${i.id}-${index}`;
         const promptHtml = i.prompt_question ? `<div class="prompt-ref-badge"><svg class="ic" aria-hidden="true"><use href="#i-bulb"></use></svg> إجابة سؤال الأسبوع: ${escapeHTML(i.prompt_question)}</div>` : '';
         const commentsBtnHtml = (i.allow_comments === true) ? `
           <button class="action-sub-btn comment-count-btn" type="button" data-comment-thought-id="${i.id}" data-action="openCommentsModal(${i.id})" title="ردود ونقاش" aria-label="عرض الردود"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> 0</button>
@@ -2316,7 +2277,7 @@ updateAchievements();
             ${promptHtml}
             <p class="thought-text">${escapeHTML(i.thought)}</p>
             <div class="card-footer">
-              <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(displayName)}')">${escapeHTML(displayName)}</button> · ${escapeHTML(i.date||'')}</span>
+              <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(i.name||'زائر')}')">${escapeHTML(i.name||'زائر')}</button> · ${escapeHTML(i.date||'')}</span>
               <div class="card-actions">
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
@@ -2325,9 +2286,9 @@ updateAchievements();
                 <div class="action-menu" hidden>
                   <button type="button" data-action="copyThought('${enc(i.thought)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg> نسخ النص</button>
                   <button type="button" data-action="copyThoughtLink(${i.id},this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ الرابط</button>
-                  <button type="button" data-action="shareAsImage('${enc(i.thought)}','${enc(displayName)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg> مشاركة</button>
+                  <button type="button" data-action="shareAsImage('${enc(i.thought)}','${enc(i.name||'')}',this)"><svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg> مشاركة</button>
                   ${authorToggleHtml}${deleteThoughtHtml}
-                  <button class="danger" type="button" data-action="handleReport('${enc(displayName)}','${enc(i.thought)}','${reportId}')"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> إبلاغ</button>
+                  <button class="danger" type="button" data-action="handleReport('${enc(i.name||'')}','${enc(i.thought)}','${reportId}')"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> إبلاغ</button>
                 </div>
                 </div>
                 ${createVoteBarHTML('Visitors', i.id, i.upvotes, i.downvotes)}
@@ -2955,112 +2916,48 @@ updateAchievements();
       }
     }
 
-    let AccountState = { current: null, accounts: [] };
-    const AccountCache = new Map();
-
-    async function hydrateThoughtAccounts(rows){
-      const ids=[...new Set((rows||[]).map(r=>r?.account_id).filter(Boolean))];
-      const missing=ids.filter(id=>!AccountCache.has(String(id)));
-      if(!missing.length) return;
-      try{
-        const {data,error}=await DB.from(DB_TABLES.accounts).select('id,username,display_name,avatar_url').in('id',missing);
-        if(error) throw error;
-        (data||[]).forEach(a=>AccountCache.set(String(a.id),a));
-      }catch(err){ logAppError('Hydrate thought accounts failed',err); }
-    }
-
-    function normalizeUsername(value){ return String(value||'').trim().toLowerCase().replace(/^@+/, ''); }
-    function showLoginForm(){ hide($id('auth-signup-section')); hide($id('account-create-section')); show($id('auth-login-section')); }
-    function showSignupForm(){ hide($id('auth-login-section')); hide($id('account-create-section')); show($id('auth-signup-section')); }
-    function showAccountLoginView(){ hide($id('account-create-section')); show($id('auth-logged-section')); }
-    function openAccountCreate(){ hide($id('auth-logged-section')); hide($id('auth-login-section')); hide($id('auth-signup-section')); show($id('account-create-section')); setTimeout(()=> $id('account-username')?.focus(),80); }
-
-    async function loadMyAccounts(){
-      const {data,error}=await DB.rpc(DB_RPC.getMyAccounts);
-      if(error){ logAppError('Load accounts failed',error); AccountState.accounts=[]; return []; }
-      AccountState.accounts=Array.isArray(data)?data:[];
-      AccountState.current=AccountState.accounts.find(a=>a.is_current)||AccountState.accounts[0]||null;
-      const box=$id('my-accounts-box');
-      if(box){
-        if(!AccountState.accounts.length){
-          box.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px;">لسه معندكش هوية حساب. أضف أول حساب ليك.</div>';
-        } else {
-          box.innerHTML=AccountState.accounts.map(a=>`<div class="account-switch-card"><div class="account-meta"><strong>${escapeHTML(a.display_name||a.username||'حساب')}</strong><span>@${escapeHTML(a.username||'')}</span></div><button class="account-switch-btn" type="button" data-action="switchAccount('${enc(String(a.id))}')">${a.is_current?'الحساب الحالي':'تبديل'}</button></div>`).join('');
-        }
-      }
-      return AccountState.accounts;
-    }
-
-    async function createAccountProfile(){
-      const username=normalizeUsername($id('account-username')?.value);
-      const displayName=String($id('account-display-name')?.value||'').trim();
-      const bio=String($id('account-bio')?.value||'').trim();
-      if(!/^[a-z0-9_]{3,30}$/.test(username)) return alert('اسم المستخدم لازم يكون 3-30 حرف إنجليزي صغير أو أرقام أو _.');
-      if(!displayName) return alert('اكتب الاسم الظاهر.');
-      const {data,error}=await DB.rpc(DB_RPC.createAccount,{p_username:username,p_display_name:displayName,p_bio:bio,p_guest_id:getGuestId()});
-      if(error){ logAppError('Create account failed',error); return alert(error.message||'تعذر إنشاء الحساب.'); }
-      AccountState.current=Array.isArray(data)?data[0]:data;
-      await loadMyAccounts();
-      showToast('اتعمل الحساب بنجاح ✓ والداتا القديمة المرتبطة بالـ Guest ID فضلت معزولة وآمنة.');
-      await openAuthModal();
-    }
-
-    async function switchAccount(accountId){
-      const {data,error}=await DB.rpc('switch_my_account',{p_account_id:accountId});
-      if(error){ logAppError('Switch account failed',error); return alert(error.message||'تعذر تبديل الحساب.'); }
-      AccountState.current=(Array.isArray(data)?data[0]:data)||null;
-      await loadMyAccounts();
-      closeAuthModal();
-      showToast(`تم التبديل إلى @${AccountState.current?.username||'الحساب'}`);
-      await loadAllThoughts();
-    }
-
-    async function emailLogin(){
-      const email=$id('auth-email').value.trim(), password=$id('auth-password').value;
-      if(!email||!password) return alert('اكتب البريد وكلمة المرور.');
-      const {error}=await DB.auth.signInWithPassword({email,password});
-      if(error) return alert(error.message||'بيانات الدخول غير صحيحة.');
-      await openAuthModal();
-    }
-
-    async function emailSignup(){
-      const email=$id('signup-email').value.trim(), password=$id('signup-password').value, confirmPassword=$id('signup-password-confirm').value;
-      if(!email||!password) return alert('اكتب البريد وكلمة المرور.');
-      if(password.length<8) return alert('كلمة المرور لازم تكون 8 أحرف على الأقل.');
-      if(password!==confirmPassword) return alert('تأكيد كلمة المرور غير مطابق.');
-      const {data,error}=await DB.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
-      if(error) return alert(error.message||'تعذر إنشاء الحساب.');
-      if(!data?.session) return alert('تم إنشاء الحساب. افتح رسالة تأكيد البريد ثم ارجع لشخابيط لتكمل إعداد الحساب.');
-      await openAuthModal();
-      openAccountCreate();
-    }
-
-    async function sendPasswordReset(){
-      const email=$id('auth-email').value.trim();
-      if(!email) return alert('اكتب بريدك الإلكتروني الأول.');
-      const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
-      if(error) return alert(error.message||'تعذر إرسال رابط استعادة كلمة المرور.');
-      alert('بعتنالك رابط استعادة كلمة المرور على البريد.');
-    }
-
     async function openAuthModal() {
       const { data } = await DB.auth.getSession();
       const user = data?.session?.user;
-      hide($id('auth-login-section')); hide($id('auth-signup-section')); hide($id('account-create-section')); hide($id('auth-logged-section')); hide($id('auth-owner-section'));
-      if(user){
-        show($id('auth-logged-section'));
-        $id('auth-logged-email').textContent = user.email || 'حساب Google';
-        await loadMyAccounts();
-        const isOwnerUser=await checkOwner();
-        if(isOwnerUser) show($id('auth-owner-section'));
-        $id('auth-title').textContent='حسابك في شخابيط';
-        $id('auth-subtitle').textContent='بدّل بين حساباتك وكل حساب له هويته وإحصائياته.';
-      }else{
-        show($id('auth-login-section'));
-        $id('auth-title').textContent='تسجيل الدخول';
-        $id('auth-subtitle').textContent='اعمل حساب حقيقي في شخابيط وحافظ على هويتك وداتا استخدامك.';
+      
+      const guestSec = $id('auth-guest-section');
+      const emailSec = $id('auth-email-section');
+      const userSec = $id('auth-user-info');
+      const dashBtn = $id('auth-dashboard-btn');
+      const emailDisplay = $id('auth-logged-email');
+
+      const targetUserName = AppState.user.currentName || 'صديقنا';
+      const stats = await getUserStats(targetUserName);
+      $id('auth-stat-my-votes').textContent = stats.votesMade;
+      $id('auth-stat-net-votes').textContent = stats.netVotes;
+      $id('auth-stat-my-thoughts').textContent = stats.thoughtsCount;
+      $id('auth-stat-pending').textContent = stats.pendingCount;
+
+      if (user) {
+        guestSec.style.display = 'none';
+        emailSec.style.display = 'none';
+        userSec.style.display = 'block';
+        emailDisplay.textContent = `مسجل بـ: ${user.email}`;
+
+        const isOwnerUser = await checkOwner();
+        if (isOwnerUser) {
+          dashBtn.style.display = 'block';
+          $id('auth-modal-logo').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>';
+          $id('auth-title').textContent = 'أهلاً بك يا مالك المساحة';
+        } else {
+          dashBtn.style.display = 'none';
+          $id('auth-modal-logo').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
+          $id('auth-title').textContent = 'ملفي الشخصي';
+        }
+      } else {
+        guestSec.style.display = 'block';
+        emailSec.style.display = 'block';
+        userSec.style.display = 'none';
+        $id('auth-modal-logo').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
+        $id('auth-title').textContent = `ملف: ${targetUserName}`;
       }
-      $id('auth-modal').style.display='flex';
+
+      $id('auth-modal').style.display = 'flex';
       document.body.classList.add('modal-open');
     }
 
@@ -3118,7 +3015,6 @@ updateAchievements();
     }
 
     async function userLogout() {
-      AccountState = { current:null, accounts:[] };
       await DB.auth.signOut();
       closeAuthModal();
       $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
@@ -3697,7 +3593,7 @@ updateAchievements();
         const visitorFrom = AppState.pagination.visitorPage * pageSize;
 
         const ownerQuery = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
           .eq('status', 'approved')
           .or('author_name.is.null,author_name.eq.""')
           .order('created_at', {ascending:false})
@@ -3705,7 +3601,7 @@ updateAchievements();
           .range(ownerFrom, ownerFrom + pageSize);
 
         const visitorQuery = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments')
           .eq('status', 'approved')
           .not('author_name', 'is', null)
           .neq('author_name', '')
@@ -3743,7 +3639,6 @@ updateAchievements();
         }
 
         const rows = [...ownerRowsRaw, ...visitorRowsRaw];
-        await hydrateThoughtAccounts(rows);
         await loadGuestVoteStates(rows.map(i => i.id));
 
         const mapThought = (i, isOwner) => ({
@@ -3756,9 +3651,7 @@ updateAchievements();
           prompt_question:i.prompt_question,
           allow_comments:getEffectiveCommentsState(i.id, i.allow_comments),
           upvotes:i.upvotes_count||0,
-          downvotes:i.downvotes_count||0,
-          account_id:i.account_id || null,
-          account: i.account_id ? (AccountCache.get(String(i.account_id)) || null) : null
+          downvotes:i.downvotes_count||0
         });
 
         const ownerRows = ownerRowsRaw.map(i => mapThought(i, true));
@@ -3866,26 +3759,6 @@ updateAchievements();
       menu.hidden=!menu.hidden; btn.setAttribute('aria-expanded',String(!menu.hidden));
     }
 
-      if(!AccountState.current){
-        await openAuthModal();
-        return;
-      }
-      const original=btn?.innerHTML||'';
-      if(btn) btn.disabled=true;
-      try{
-        const {data,error});
-        if(error) throw error;
-        const active=data===true;
-        if(btn){</span>`;
-          btn.title=active?'إلغاء إعادة النشر':'إعادة نشر';
-        },Number(thoughtId));
-      }catch(err){
-        console.error(err);
-        if(btn) btn.innerHTML=original;
-        alert(err?.message||'تعذر إعادة نشر الخاطرة.');
-      }finally{ if(btn) btn.disabled=false; }
-    }
-
     /* ==================== PUBLISHING ==================== */
     async function sendThought(){
       const input = $id('visitor-input'), text = input.value.trim(), btn = $id('send-btn');
@@ -3893,7 +3766,7 @@ updateAchievements();
       if(text.length < 2) return alert('الخاطرة قصيرة أوي ');
       if(text.length > APP_CONFIG.maxThoughtLength) return alert('الخاطرة طويلة. الحد الأقصى 1200 حرف.');
       
-      let author = AccountState.current?.display_name || AppState.user.currentName || '';
+      let author = AppState.user.currentName || '';
 
       if(!author) {
         const confirmAnon = confirm('تحب تسمي نفسك الأول عشان الخاطرة تظهر باسمك؟');
@@ -4047,15 +3920,6 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     closeAuthModal,
     sendUserMessageToOwner,
     signInWithGoogle,
-    emailLogin,
-    emailSignup,
-    sendPasswordReset,
-    showSignupForm,
-    showLoginForm,
-    openAccountCreate,
-    showAccountLoginView,
-    createAccountProfile,
-    switchAccount,
     ownerLogin,
     openOwnerDashboard,
     userLogout,
@@ -4125,12 +3989,6 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     ownerReplyToUserMessage,
     ownerExecuteDeleteRequest,
     ownerDismissDeleteRequest,
-    });
-
-    DB.auth.onAuthStateChange((_event, session) => {
-      setTimeout(async () => {
-        if(session?.user) { try { await loadMyAccounts(); } catch(e){} }
-      }, 0);
     });
 
     initSite();
