@@ -768,12 +768,16 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div class="account-content-tabs" role="tablist" aria-label="محتوى الملف الشخصي">
           <button id="profile-content-tab-thoughts" class="account-content-tab active" type="button" data-action="switchProfileContentTab('thoughts')" role="tab">خواطره</button>
           <button id="profile-content-tab-reposts" class="account-content-tab" type="button" data-action="switchProfileContentTab('reposts')" role="tab">معاد نشرها</button>
+          <button id="profile-content-tab-comments" class="account-content-tab" type="button" data-action="switchProfileContentTab('comments')" role="tab">كومنتاته</button>
         </div>
         <div id="profile-content-panel-thoughts" class="account-content-panel active">
           <div id="profile-recent-thoughts" class="account-content-list"></div>
         </div>
         <div id="profile-content-panel-reposts" class="account-content-panel">
           <div id="profile-recent-reposts" class="account-content-list"></div>
+        </div>
+        <div id="profile-content-panel-comments" class="account-content-panel">
+          <div id="profile-recent-comments" class="account-content-list"></div>
         </div>
       </div>
       <button id="profile-follow-btn" class="primary-btn follow-btn" type="button" data-action="toggleFollowCurrent()" style="margin-top:10px;">+ متابعة</button>
@@ -869,6 +873,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
           </div>
         </div>
         <div id="my-accounts-box" style="margin:12px 0; text-align:right;"></div>
+        <button class="secondary-btn" type="button" data-action="openMyPublicProfile()" style="margin-top:10px;">عرض بروفايلي العام</button>
         <button class="primary-btn" type="button" data-action="openAccountCreate()">＋ إضافة حساب</button>
         <button class="secondary-btn" type="button" data-action="userLogout()" style="margin-top:7px;">تسجيل الخروج</button>
       </div>
@@ -1991,7 +1996,7 @@ updateAchievements();
         || getVisitorThoughts().find(i => String(i.id) === String(thoughtId))
         || AppState.profile.thoughts.find(i => String(i.id) === String(thoughtId));
       $id('comments-thought-text').textContent = thought?.thought || 'الخاطرة غير متاحة حاليًا.';
-      const thoughtAuthor = thought?.name || 'صاحب المساحة';
+      const thoughtAuthor = thought?.name || thought?.author_name || thought?.account?.display_name || 'صاحب المساحة';
       $id('comments-thought-meta').textContent = thought ? `${thoughtAuthor}${thought.date ? ` · ${thought.date}` : ''}` : '';
       $id('comments-count-label').textContent = '0 كومنت';
 
@@ -2591,6 +2596,8 @@ updateAchievements();
 
       renderProfileThoughtList(all);
       await loadProfileReposts(accountId, guestId);
+      await loadProfileComments(accountId, guestId);
+      switchProfileContentTab('thoughts');
 
       const hint=$id('profile-guest-hint');
       if(hint) hint.style.display=AccountState?.current?'none':'block';
@@ -2648,6 +2655,50 @@ updateAchievements();
       refreshCommentCounts((items||[]).slice(0,8).map(i=>i.id));
     }
 
+    function renderProfileComments(items){
+      if(!items?.length) return `<div class="account-content-empty">مفيش كومنتات كتبها حاليًا.</div>`;
+      return items.map(c=>{
+        const thoughtId=Number(c.thought_id);
+        const thoughtText=escapeHTML(c.thought_text||'الخاطرة الأصلية غير متاحة حاليًا.');
+        const text=escapeHTML(c.comment_text||c.text||'');
+        const date=escapeHTML(formatDate(c.created_at));
+        return `<article class="account-content-item profile-comment-item">
+          <div style="font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;">${text}</div>
+          <div class="item-date" style="margin-top:6px;">على خاطرة: ${thoughtText.slice(0,180)}${thoughtText.length>180?'…':''} · ${date}</div>
+          ${Number.isFinite(thoughtId)?`<button class="link-btn" type="button" data-action="openCommentsModal(${thoughtId})" style="margin-top:6px;">فتح الكومنتات</button>`:''}
+        </article>`;
+      }).join('');
+    }
+
+    async function loadProfileComments(accountId, guestId){
+      const box=$id('profile-recent-comments');
+      if(!box) return;
+      box.innerHTML='<div class="account-content-empty">جاري تحميل الكومنتات...</div>';
+      AppState.profile.comments=[];
+      try{
+        let q=DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').order('created_at',{ascending:false});
+        if(accountId) q=q.eq('account_id',accountId);
+        else if(guestId) q=q.eq('guest_id',guestId);
+        else { box.innerHTML='<div class="account-content-empty">مفيش كومنتات متاحة حاليًا.</div>'; return; }
+        const {data,error}=await q;
+        if(error) throw error;
+        const rows=data||[];
+        const ids=rows.map(c=>Number(c.thought_id)).filter(Number.isFinite);
+        let thoughts=[];
+        if(ids.length){
+          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts).select('id,text,author_name,created_at,status').in('id',ids).eq('status','approved');
+          if(tErr) throw tErr;
+          thoughts=tData||[];
+        }
+        const byId=new Map(thoughts.map(t=>[Number(t.id),t]));
+        AppState.profile.comments=rows.map(c=>{const t=byId.get(Number(c.thought_id)); return {...c,thought_text:t?.text||'',thought_author:t?.author_name||''};});
+        box.innerHTML=renderProfileComments(AppState.profile.comments.slice(0,8));
+      }catch(e){
+        console.warn('Profile comments load failed',e);
+        box.innerHTML='<div class="account-content-empty">تعذر تحميل الكومنتات حاليًا.</div>';
+      }
+    }
+
     async function loadProfileReposts(accountId, guestId){
       const box=$id('profile-recent-reposts');
       if(!box) return;
@@ -2686,12 +2737,15 @@ updateAchievements();
 
     function switchProfileContentTab(tab){
       const isReposts=tab==='reposts';
-      $id('profile-content-tab-thoughts')?.classList.toggle('active',!isReposts);
+      const isComments=tab==='comments';
+      $id('profile-content-tab-thoughts')?.classList.toggle('active',!isReposts && !isComments);
       $id('profile-content-tab-reposts')?.classList.toggle('active',isReposts);
-      $id('profile-content-panel-thoughts')?.classList.toggle('active',!isReposts);
+      $id('profile-content-tab-comments')?.classList.toggle('active',isComments);
+      $id('profile-content-panel-thoughts')?.classList.toggle('active',!isReposts && !isComments);
       $id('profile-content-panel-reposts')?.classList.toggle('active',isReposts);
+      $id('profile-content-panel-comments')?.classList.toggle('active',isComments);
       const title=$id('profile-content-title');
-      if(title) title.textContent=isReposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره');
+      if(title) title.textContent=isComments?'كومنتاته':(isReposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره'));
     }
 
     function getActiveAccountContent(){
@@ -2701,7 +2755,8 @@ updateAchievements();
 
     function getActiveProfileContent(){
       const reposts=$id('profile-content-tab-reposts')?.classList.contains('active');
-      return {title:reposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره'),html:reposts?$id('profile-recent-reposts')?.innerHTML||'':$id('profile-recent-thoughts')?.innerHTML||''};
+      const comments=$id('profile-content-tab-comments')?.classList.contains('active');
+      return {title:comments?'كومنتاته':(reposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره')),html:comments?$id('profile-recent-comments')?.innerHTML||'':(reposts?$id('profile-recent-reposts')?.innerHTML||'':$id('profile-recent-thoughts')?.innerHTML||'')};
     }
 
     function syncModalBodyLock(){
@@ -2728,6 +2783,11 @@ updateAchievements();
 
     function expandProfileContent(){
       const isReposts=$id('profile-content-tab-reposts')?.classList.contains('active');
+      const isComments=$id('profile-content-tab-comments')?.classList.contains('active');
+      if(isComments){
+        openThoughtsFullscreen('كومنتاته',renderProfileComments(AppState.profile.comments||[]),`كل كومنتات ${AppState.profile.author||'الحساب'}`);
+        return;
+      }
       const rows=isReposts ? (AppState.profile.reposts||[]) : (AppState.profile.thoughts||[]);
       const title=isReposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره');
       openThoughtsFullscreen(title,renderInteractiveProfileThoughts(rows,{empty:isReposts?'مفيش خواطر معاد نشرها حاليًا.':'مفيش خواطر منشورة حاليًا.',repostMeta:isReposts}),`كل محتوى ${AppState.profile.author||'الحساب'}`);
@@ -3266,6 +3326,13 @@ updateAchievements();
     }
     function openAccountCreate(){ hide($id('auth-logged-section')); hide($id('auth-login-section')); hide($id('auth-signup-section')); show($id('account-create-section')); setTimeout(()=> $id('account-username')?.focus(),80); }
 
+    async function openMyPublicProfile(){
+      if(!AccountState?.current?.id) return;
+      const a=AccountState.current;
+      closeAuthModal();
+      await openProfile(enc(a.display_name||'حسابي'),enc(String(a.id)),'');
+    }
+
     async function loadMyAccounts(){
       let result = await DB.rpc(DB_RPC.getMyAccounts);
       if(result?.error){
@@ -3306,13 +3373,15 @@ updateAchievements();
       const accountId=String(AccountState.current.id);
       try{
         const [{data:thoughts,error:thoughtErr},{data:reposts,error:repostErr}]=await Promise.all([
-          DB.from(DB_TABLES.thoughts).select('id,text,created_at,status').eq('account_id',accountId).eq('status','approved').order('created_at',{ascending:false}).limit(5),
+          DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id').eq('account_id',accountId).eq('status','approved').order('created_at',{ascending:false}).order('id',{ascending:false}).limit(5),
           DB.from(DB_TABLES.thoughtReposts).select('thought_id,created_at').eq('account_id',accountId).order('created_at',{ascending:false}).limit(5)
         ]);
+        await hydrateThoughtAccounts(thoughts||[]);
         if(thoughtErr) throw thoughtErr;
         if(repostErr) throw repostErr;
         if(thoughtsBox){
-          thoughtsBox.innerHTML=thoughts?.length ? thoughts.map(t=>`<button type="button" class="account-content-item" data-action="openDirectThought('${safeActionValue(String(t.id))}')">${escapeHTML(t.text||'').slice(0,180)}${String(t.text||'').length>180?'…':''}<span class="item-date">${escapeHTML(formatDate(t.created_at))}</span></button>`).join('') : '<div class="account-content-empty">لسه مفيش خواطر منشورة.</div>';
+          thoughtsBox.innerHTML=renderInteractiveProfileThoughts(thoughts||[],{empty:'لسه مفيش خواطر منشورة.'});
+          refreshCommentCounts((thoughts||[]).map(i=>i.id));
         }
         if(repostsBox){
           const ids=(reposts||[]).map(r=>Number(r.thought_id)).filter(Number.isFinite);
@@ -3321,9 +3390,11 @@ updateAchievements();
             const {data,error}=await DB.from(DB_TABLES.thoughts).select('id,text,created_at,status').in('id',ids).eq('status','approved');
             if(error) throw error;
             const byId=new Map((data||[]).map(t=>[Number(t.id),t]));
-            repostThoughts=(reposts||[]).map(r=>({r,t:byId.get(Number(r.thought_id))})).filter(x=>x.t);
+            repostThoughts=(reposts||[]).map(r=>{const t=byId.get(Number(r.thought_id)); return t?{...t,reposted_at:r.created_at}:null;}).filter(Boolean);
+            await hydrateThoughtAccounts(repostThoughts);
           }
-          repostsBox.innerHTML=repostThoughts.length ? repostThoughts.map(x=>`<button type="button" class="account-content-item" data-action="openDirectThought('${safeActionValue(String(x.t.id))}')">${escapeHTML(x.t.text||'').slice(0,180)}${String(x.t.text||'').length>180?'…':''}<span class="item-date">أعدت نشرها · ${escapeHTML(formatDate(x.r.created_at))}</span></button>`).join('') : '<div class="account-content-empty">لسه مفيش ريشير عملته.</div>';
+          repostsBox.innerHTML=renderInteractiveProfileThoughts(repostThoughts,{empty:'لسه مفيش ريشير عملته.',repostMeta:true});
+          refreshCommentCounts(repostThoughts.map(i=>i.id));
         }
       }catch(e){
         console.warn('Account content load failed',e);
