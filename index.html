@@ -745,7 +745,19 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       </div>
       <div id="profile-loading" style="display:none; font-size:12px; color:var(--muted); margin:8px 0;">جاري تحميل الحساب…</div>
 
-      <div id="profile-guest-hint" class="account-login-hint" style="display:none; margin:8px 0 12px;"><strong>🔐 أنت تستخدم شخابيط كزائر</strong><br>سجل دخولك عشان تحافظ على هويتك وبياناتك وتقدر تنقلها لأي جهاز.<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;"><button type="button" class="primary-btn" data-action="signInWithGoogle()"><svg class="ic" aria-hidden="true"><use href="#i-google"></use></svg> الدخول عبر Google</button><button type="button" class="secondary-btn" data-action="openAuthModal()">البريد الإلكتروني</button></div></div>
+      <div id="profile-guest-hint" class="account-login-hint" style="display:none; margin:8px 0 12px;">
+  <strong>🔐 أنت تستخدم شخابيط كزائر</strong><br>
+  سجل دخولك عشان تحافظ على هويتك وبياناتك وتقدر تنقلها لأي جهاز.
+  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;">
+    <button type="button" class="primary-btn" data-action="signInWithGoogle()"><svg class="ic" aria-hidden="true"><use href="#i-google"></use></svg> الدخول عبر Google</button>
+    <button type="button" class="secondary-btn" data-action="openAuthModal()">البريد الإلكتروني</button>
+  </div>
+  <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px; text-align:right;">
+    <span style="font-size:12px; color:var(--primary); font-weight:700; display:block; margin-bottom:4px;"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ابعت رسالة للمالك (خاصة):</span>
+    <textarea id="guest-to-owner-msg" placeholder="اكتب رسالتك للمالك هنا..." maxlength="1000" style="min-height:70px; font-size:13px; margin:4px 0;"></textarea>
+    <button class="primary-btn" style="padding:8px; font-size:13px; margin-top:4px;" type="button" data-action="sendGuestMessageToOwner()">إرسال للمالك <svg class="ic" aria-hidden="true"><use href="#i-mail"></use></svg></button>
+  </div>
+</div>
 
       <div class="profile-stat-group-title">أثره على شخابيط</div>
       <div class="profile-stats" aria-label="إحصائيات الحساب العامة">
@@ -2308,12 +2320,33 @@ updateAchievements();
       btnElement.disabled = true;
 
       try {
-        const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
+        // لو فيه Session مسجلة لكن AccountState لسه ما اتحملش،
+        // جهّز الهوية قبل التصويت. ده يمنع خطأ "No active account" لبعض
+        // المستخدمين اللي عندهم Session قديمة/رجعوا للموقع قبل اكتمال تحميل الحساب.
+        let session = null;
+        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+        if(session?.user && !AccountState?.current?.id){
+          await loadMyAccounts();
+        }
+
+        const voteParams = {
           p_thought_id: target.id,
           p_guest_id: guestId,
           p_vote: voteValue
-        });
+        };
+        let resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
 
+        // إعادة محاولة آمنة فقط لأخطاء الهوية/الجلسة، وليس لأي خطأ عام؛
+        // عشان ما نكررش التصويت بالخطأ لو حصل خطأ شبكي بعد تنفيذ العملية.
+        if(resultRpc?.error && /no active account|not authenticated|jwt|session/i.test(resultRpc.error.message||'')){
+          try {
+            await DB.auth.refreshSession();
+            await loadMyAccounts();
+          } catch(e) {}
+          resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
+        }
+
+        const { data, error } = resultRpc;
         if(error) throw error;
         
         let myVotes = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
@@ -2825,6 +2858,31 @@ updateAchievements();
       }catch(e){
         console.warn('Could not load all profile thoughts',e);
         alert('تعذر تحميل كل الخواطر حاليًا.');
+      }
+    }
+
+    async function sendGuestMessageToOwner(){
+      const msgInput=$id('guest-to-owner-msg');
+      const text=String(msgInput?.value||'').trim();
+      if(!text){ alert('اكتب رسالة الأول!'); return; }
+      const author=(AppState.user.currentName||'').trim() || 'زائر مجهول';
+      try{
+        const {error}=await DB.from(DB_TABLES.ownerMessages).insert({
+          sender_name:author,
+          guest_id:getGuestId(),
+          message:text,
+          created_at:new Date().toISOString()
+        });
+        if(error) throw error;
+        alert('تم إرسال رسالتك للمالك بنجاح');
+        msgInput.value='';
+      }catch(err){
+        let localMsgs=[];
+        try{ localMsgs=JSON.parse(localStorage.getItem(STORAGE_KEYS.ownerMessages)||'[]'); }catch(e){ localMsgs=[]; }
+        localMsgs.push({sender_name:author,guest_id:getGuestId(),message:text,created_at:new Date().toLocaleString()});
+        localStorage.setItem(STORAGE_KEYS.ownerMessages,JSON.stringify(localMsgs));
+        alert('تعذر إرسال الرسالة للمالك حاليًا، لكن تم حفظها محليًا على جهازك.');
+        msgInput.value='';
       }
     }
 
@@ -4624,6 +4682,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     closeAchievements,
     closeAuthModal,
     sendUserMessageToOwner,
+    sendGuestMessageToOwner,
     signInWithGoogle,
     emailLogin,
     emailSignup,
