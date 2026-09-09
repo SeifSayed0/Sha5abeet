@@ -2320,12 +2320,33 @@ updateAchievements();
       btnElement.disabled = true;
 
       try {
-        const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
+        // لو فيه Session مسجلة لكن AccountState لسه ما اتحملش،
+        // جهّز الهوية قبل التصويت. ده يمنع خطأ "No active account" لبعض
+        // المستخدمين اللي عندهم Session قديمة/رجعوا للموقع قبل اكتمال تحميل الحساب.
+        let session = null;
+        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+        if(session?.user && !AccountState?.current?.id){
+          await loadMyAccounts();
+        }
+
+        const voteParams = {
           p_thought_id: target.id,
           p_guest_id: guestId,
           p_vote: voteValue
-        });
+        };
+        let resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
 
+        // إعادة محاولة آمنة فقط لأخطاء الهوية/الجلسة، وليس لأي خطأ عام؛
+        // عشان ما نكررش التصويت بالخطأ لو حصل خطأ شبكي بعد تنفيذ العملية.
+        if(resultRpc?.error && /no active account|not authenticated|jwt|session/i.test(resultRpc.error.message||'')){
+          try {
+            await DB.auth.refreshSession();
+            await loadMyAccounts();
+          } catch(e) {}
+          resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
+        }
+
+        const { data, error } = resultRpc;
         if(error) throw error;
         
         let myVotes = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
@@ -2540,57 +2561,39 @@ updateAchievements();
       const guestId=String(targetGuestId||'').trim();
       const empty={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
       try{
-        let data,error;
-        if(accountId){
-          ({data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId}));
-        }else if(guestId){
-          ({data,error}=await DB.rpc('get_public_guest_stats',{p_guest_id:guestId}));
-        }
-        if(error) throw error;
-        const row=Array.isArray(data)?data[0]:data;
-        const stats={
-          thoughtsCount:Number(row?.thoughts_count)||0,
-          votesMade:Number(row?.votes_made)||0,
-          votesReceived:Number(row?.votes_received)||0,
-          repostsMade:Number(row?.reposts_made)||0,
-          repostsReceived:Number(row?.reposts_received)||0,
-          commentsMade:Number(row?.comments_made)||0,
-          commentsReceived:Number(row?.comments_received)||0,
-          followers:Number(row?.followers_count)||0,
-          following:Number(row?.following_count)||0
-        };
+        let stats={...empty};
 
-        // Fallback based on the actual thoughts displayed in this profile.
-        // This fixes older/migrated profiles where the RPC identity exists but
-        // historical rows are still attached to guest_id / author_name.
-        let thoughtRows=[];
         if(accountId){
-          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
+          const {data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId});
+          if(error) throw error;
+          const row=Array.isArray(data)?data[0]:data;
+          stats={
+            thoughtsCount:Number(row?.thoughts_count)||0,
+            votesMade:Number(row?.votes_made)||0,
+            votesReceived:Number(row?.votes_received)||0,
+            repostsMade:Number(row?.reposts_made)||0,
+            repostsReceived:Number(row?.reposts_received)||0,
+            commentsMade:Number(row?.comments_made)||0,
+            commentsReceived:Number(row?.comments_received)||0,
+            followers:Number(row?.followers_count)||0,
+            following:Number(row?.following_count)||0
+          };
+
+          // Account stats can miss older activity that still carries a guest_id.
+          // Collect the guest IDs actually present on this account's own thoughts,
+          // then include their historical activity without trusting public names.
+          const {data:accountThoughts,error:thoughtErr}=await DB.from(DB_TABLES.thoughts)
             .select('id,upvotes_count,downvotes_count,guest_id')
             .eq('status','approved').eq('account_id',accountId);
-          if(tErr) throw tErr;
-          thoughtRows=tData||[];
-        }else if(guestId){
-          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
-            .select('id,upvotes_count,downvotes_count,guest_id')
-            .eq('status','approved').eq('guest_id',guestId).is('account_id',null);
-          if(tErr) throw tErr;
-          thoughtRows=tData||[];
-        }else{
-          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
-            .select('id,upvotes_count,downvotes_count,guest_id')
-            .eq('status','approved').eq('author_name',targetName);
-          if(tErr) throw tErr;
-          thoughtRows=tData||[];
-        }
-
-        if(thoughtRows.length){
-          const ids=thoughtRows.map(x=>Number(x.id)).filter(Number.isFinite);
-          const voteReceived=thoughtRows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
-          if(!stats.thoughtsCount) stats.thoughtsCount=thoughtRows.length;
-          if(!stats.votesReceived) stats.votesReceived=voteReceived;
+          if(thoughtErr) throw thoughtErr;
+          const rows=accountThoughts||[];
+          const ids=rows.map(x=>Number(x.id)).filter(Number.isFinite);
+          const guestIds=[...new Set(rows.map(x=>String(x.guest_id||'').trim()).filter(Boolean))];
 
           if(ids.length){
+            const receivedVotes=rows.reduce((n,x)=>n+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
+            if(!stats.thoughtsCount) stats.thoughtsCount=rows.length;
+            if(!stats.votesReceived) stats.votesReceived=receivedVotes;
             const [rr,cc]=await Promise.all([
               DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
               DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
@@ -2600,175 +2603,76 @@ updateAchievements();
             if(!stats.repostsReceived) stats.repostsReceived=Number(rr.count)||0;
             if(!stats.commentsReceived) stats.commentsReceived=Number(cc.count)||0;
           }
-        }
 
-        // Legacy profiles have no reliable identity for outgoing activity.
-        // For account/guest profiles, recover historical activity even when
-        // the RPC under-counts rows migrated from the guest identity.
-        if(accountId || guestId){
-          const guestIds=[...new Set([guestId,...thoughtRows.map(x=>String(x.guest_id||'')).filter(Boolean)])];
-          const voteQuery=accountId
-            ? DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('account_id',accountId)
-            : DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('guest_id',guestId);
-          const commentQuery=accountId
-            ? DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('account_id',accountId).eq('status','approved')
-            : DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('guest_id',guestId).eq('status','approved');
-          const repostQuery=accountId
-            ? DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).eq('account_id',accountId)
-            : null;
-          const [vr,cm,rp]=await Promise.all([voteQuery,commentQuery,repostQuery||Promise.resolve({count:null,error:null})]);
+          // Recover historical outgoing votes/comments that belong to the same
+          // guest identities, but only if those guest IDs are on the account's
+          // own thoughts. This avoids falsely claiming another user's activity.
+          if(guestIds.length){
+            const [vr,cm]=await Promise.all([
+              DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).in('guest_id',guestIds),
+              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('guest_id',guestIds).eq('status','approved')
+            ]);
+            if(vr.error) throw vr.error;
+            if(cm.error) throw cm.error;
+            // Use the larger value so newly account-linked rows and historical
+            // guest-only rows are both represented, without double-adding them.
+            stats.votesMade=Math.max(stats.votesMade,Number(vr.count)||0);
+            stats.commentsMade=Math.max(stats.commentsMade,Number(cm.count)||0);
+          }
+        }else if(guestId){
+          // Legacy guest profile: it has no Account row, so guest_id is the
+          // authoritative identity. This path works for every old guest profile,
+          // not just 3akoool.
+          const {data:thoughtRows,error:thoughtErr}=await DB.from(DB_TABLES.thoughts)
+            .select('id,upvotes_count,downvotes_count')
+            .eq('status','approved').eq('guest_id',guestId).is('account_id',null);
+          if(thoughtErr) throw thoughtErr;
+          const rows=thoughtRows||[];
+          const ids=rows.map(x=>Number(x.id)).filter(Number.isFinite);
+          stats.thoughtsCount=rows.length;
+          stats.votesReceived=rows.reduce((n,x)=>n+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
+
+          const [vr,cm,rr]=await Promise.all([
+            DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('guest_id',guestId),
+            DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('guest_id',guestId).eq('status','approved'),
+            ids.length ? DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids) : Promise.resolve({count:0,error:null})
+          ]);
           if(vr.error) throw vr.error;
           if(cm.error) throw cm.error;
-          if(rp.error) throw rp.error;
-          if(!stats.votesMade) stats.votesMade=Number(vr.count)||0;
-          if(!stats.commentsMade) stats.commentsMade=Number(cm.count)||0;
-          if(accountId && !stats.repostsMade) stats.repostsMade=Number(rp.count)||0;
-        }
-        return stats;
-      }catch(e){
-        console.warn('Could not load profile stats',e);
-        // Even if the RPC fails, calculate safe incoming stats from the actual profile thoughts.
-        try{
-          let q=DB.from(DB_TABLES.thoughts).select('id,upvotes_count,downvotes_count').eq('status','approved');
-          if(accountId) q=q.eq('account_id',accountId);
-          else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
-          else q=q.eq('author_name',targetName);
-          const {data:ts}=await q;
-          const rows=ts||[], ids=rows.map(x=>Number(x.id)).filter(Number.isFinite);
-          let repostsReceived=0,commentsReceived=0;
+          if(rr.error) throw rr.error;
+          stats.votesMade=Number(vr.count)||0;
+          stats.commentsMade=Number(cm.count)||0;
+          stats.repostsReceived=Number(rr.count)||0;
+          stats.repostsMade=0;
+          stats.followers=0;
+          stats.following=0;
+          stats.commentsReceived=ids.length ? (await DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')).count||0 : 0;
+        }else{
+          // Truly legacy name-only profile. Incoming activity can be counted
+          // safely from its stored author_name; outgoing activity cannot.
+          const {data:rows,error}=await DB.from(DB_TABLES.thoughts)
+            .select('id,upvotes_count,downvotes_count')
+            .eq('status','approved').eq('author_name',targetName);
+          if(error) throw error;
+          const thoughts=rows||[], ids=thoughts.map(x=>Number(x.id)).filter(Number.isFinite);
+          stats.thoughtsCount=thoughts.length;
+          stats.votesReceived=thoughts.reduce((n,x)=>n+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
           if(ids.length){
             const [rr,cc]=await Promise.all([
               DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
               DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
             ]);
-            repostsReceived=Number(rr?.count)||0;
-            commentsReceived=Number(cc?.count)||0;
+            if(rr.error) throw rr.error;
+            if(cc.error) throw cc.error;
+            stats.repostsReceived=Number(rr.count)||0;
+            stats.commentsReceived=Number(cc.count)||0;
           }
-          return {...empty,thoughtsCount:rows.length,votesReceived:rows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),repostsReceived,commentsReceived};
-        }catch(_){ return empty; }
+        }
+        return stats;
+      }catch(e){
+        console.warn('Could not load profile stats',e);
+        return empty;
       }
-    }
-
-    async function openProfile(encodedName, encodedAccountId='', encodedGuestId=''){
-      const name=decodeURIComponent(encodedName||'');
-      const accountId=decodeURIComponent(encodedAccountId||'');
-      const guestId=decodeURIComponent(encodedGuestId||'');
-      if(!name) return;
-      AppState.profile.author=name;
-      AppState.profile.accountId=accountId||'';
-      AppState.profile.guestId=guestId||'';
-      const loading=$id('profile-loading'), recentBox=$id('profile-recent-thoughts');
-      if(loading) loading.style.display='block';
-      if(recentBox) recentBox.innerHTML='';
-      const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
-      let all=[];
-      try{
-        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id,allow_comments').eq('status','approved');
-        if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
-        else if(accountId) q=q.eq('account_id',accountId);
-        else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
-        else q=q.eq('author_name',name);
-        const {data,error}=await q.order('created_at',{ascending:false}).order('id',{ascending:false});
-        if(error) throw error;
-        all=data||[];
-      }catch(err){
-        logAppError('Profile query failed',err);
-        all=[...AppState.user.rawOwnerData,...AppState.user.rawVisitorData].filter(i=>{
-          const rowName=i?.author_name||i?.name||'';
-          return isOwnerProfile ? !rowName : (accountId ? String(i.account_id||'')===String(accountId) : (guestId ? String(i.guest_id||'')===String(guestId) : rowName===name));
-        });
-      }finally{ if(loading) loading.style.display='none'; }
-
-      await hydrateThoughtAccounts(all);
-      AppState.profile.thoughts=all;
-      $id('profile-title').textContent=name;
-      $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
-      $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
-      const stats=await getUserStats(name,accountId,guestId);
-      $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
-      $id('profile-votes-received').textContent=stats.votesReceived;
-      $id('profile-reposts-received').textContent=stats.repostsReceived;
-      $id('profile-comments-received').textContent=stats.commentsReceived;
-      $id('profile-followers').textContent=stats.followers;
-      $id('profile-votes-made').textContent=stats.votesMade;
-      $id('profile-reposts-made').textContent=stats.repostsMade;
-      $id('profile-comments-made').textContent=stats.commentsMade;
-      $id('profile-following').textContent=stats.following;
-
-      renderProfileThoughtList(all);
-      await loadProfileReposts(accountId, guestId);
-      await loadProfileComments(accountId, guestId);
-      switchProfileContentTab('thoughts');
-
-      const hint=$id('profile-guest-hint');
-      if(hint) hint.style.display=AccountState?.current?'none':'block';
-      updateFollowButton();
-      AppState.ui.lastFocusedElement=document.activeElement;
-      $id('profile-modal').style.display='flex';
-      document.body.classList.add('modal-open');
-      $id('profile-follow-btn')?.focus();
-    }
-
-    function renderContentItems(items, options={}){
-      const empty=options.empty||'مفيش محتوى حاليًا.';
-      if(!items?.length) return `<div class="account-content-empty">${empty}</div>`;
-      return items.map(i=>{
-        const text=escapeHTML(i.text||'');
-        const date=escapeHTML(formatDate(i.created_at));
-        const link=safeActionValue(String(i.id));
-        const meta=options.meta ? `<span class="item-date">${escapeHTML(options.meta(i))}</span>` : `<span class="item-date">${date}</span>`;
-        return `<button type="button" class="account-content-item" data-action="openDirectThought('${link}')">${text.slice(0,220)}${text.length>220?'…':''}${meta}</button>`;
-      }).join('');
-    }
-
-    function renderInteractiveProfileThoughts(items, options={}){
-      const empty=options.empty||'مفيش خواطر حاليًا.';
-      if(!items?.length) return `<div class="account-content-empty">${empty}</div>`;
-      return items.map((i,index)=>{
-        const id=Number(i.id);
-        const displayName=i.account?.display_name || i.author_name || i.name || 'زائر';
-        const favKey=`thought_${id}_${displayName}`;
-        const fav=getFavoritesSafe().includes(favKey);
-        const promptHtml=i.prompt_question ? `<div class="prompt-ref-badge"><svg class="ic" aria-hidden="true"><use href="#i-bulb"></use></svg> إجابة سؤال الأسبوع: ${escapeHTML(i.prompt_question)}</div>` : '';
-        const commentsBtn=i.allow_comments===true ? `<button class="action-sub-btn has-label comment-count-btn" type="button" data-comment-thought-id="${id}" data-action="openCommentsModal(${id})" title="ردود ونقاش" aria-label="عرض الردود"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">ردود <b>0</b></span></button>` : '';
-        const repostMeta=options.repostMeta && i.reposted_at ? `<span class="profile-item-note">أعاد نشرها · ${escapeHTML(formatDate(i.reposted_at))}</span>` : '';
-        return `<article class="card profile-thought-card" data-thought-id="${id}">
-          ${promptHtml}
-          <p class="thought-text">${escapeHTML(i.text||i.thought||'')}</p>
-          <div class="card-footer">
-            <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(displayName)}','${enc(i.account_id||'')}','${enc(i.guest_id||'')}')">${escapeHTML(displayName)}</button> · ${escapeHTML(formatDate(i.created_at))}${repostMeta}</span>
-            <div class="card-actions">
-              <div class="action-scroll-pill">
-                ${commentsBtn}
-                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleRepost(${id},this)" title="إعادة نشر"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">إعادة نشر</span></button>
-                <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(favKey)}')" title="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}"><svg class="ic" aria-hidden="true"><use href="${fav?'#i-star':'#i-star-outline'}"></use></svg><span class="action-label">حفظ</span></button>
-              </div>
-              ${createVoteBarHTML('Profile',id,Number(i.upvotes_count)||0,Number(i.downvotes_count)||0)}
-            </div>
-          </div>
-        </article>`;
-      }).join('');
-    }
-
-    function renderProfileThoughtList(items){
-      const box=$id('profile-recent-thoughts');
-      if(box) box.innerHTML=renderInteractiveProfileThoughts((items||[]).slice(0,8),{empty:'مفيش خواطر منشورة حاليًا.'});
-      refreshCommentCounts((items||[]).slice(0,8).map(i=>i.id));
-    }
-
-    function renderProfileComments(items){
-      if(!items?.length) return `<div class="account-content-empty">مفيش كومنتات كتبها حاليًا.</div>`;
-      return items.map(c=>{
-        const thoughtId=Number(c.thought_id);
-        const thoughtText=escapeHTML(c.thought_text||'الخاطرة الأصلية غير متاحة حاليًا.');
-        const text=escapeHTML(c.comment_text||c.text||'');
-        const date=escapeHTML(formatDate(c.created_at));
-        return `<article class="account-content-item profile-comment-item">
-          <div style="font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;">${text}</div>
-          <div class="item-date" style="margin-top:6px;">على خاطرة: ${thoughtText.slice(0,180)}${thoughtText.length>180?'…':''} · ${date}</div>
-          ${Number.isFinite(thoughtId)?`<button class="link-btn" type="button" data-action="openCommentsModal(${thoughtId})" style="margin-top:6px;">فتح الكومنتات</button>`:''}
-        </article>`;
-      }).join('');
     }
 
     async function loadProfileComments(accountId, guestId){
