@@ -878,6 +878,12 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <button class="secondary-btn" type="button" data-action="userLogout()" style="margin-top:7px;">تسجيل الخروج</button>
       </div>
 
+      <div id="auth-msg-to-owner-box" style="margin:12px 0; border-top:1px solid var(--border); padding-top:10px; text-align:right;">
+        <span style="font-size:12px; color:var(--primary); font-weight:700; display:block; margin-bottom:4px;"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ابعت رسالة للمالك (خاصة):</span>
+        <textarea id="user-to-owner-msg" placeholder="اكتب رسالتك للمالك هنا..." style="min-height:70px; font-size:13px; margin:4px 0;"></textarea>
+        <button class="primary-btn" style="padding:8px; font-size:13px; margin-top:4px;" type="button" data-action="sendUserMessageToOwner()">إرسال للمالك <svg class="ic" aria-hidden="true"><use href="#i-mail"></use></svg></button>
+      </div>
+
       <div id="auth-login-section">
         <div style="text-align:center;margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:700;">سجل دخولك لحفظ ونقل خواطرك لأي جهاز</div>
         <button class="primary-btn" style="background:#fff; color:#241f1a; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; border:1px solid var(--border);" type="button" data-action="signInWithGoogle()">
