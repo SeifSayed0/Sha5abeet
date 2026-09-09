@@ -2360,7 +2360,7 @@ updateAchievements();
                   <button type="button" data-action="copyThoughtLink(${i.id},this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ الرابط</button>
                   <button type="button" data-action="shareAsImage('${enc(i.thought)}','${enc(displayName)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg> مشاركة</button>
                   ${authorToggleHtml}${deleteThoughtHtml}
-                  <button class="danger" type="button" data-action="handleReport('${enc(displayName)}','${enc(i.thought)}','${reportId}')"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> إبلاغ</button>
+                  <button id="${reportId}" class="danger" type="button" data-action="handleReport('${enc(displayName)}','${enc(i.thought)}','${reportId}')"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> إبلاغ</button>
                 </div>
                 </div>
                 ${createVoteBarHTML('Visitors', i.id, i.upvotes, i.downvotes)}
