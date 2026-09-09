@@ -540,6 +540,19 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 @keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
 @keyframes skeletonSweep{to{transform:translateX(-100%)}}
 
+
+/* Account/profile content tabs + expandable thought viewer */
+.account-content-tabs{display:flex;gap:6px;margin:12px 0 8px;padding:4px;background:var(--soft,#f5f2ed);border:1px solid var(--border);border-radius:12px}
+.account-content-tab{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:800;padding:8px 7px;border-radius:9px;cursor:pointer}
+.account-content-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 5px rgba(0,0,0,.06)}
+.account-content-panel{display:none}
+.account-content-panel.active{display:block}
+.content-expand-btn{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;padding:5px 8px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.content-expand-btn:hover{color:var(--text)}
+.thoughts-fullscreen-box{width:min(760px,96vw)!important;max-width:760px!important;height:min(88vh,900px);max-height:88vh!important;display:flex;flex-direction:column}
+.thoughts-fullscreen-list{overflow:auto;flex:1;padding:2px 2px 12px;text-align:right}
+.thoughts-fullscreen-list .account-content-item{font-size:14px;line-height:1.8;padding:13px;margin-bottom:8px}
+.profile-recent-wrap{margin-top:10px}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head><body>
@@ -671,6 +684,16 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     </div>
   </div>
 
+  <div id="thoughts-fullscreen-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="thoughts-fullscreen-title">
+    <div class="modal-box thoughts-fullscreen-box">
+      <button class="modal-close" type="button" data-action="closeThoughtsFullscreen()" aria-label="إغلاق"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
+      <div class="login-logo" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-logo"></use></svg></div>
+      <h2 id="thoughts-fullscreen-title">الخواطر</h2>
+      <p id="thoughts-fullscreen-subtitle" class="modal-subtitle">كل المحتوى</p>
+      <div id="thoughts-fullscreen-list" class="thoughts-fullscreen-list"></div>
+    </div>
+  </div>
+
   <div id="direct-thought-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="direct-thought-title">
     <div class="modal-box">
       <button class="modal-close" type="button" data-action="closeDirectThoughtModal()" aria-label="إغلاق"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
@@ -726,7 +749,19 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       </div>
 
       <div id="profile-guest-hint" class="account-login-hint" style="display:none;"><strong>عايز تعمل ريشير؟</strong><br>سجّل دخولك عشان تعمل ريشير ومتضيعش بياناتك.</div>
-      <div id="profile-recent-thoughts" style="margin-top:10px; max-height:180px; overflow:auto; text-align:right;"></div>
+      <div class="profile-recent-wrap">
+        <div class="account-content-heading"><span id="profile-content-title">خواطره</span><button class="content-expand-btn" type="button" data-action="expandProfileContent()">تكبير ⛶</button></div>
+        <div class="account-content-tabs" role="tablist" aria-label="محتوى الملف الشخصي">
+          <button id="profile-content-tab-thoughts" class="account-content-tab active" type="button" data-action="switchProfileContentTab('thoughts')" role="tab">خواطره</button>
+          <button id="profile-content-tab-reposts" class="account-content-tab" type="button" data-action="switchProfileContentTab('reposts')" role="tab">معاد نشرها</button>
+        </div>
+        <div id="profile-content-panel-thoughts" class="account-content-panel active">
+          <div id="profile-recent-thoughts" class="account-content-list" style="max-height:180px;overflow:auto;"></div>
+        </div>
+        <div id="profile-content-panel-reposts" class="account-content-panel">
+          <div id="profile-recent-reposts" class="account-content-list" style="max-height:180px;overflow:auto;"></div>
+        </div>
+      </div>
       <button id="profile-follow-btn" class="primary-btn follow-btn" type="button" data-action="toggleFollowCurrent()" style="margin-top:10px;">+ متابعة</button>
       <button class="secondary-btn" type="button" data-action="viewProfileThoughts()" style="margin-top:6px;">عرض كل خواطره</button>
     </div>
@@ -804,6 +839,21 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
           <div class="profile-stat"><strong id="my-stat-followers">0</strong><span>متابعين</span></div>
           <div class="profile-stat"><strong id="my-stat-following">0</strong><span>بيتابع</span></div>
         </div>
+        <div class="account-content-section" style="margin-top:14px; text-align:right;">
+          <div class="account-content-heading"><span>محتواك</span><button class="content-expand-btn" type="button" data-action="expandAccountContent()">تكبير ⛶</button></div>
+          <div class="account-content-tabs" role="tablist" aria-label="محتوى الحساب">
+            <button id="my-content-tab-thoughts" class="account-content-tab active" type="button" data-action="switchAccountContentTab('thoughts')" role="tab">خواطري</button>
+            <button id="my-content-tab-reposts" class="account-content-tab" type="button" data-action="switchAccountContentTab('reposts')" role="tab">معاد نشرها</button>
+          </div>
+          <div id="my-content-panel-thoughts" class="account-content-panel active">
+            <div class="account-content-heading"><span>خواطري</span><button class="link-btn" type="button" data-action="viewMyThoughts()">عرض الكل</button></div>
+            <div id="my-thoughts-list" class="account-content-list"><div class="account-content-empty">جاري التحميل...</div></div>
+          </div>
+          <div id="my-content-panel-reposts" class="account-content-panel">
+            <div class="account-content-heading"><span>معاد نشرها</span><button class="link-btn" type="button" data-action="viewMyReposts()">عرض الكل</button></div>
+            <div id="my-reposts-list" class="account-content-list"><div class="account-content-empty">جاري التحميل...</div></div>
+          </div>
+        </div>
         <div id="my-accounts-box" style="margin:12px 0; text-align:right;"></div>
         <button class="primary-btn" type="button" data-action="openAccountCreate()">＋ إضافة حساب</button>
         <button class="secondary-btn" type="button" data-action="userLogout()" style="margin-top:7px;">تسجيل الخروج</button>
@@ -843,11 +893,11 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       </div>
 
       <div id="auth-user-info" style="display:none;"></div>
-      <div id="auth-owner-section" style="display:none; margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:right;font-weight:700;">دخول المالك إلى لوحة شخابيط</div>
+      <div id="auth-owner-section" style="display:none; margin-top:8px; border-top:0; padding-top:6px; opacity:.58;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-align:right;font-weight:600;">دخول المالك</div>
         <input id="owner-email" type="email" placeholder="بريد المالك" autocomplete="email">
         <input id="owner-password" type="password" placeholder="كلمة مرور المالك" autocomplete="current-password">
-        <button class="primary-btn" type="button" data-action="ownerLogin()">دخول المالك <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg></button>
+        <button class="link-btn owner-secondary-login" type="button" data-action="ownerLogin()" style="font-size:11px; padding:5px 8px; opacity:.8;">دخول</button>
         <button class="link-btn" type="button" data-action="showAccountLoginView()" style="margin-top:7px;background:none;border:0;color:var(--primary);cursor:pointer;">رجوع لتسجيل دخول المستخدم</button>
       </div>
     </div>
@@ -1368,7 +1418,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     function mapDiscoveryRow(i){
       return {id:i.id, thought:i.text, name:i.author_name||'', date:formatDate(i.created_at), rawDate:i.created_at,
         category_id:i.category_id, prompt_question:i.prompt_question, allow_comments:getEffectiveCommentsState(i.id, i.allow_comments),
-        upvotes:i.upvotes_count||0, downvotes:i.downvotes_count||0};
+        upvotes:i.upvotes_count||0, downvotes:i.downvotes_count||0, account_id:i.account_id||null, guest_id:i.guest_id||null,
+        account:i.account_id ? (AccountCache.get(String(i.account_id))||null) : null};
     }
 
     function discoveryCacheKey(mode, query){
@@ -2331,7 +2382,7 @@ updateAchievements();
             <p class="thought-text">${escapeHTML(i.thought)}</p>
             <div class="card-footer">
               <span class="card-meta">
-                <button class="profile-link" type="button" data-action="openProfile('${enc(ownerDisplayName)}','${enc(i.account_id||'')}')">${escapeHTML(ownerDisplayName)}</button> · ${escapeHTML(i.date||'')}
+                <button class="profile-link" type="button" data-action="openProfile('${enc(ownerDisplayName)}','${enc(i.account_id||'')}','${enc(i.guest_id||'')}')">${escapeHTML(ownerDisplayName)}</button> · ${escapeHTML(i.date||'')}
               </span>
               <div class="card-actions">
                 <div class="action-scroll-pill">
@@ -2384,7 +2435,7 @@ updateAchievements();
             ${promptHtml}
             <p class="thought-text">${escapeHTML(i.thought)}</p>
             <div class="card-footer">
-              <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(displayName)}','${enc(i.account_id||'')}')">${escapeHTML(displayName)}</button> · ${escapeHTML(i.date||'')}</span>
+              <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(displayName)}','${enc(i.account_id||'')}','${enc(i.guest_id||'')}')">${escapeHTML(displayName)}</button> · ${escapeHTML(i.date||'')}</span>
               <div class="card-actions">
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
@@ -2446,13 +2497,18 @@ updateAchievements();
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.following)||'[]')}catch{return[]} }
 
-    async function getUserStats(targetName, targetAccountId=''){
+    async function getUserStats(targetName, targetAccountId='', targetGuestId=''){
       const accountId=String(targetAccountId||'').trim();
-      if(!accountId){
-        return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
-      }
+      const guestId=String(targetGuestId||'').trim();
       try{
-        const {data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId});
+        let data,error;
+        if(accountId){
+          ({data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId}));
+        }else if(guestId){
+          ({data,error}=await DB.rpc('get_public_guest_stats',{p_guest_id:guestId}));
+        }else{
+          return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+        }
         if(error) throw error;
         const row=Array.isArray(data)?data[0]:data;
         return {
@@ -2467,26 +2523,29 @@ updateAchievements();
           following:Number(row?.following_count)||0
         };
       }catch(e){
-        console.warn('Could not load account stats',e);
+        console.warn('Could not load profile stats',e);
         return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
       }
     }
 
-    async function openProfile(encodedName, encodedAccountId=''){
+    async function openProfile(encodedName, encodedAccountId='', encodedGuestId=''){
       const name=decodeURIComponent(encodedName||'');
       const accountId=decodeURIComponent(encodedAccountId||'');
+      const guestId=decodeURIComponent(encodedGuestId||'');
       if(!name) return;
       AppState.profile.author=name;
       AppState.profile.accountId=accountId||'';
+      AppState.profile.guestId=guestId||'';
       const loading=$id('profile-loading'), recentBox=$id('profile-recent-thoughts');
       if(loading) loading.style.display='block';
       if(recentBox) recentBox.innerHTML='';
       const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
       let all=[];
       try{
-        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id').eq('status','approved');
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id').eq('status','approved');
         if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
         else if(accountId) q=q.eq('account_id',accountId);
+        else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
         else q=q.eq('author_name',name);
         const {data,error}=await q.order('created_at',{ascending:false}).order('id',{ascending:false});
         if(error) throw error;
@@ -2495,14 +2554,14 @@ updateAchievements();
         logAppError('Profile query failed',err);
         all=[...AppState.user.rawOwnerData,...AppState.user.rawVisitorData].filter(i=>{
           const rowName=i?.author_name||i?.name||'';
-          return isOwnerProfile ? !rowName : (accountId ? String(i.account_id||'')===String(accountId) : rowName===name);
+          return isOwnerProfile ? !rowName : (accountId ? String(i.account_id||'')===String(accountId) : (guestId ? String(i.guest_id||'')===String(guestId) : rowName===name));
         });
       }finally{ if(loading) loading.style.display='none'; }
 
       $id('profile-title').textContent=name;
       $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
       $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
-      const stats=await getUserStats(name,accountId);
+      const stats=await getUserStats(name,accountId,guestId);
       $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
       $id('profile-votes-received').textContent=stats.votesReceived;
       $id('profile-reposts-received').textContent=stats.repostsReceived;
@@ -2513,13 +2572,8 @@ updateAchievements();
       $id('profile-comments-made').textContent=stats.commentsMade;
       $id('profile-following').textContent=stats.following;
 
-      if(recentBox){
-        if(!all.length) recentBox.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px;">مفيش خواطر منشورة حاليًا.</div>';
-        else recentBox.innerHTML=all.slice(0,5).map(i=>{
-          const text=escapeHTML(i.text||''), date=escapeHTML(formatDate(i.created_at)), link=safeActionValue(String(i.id));
-          return `<button type="button" class="profile-recent-item" data-action="openDirectThought('${link}')" style="display:block;width:100%;text-align:right;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px;margin-bottom:6px;color:inherit;cursor:pointer;">${text.length>140?text.slice(0,140)+'…':text}<div style="font-size:10px;color:var(--muted);margin-top:4px;">${date}</div></button>`;
-        }).join('');
-      }
+      renderProfileThoughtList(all);
+      await loadProfileReposts(accountId, guestId);
 
       const hint=$id('profile-guest-hint');
       if(hint) hint.style.display=AccountState?.current?'none':'block';
@@ -2528,6 +2582,102 @@ updateAchievements();
       $id('profile-modal').style.display='flex';
       document.body.classList.add('modal-open');
       $id('profile-follow-btn')?.focus();
+    }
+
+    function renderContentItems(items, options={}){
+      const empty=options.empty||'مفيش محتوى حاليًا.';
+      if(!items?.length) return `<div class="account-content-empty">${empty}</div>`;
+      return items.map(i=>{
+        const text=escapeHTML(i.text||'');
+        const date=escapeHTML(formatDate(i.created_at));
+        const link=safeActionValue(String(i.id));
+        const meta=options.meta ? `<span class="item-date">${escapeHTML(options.meta(i))}</span>` : `<span class="item-date">${date}</span>`;
+        return `<button type="button" class="account-content-item" data-action="openDirectThought('${link}')">${text.slice(0,220)}${text.length>220?'…':''}${meta}</button>`;
+      }).join('');
+    }
+
+    function renderProfileThoughtList(items){
+      const box=$id('profile-recent-thoughts');
+      if(box) box.innerHTML=renderContentItems((items||[]).slice(0,5),{empty:'مفيش خواطر منشورة حاليًا.'});
+    }
+
+    async function loadProfileReposts(accountId, guestId){
+      const box=$id('profile-recent-reposts');
+      if(!box) return;
+      box.innerHTML='<div class="account-content-empty">جاري التحميل...</div>';
+      if(!accountId){
+        box.innerHTML='<div class="account-content-empty">مفيش ريشير عام متاح للحساب ده حاليًا.</div>';
+        return;
+      }
+      try{
+        const {data,error}=await DB.from(DB_TABLES.thoughtReposts).select('thought_id,created_at').eq('account_id',accountId).order('created_at',{ascending:false}).limit(5);
+        if(error) throw error;
+        const ids=(data||[]).map(r=>Number(r.thought_id)).filter(Number.isFinite);
+        if(!ids.length){ box.innerHTML='<div class="account-content-empty">مفيش خواطر معاد نشرها حاليًا.</div>'; return; }
+        const {data:thoughts,error:tErr}=await DB.from(DB_TABLES.thoughts).select('id,text,created_at,status').in('id',ids).eq('status','approved');
+        if(tErr) throw tErr;
+        const byId=new Map((thoughts||[]).map(t=>[Number(t.id),t]));
+        const ordered=(data||[]).map(r=>{const t=byId.get(Number(r.thought_id)); return t?{...t,reposted_at:r.created_at}:null}).filter(Boolean);
+        box.innerHTML=renderContentItems(ordered,{empty:'مفيش خواطر معاد نشرها حاليًا.',meta:i=>`أعاد نشرها · ${formatDate(i.reposted_at||i.created_at)}`});
+      }catch(e){
+        console.warn('Profile reposts load failed',e);
+        box.innerHTML='<div class="account-content-empty">تعذر تحميل الريشير حاليًا.</div>';
+      }
+    }
+
+    function switchAccountContentTab(tab){
+      const isReposts=tab==='reposts';
+      $id('my-content-tab-thoughts')?.classList.toggle('active',!isReposts);
+      $id('my-content-tab-reposts')?.classList.toggle('active',isReposts);
+      $id('my-content-panel-thoughts')?.classList.toggle('active',!isReposts);
+      $id('my-content-panel-reposts')?.classList.toggle('active',isReposts);
+    }
+
+    function switchProfileContentTab(tab){
+      const isReposts=tab==='reposts';
+      $id('profile-content-tab-thoughts')?.classList.toggle('active',!isReposts);
+      $id('profile-content-tab-reposts')?.classList.toggle('active',isReposts);
+      $id('profile-content-panel-thoughts')?.classList.toggle('active',!isReposts);
+      $id('profile-content-panel-reposts')?.classList.toggle('active',isReposts);
+      const title=$id('profile-content-title');
+      if(title) title.textContent=isReposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره');
+    }
+
+    function getActiveAccountContent(){
+      const tab=$id('my-content-tab-reposts');
+      return tab?.classList.contains('active') ? {title:'معاد نشرها',html:$id('my-reposts-list')?.innerHTML||''} : {title:'خواطري',html:$id('my-thoughts-list')?.innerHTML||''};
+    }
+
+    function getActiveProfileContent(){
+      const reposts=$id('profile-content-tab-reposts')?.classList.contains('active');
+      return {title:reposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره'),html:reposts?$id('profile-recent-reposts')?.innerHTML||'':$id('profile-recent-thoughts')?.innerHTML||''};
+    }
+
+    function openThoughtsFullscreen(title, html, subtitle){
+      const list=$id('thoughts-fullscreen-list');
+      if(!list) return;
+      $id('thoughts-fullscreen-title').textContent=title||'الخواطر';
+      $id('thoughts-fullscreen-subtitle').textContent=subtitle||'كل المحتوى';
+      list.innerHTML=html||'<div class="account-content-empty">مفيش محتوى حاليًا.</div>';
+      AppState.ui.lastFocusedElement=document.activeElement;
+      $id('thoughts-fullscreen-modal').style.display='flex';
+      document.body.classList.add('modal-open');
+      $id('thoughts-fullscreen-modal .modal-close')?.focus();
+    }
+
+    function expandAccountContent(){
+      const c=getActiveAccountContent();
+      openThoughtsFullscreen(c.title,c.html,'المحتوى الخاص بالحساب الحالي');
+    }
+
+    function expandProfileContent(){
+      const c=getActiveProfileContent();
+      openThoughtsFullscreen(c.title,c.html,`محتوى ${AppState.profile.author||'الحساب'}`);
+    }
+
+    function closeThoughtsFullscreen(){
+      $id('thoughts-fullscreen-modal').style.display='none';
+      document.body.classList.remove('modal-open');
     }
 
     function viewProfileThoughts(){
@@ -2617,11 +2767,107 @@ updateAchievements();
         const {data,error}=await DB.rpc(DB_RPC.toggleAccountFollow,{p_target_account_id:targetId});
         if(error) throw error;
         showToast(data?'تمت المتابعة ✓':'اتشالت المتابعة');
-        await openProfile(enc(AppState.profile.author),enc(targetId));
+        await openProfile(enc(AppState.profile.author),enc(targetId),enc(AppState.profile.guestId||''));
       }catch(err){
         console.error('Follow toggle error',err);
         alert(err?.message||'تعذر تعديل المتابعة حاليًا.');
       }
+    }
+
+    function renderContentItems(items, options={}){
+      const empty=options.empty||'مفيش محتوى حاليًا.';
+      if(!items?.length) return `<div class="account-content-empty">${empty}</div>`;
+      return items.map(i=>{
+        const text=escapeHTML(i.text||'');
+        const date=escapeHTML(formatDate(i.created_at));
+        const link=safeActionValue(String(i.id));
+        const meta=options.meta ? `<span class="item-date">${escapeHTML(options.meta(i))}</span>` : `<span class="item-date">${date}</span>`;
+        return `<button type="button" class="account-content-item" data-action="openDirectThought('${link}')">${text.slice(0,220)}${text.length>220?'…':''}${meta}</button>`;
+      }).join('');
+    }
+
+    function renderProfileThoughtList(items){
+      const box=$id('profile-recent-thoughts');
+      if(box) box.innerHTML=renderContentItems((items||[]).slice(0,5),{empty:'مفيش خواطر منشورة حاليًا.'});
+    }
+
+    async function loadProfileReposts(accountId, guestId){
+      const box=$id('profile-recent-reposts');
+      if(!box) return;
+      box.innerHTML='<div class="account-content-empty">جاري التحميل...</div>';
+      if(!accountId){
+        box.innerHTML='<div class="account-content-empty">مفيش ريشير عام متاح للحساب ده حاليًا.</div>';
+        return;
+      }
+      try{
+        const {data,error}=await DB.from(DB_TABLES.thoughtReposts).select('thought_id,created_at').eq('account_id',accountId).order('created_at',{ascending:false}).limit(5);
+        if(error) throw error;
+        const ids=(data||[]).map(r=>Number(r.thought_id)).filter(Number.isFinite);
+        if(!ids.length){ box.innerHTML='<div class="account-content-empty">مفيش خواطر معاد نشرها حاليًا.</div>'; return; }
+        const {data:thoughts,error:tErr}=await DB.from(DB_TABLES.thoughts).select('id,text,created_at,status').in('id',ids).eq('status','approved');
+        if(tErr) throw tErr;
+        const byId=new Map((thoughts||[]).map(t=>[Number(t.id),t]));
+        const ordered=(data||[]).map(r=>{const t=byId.get(Number(r.thought_id)); return t?{...t,reposted_at:r.created_at}:null}).filter(Boolean);
+        box.innerHTML=renderContentItems(ordered,{empty:'مفيش خواطر معاد نشرها حاليًا.',meta:i=>`أعاد نشرها · ${formatDate(i.reposted_at||i.created_at)}`});
+      }catch(e){
+        console.warn('Profile reposts load failed',e);
+        box.innerHTML='<div class="account-content-empty">تعذر تحميل الريشير حاليًا.</div>';
+      }
+    }
+
+    function switchAccountContentTab(tab){
+      const isReposts=tab==='reposts';
+      $id('my-content-tab-thoughts')?.classList.toggle('active',!isReposts);
+      $id('my-content-tab-reposts')?.classList.toggle('active',isReposts);
+      $id('my-content-panel-thoughts')?.classList.toggle('active',!isReposts);
+      $id('my-content-panel-reposts')?.classList.toggle('active',isReposts);
+    }
+
+    function switchProfileContentTab(tab){
+      const isReposts=tab==='reposts';
+      $id('profile-content-tab-thoughts')?.classList.toggle('active',!isReposts);
+      $id('profile-content-tab-reposts')?.classList.toggle('active',isReposts);
+      $id('profile-content-panel-thoughts')?.classList.toggle('active',!isReposts);
+      $id('profile-content-panel-reposts')?.classList.toggle('active',isReposts);
+      const title=$id('profile-content-title');
+      if(title) title.textContent=isReposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره');
+    }
+
+    function getActiveAccountContent(){
+      const tab=$id('my-content-tab-reposts');
+      return tab?.classList.contains('active') ? {title:'معاد نشرها',html:$id('my-reposts-list')?.innerHTML||''} : {title:'خواطري',html:$id('my-thoughts-list')?.innerHTML||''};
+    }
+
+    function getActiveProfileContent(){
+      const reposts=$id('profile-content-tab-reposts')?.classList.contains('active');
+      return {title:reposts?'معاد نشرها':($id('profile-content-tab-thoughts')?.textContent||'خواطره'),html:reposts?$id('profile-recent-reposts')?.innerHTML||'':$id('profile-recent-thoughts')?.innerHTML||''};
+    }
+
+    function openThoughtsFullscreen(title, html, subtitle){
+      const list=$id('thoughts-fullscreen-list');
+      if(!list) return;
+      $id('thoughts-fullscreen-title').textContent=title||'الخواطر';
+      $id('thoughts-fullscreen-subtitle').textContent=subtitle||'كل المحتوى';
+      list.innerHTML=html||'<div class="account-content-empty">مفيش محتوى حاليًا.</div>';
+      AppState.ui.lastFocusedElement=document.activeElement;
+      $id('thoughts-fullscreen-modal').style.display='flex';
+      document.body.classList.add('modal-open');
+      $id('thoughts-fullscreen-modal .modal-close')?.focus();
+    }
+
+    function expandAccountContent(){
+      const c=getActiveAccountContent();
+      openThoughtsFullscreen(c.title,c.html,'المحتوى الخاص بالحساب الحالي');
+    }
+
+    function expandProfileContent(){
+      const c=getActiveProfileContent();
+      openThoughtsFullscreen(c.title,c.html,`محتوى ${AppState.profile.author||'الحساب'}`);
+    }
+
+    function closeThoughtsFullscreen(){
+      $id('thoughts-fullscreen-modal').style.display='none';
+      document.body.classList.remove('modal-open');
     }
 
     function viewProfileThoughts(){
@@ -3088,11 +3334,85 @@ updateAchievements();
         set('my-stat-thoughts',stats.thoughtsCount); set('my-stat-votes-made',stats.votesMade); set('my-stat-votes-received',stats.votesReceived);
         set('my-stat-reposts-made',stats.repostsMade); set('my-stat-reposts-received',stats.repostsReceived); set('my-stat-comments-made',stats.commentsMade);
         set('my-stat-comments-received',stats.commentsReceived); set('my-stat-followers',stats.followers); set('my-stat-following',stats.following);
+        await loadMyAccountContent();
         const title=$id('my-account-title'); if(title) title.textContent=AccountState.current.display_name||'حسابي';
         const bio=$id('my-account-bio'); if(bio) bio.textContent=AccountState.current.bio||'مساحتك على شخابيط';
         const avatar=$id('my-account-avatar'); if(avatar) avatar.textContent=(AccountState.current.display_name||'م').trim().charAt(0)||'م';
       }
       return AccountState.accounts;
+    }
+
+    async function loadMyAccountContent(){
+      const thoughtsBox=$id('my-thoughts-list'), repostsBox=$id('my-reposts-list');
+      if(!AccountState?.current?.id) return;
+      const accountId=String(AccountState.current.id);
+      try{
+        const [{data:thoughts,error:thoughtErr},{data:reposts,error:repostErr}]=await Promise.all([
+          DB.from(DB_TABLES.thoughts).select('id,text,created_at,status').eq('account_id',accountId).eq('status','approved').order('created_at',{ascending:false}).limit(5),
+          DB.from(DB_TABLES.thoughtReposts).select('thought_id,created_at').eq('account_id',accountId).order('created_at',{ascending:false}).limit(5)
+        ]);
+        if(thoughtErr) throw thoughtErr;
+        if(repostErr) throw repostErr;
+        if(thoughtsBox){
+          thoughtsBox.innerHTML=thoughts?.length ? thoughts.map(t=>`<button type="button" class="account-content-item" data-action="openDirectThought('${safeActionValue(String(t.id))}')">${escapeHTML(t.text||'').slice(0,180)}${String(t.text||'').length>180?'…':''}<span class="item-date">${escapeHTML(formatDate(t.created_at))}</span></button>`).join('') : '<div class="account-content-empty">لسه مفيش خواطر منشورة.</div>';
+        }
+        if(repostsBox){
+          const ids=(reposts||[]).map(r=>Number(r.thought_id)).filter(Number.isFinite);
+          let repostThoughts=[];
+          if(ids.length){
+            const {data,error}=await DB.from(DB_TABLES.thoughts).select('id,text,created_at,status').in('id',ids).eq('status','approved');
+            if(error) throw error;
+            const byId=new Map((data||[]).map(t=>[Number(t.id),t]));
+            repostThoughts=(reposts||[]).map(r=>({r,t:byId.get(Number(r.thought_id))})).filter(x=>x.t);
+          }
+          repostsBox.innerHTML=repostThoughts.length ? repostThoughts.map(x=>`<button type="button" class="account-content-item" data-action="openDirectThought('${safeActionValue(String(x.t.id))}')">${escapeHTML(x.t.text||'').slice(0,180)}${String(x.t.text||'').length>180?'…':''}<span class="item-date">أعدت نشرها · ${escapeHTML(formatDate(x.r.created_at))}</span></button>`).join('') : '<div class="account-content-empty">لسه مفيش ريشير عملته.</div>';
+        }
+      }catch(e){
+        console.warn('Account content load failed',e);
+        if(thoughtsBox) thoughtsBox.innerHTML='<div class="account-content-empty">تعذر تحميل خواطرك حاليًا.</div>';
+        if(repostsBox) repostsBox.innerHTML='<div class="account-content-empty">تعذر تحميل الريشير حاليًا.</div>';
+      }
+    }
+
+    async function viewMyThoughts(){
+      if(!AccountState?.current?.id) return;
+      try{
+        const {data,error}=await DB.from(DB_TABLES.thoughts)
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id')
+          .eq('account_id',AccountState.current.id).eq('status','approved')
+          .order('created_at',{ascending:false});
+        if(error) throw error;
+        await hydrateThoughtAccounts(data||[]);
+        AppState.thoughts.discoveryMode='all';
+        AppState.thoughts.discoveryResults=(data||[]).map(mapDiscoveryRow);
+        closeAuthModal();
+        renderVisitorThoughts();
+        refreshCommentCounts((data||[]).map(x=>x.id));
+        $id('visitor-heading')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(e){ console.warn(e); alert('تعذر تحميل خواطرك حاليًا.'); }
+    }
+
+    async function viewMyReposts(){
+      if(!AccountState?.current?.id) return;
+      try{
+        const {data,error}=await DB.from(DB_TABLES.thoughtReposts).select('thought_id,created_at').eq('account_id',AccountState.current.id).order('created_at',{ascending:false});
+        if(error) throw error;
+        const ids=[...(data||[])].map(r=>Number(r.thought_id)).filter(Number.isFinite);
+        if(!ids.length){ showToast('لسه مفيش ريشير عملته.'); return; }
+        const {data:thoughts,error:tErr}=await DB.from(DB_TABLES.thoughts)
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id')
+          .in('id',ids).eq('status','approved');
+        if(tErr) throw tErr;
+        await hydrateThoughtAccounts(thoughts||[]);
+        const byId=new Map((thoughts||[]).map(t=>[Number(t.id),t]));
+        const ordered=(data||[]).map(r=>byId.get(Number(r.thought_id))).filter(Boolean);
+        AppState.thoughts.discoveryMode='all';
+        AppState.thoughts.discoveryResults=ordered.map(mapDiscoveryRow);
+        closeAuthModal();
+        renderVisitorThoughts();
+        refreshCommentCounts(ordered.map(x=>x.id));
+        $id('visitor-heading')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(e){ console.warn(e); alert('تعذر تحميل الريشير حاليًا.'); }
     }
 
     async function createAccountProfile(){
@@ -3188,14 +3508,14 @@ updateAchievements();
         if(ownerSession?.user){
           if(ownerTitle) ownerTitle.innerHTML='المالك مسجل الدخول بالفعل <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>';
           if(ownerInputs) ownerInputs.forEach(x=>x.style.display='none');
-          if(ownerBtn){ ownerBtn.textContent='فتح لوحة المالك'; ownerBtn.setAttribute('data-action','openOwnerDashboard()'); }
+          if(ownerBtn){ ownerBtn.textContent='فتح لوحة المالك'; ownerBtn.className='link-btn owner-secondary-login'; ownerBtn.setAttribute('data-action','openOwnerDashboard()'); }
         }else{
           if(ownerTitle) ownerTitle.textContent='دخول المالك إلى لوحة شخابيط';
           if(ownerInputs) ownerInputs.forEach(x=>x.style.display='block');
           if(ownerBtn){ ownerBtn.innerHTML='دخول المالك <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>'; ownerBtn.setAttribute('data-action','ownerLogin()'); }
         }
         $id('auth-title').textContent='حسابك في شخابيط';
-        $id('auth-subtitle').textContent='بدّل بين حساباتك، وتقدر تفضل مسجل كمالك في نفس الوقت.';
+        $id('auth-subtitle').textContent='بدّل بين حساباتك.';
       }else if(ownerSession?.user){
         show($id('auth-owner-section'));
         const ownerTitle = $id('auth-owner-section')?.querySelector('div');
@@ -3203,7 +3523,7 @@ updateAchievements();
         const ownerInputs = $id('auth-owner-section')?.querySelectorAll('input');
         if(ownerTitle) ownerTitle.innerHTML='المالك مسجل الدخول بالفعل <svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>';
         if(ownerInputs) ownerInputs.forEach(x=>x.style.display='none');
-        if(ownerBtn){ ownerBtn.textContent='فتح لوحة المالك'; ownerBtn.setAttribute('data-action','openOwnerDashboard()'); }
+        if(ownerBtn){ ownerBtn.textContent='فتح لوحة المالك'; ownerBtn.className='link-btn owner-secondary-login'; ownerBtn.setAttribute('data-action','openOwnerDashboard()'); }
         $id('auth-title').textContent='لوحة المالك';
         $id('auth-subtitle').textContent='حساب المالك مستقل عن حساب المستخدم.';
       }else{
@@ -3915,7 +4235,7 @@ updateAchievements();
         const visitorFrom = AppState.pagination.visitorPage * pageSize;
 
         const ownerQuery = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id')
           .eq('status','approved')
           .or('author_name.is.null,author_name.eq.""')
           .order('created_at',{ascending:false})
@@ -3923,7 +4243,7 @@ updateAchievements();
           .range(ownerFrom, ownerFrom + pageSize);
 
         const visitorQuery = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id')
+          .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id')
           .eq('status','approved')
           .not('author_name','is',null)
           .neq('author_name','')
@@ -3956,6 +4276,7 @@ updateAchievements();
           upvotes:i.upvotes_count||0,
           downvotes:i.downvotes_count||0,
           account_id:i.account_id || null,
+          guest_id:i.guest_id || null,
           account: i.account_id ? (AccountCache.get(String(i.account_id)) || null) : null
         });
 
@@ -4313,6 +4634,12 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     toggleThoughtCommentsState,
     requestDeleteThought,
     openProfile,
+    viewMyThoughts, viewMyReposts,
+    switchAccountContentTab,
+    switchProfileContentTab,
+    expandAccountContent,
+    expandProfileContent,
+    closeThoughtsFullscreen,
     toggleFavorite,
     copyThought,
     shareAsImage,
