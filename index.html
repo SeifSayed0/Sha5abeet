@@ -2538,42 +2538,17 @@ updateAchievements();
     async function getUserStats(targetName, targetAccountId='', targetGuestId=''){
       const accountId=String(targetAccountId||'').trim();
       const guestId=String(targetGuestId||'').trim();
+      const empty={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
       try{
         let data,error;
         if(accountId){
           ({data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId}));
         }else if(guestId){
           ({data,error}=await DB.rpc('get_public_guest_stats',{p_guest_id:guestId}));
-        }else{
-          // Legacy profile: older thoughts may have author_name only, with no account_id/guest_id.
-          // We can safely calculate incoming activity on those thoughts by their stored author name.
-          const {data: legacyThoughts,error: legacyErr}=await DB.from(DB_TABLES.thoughts)
-            .select('id,upvotes_count,downvotes_count')
-            .eq('status','approved')
-            .eq('author_name',targetName);
-          if(legacyErr) throw legacyErr;
-          const ids=(legacyThoughts||[]).map(x=>x.id);
-          let repostsReceived=0, commentsReceived=0;
-          if(ids.length){
-            const [rr,cc]=await Promise.all([
-              DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
-              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
-            ]);
-            if(rr.error) throw rr.error;
-            if(cc.error) throw cc.error;
-            repostsReceived=Number(rr.count)||0;
-            commentsReceived=Number(cc.count)||0;
-          }
-          return {
-            thoughtsCount:legacyThoughts?.length||0,
-            votesMade:0,
-            votesReceived:(legacyThoughts||[]).reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),
-            repostsMade:0, repostsReceived, commentsMade:0, commentsReceived, followers:0, following:0
-          };
         }
         if(error) throw error;
         const row=Array.isArray(data)?data[0]:data;
-        return {
+        const stats={
           thoughtsCount:Number(row?.thoughts_count)||0,
           votesMade:Number(row?.votes_made)||0,
           votesReceived:Number(row?.votes_received)||0,
@@ -2584,9 +2559,93 @@ updateAchievements();
           followers:Number(row?.followers_count)||0,
           following:Number(row?.following_count)||0
         };
+
+        // Fallback based on the actual thoughts displayed in this profile.
+        // This fixes older/migrated profiles where the RPC identity exists but
+        // historical rows are still attached to guest_id / author_name.
+        let thoughtRows=[];
+        if(accountId){
+          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
+            .select('id,upvotes_count,downvotes_count,guest_id')
+            .eq('status','approved').eq('account_id',accountId);
+          if(tErr) throw tErr;
+          thoughtRows=tData||[];
+        }else if(guestId){
+          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
+            .select('id,upvotes_count,downvotes_count,guest_id')
+            .eq('status','approved').eq('guest_id',guestId).is('account_id',null);
+          if(tErr) throw tErr;
+          thoughtRows=tData||[];
+        }else{
+          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
+            .select('id,upvotes_count,downvotes_count,guest_id')
+            .eq('status','approved').eq('author_name',targetName);
+          if(tErr) throw tErr;
+          thoughtRows=tData||[];
+        }
+
+        if(thoughtRows.length){
+          const ids=thoughtRows.map(x=>Number(x.id)).filter(Number.isFinite);
+          const voteReceived=thoughtRows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
+          if(!stats.thoughtsCount) stats.thoughtsCount=thoughtRows.length;
+          if(!stats.votesReceived) stats.votesReceived=voteReceived;
+
+          if(ids.length){
+            const [rr,cc]=await Promise.all([
+              DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
+              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
+            ]);
+            if(rr.error) throw rr.error;
+            if(cc.error) throw cc.error;
+            if(!stats.repostsReceived) stats.repostsReceived=Number(rr.count)||0;
+            if(!stats.commentsReceived) stats.commentsReceived=Number(cc.count)||0;
+          }
+        }
+
+        // Legacy profiles have no reliable identity for outgoing activity.
+        // For account/guest profiles, recover historical activity even when
+        // the RPC under-counts rows migrated from the guest identity.
+        if(accountId || guestId){
+          const guestIds=[...new Set([guestId,...thoughtRows.map(x=>String(x.guest_id||'')).filter(Boolean)])];
+          const voteQuery=accountId
+            ? DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('account_id',accountId)
+            : DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('guest_id',guestId);
+          const commentQuery=accountId
+            ? DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('account_id',accountId).eq('status','approved')
+            : DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('guest_id',guestId).eq('status','approved');
+          const repostQuery=accountId
+            ? DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).eq('account_id',accountId)
+            : null;
+          const [vr,cm,rp]=await Promise.all([voteQuery,commentQuery,repostQuery||Promise.resolve({count:null,error:null})]);
+          if(vr.error) throw vr.error;
+          if(cm.error) throw cm.error;
+          if(rp.error) throw rp.error;
+          if(!stats.votesMade) stats.votesMade=Number(vr.count)||0;
+          if(!stats.commentsMade) stats.commentsMade=Number(cm.count)||0;
+          if(accountId && !stats.repostsMade) stats.repostsMade=Number(rp.count)||0;
+        }
+        return stats;
       }catch(e){
         console.warn('Could not load profile stats',e);
-        return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+        // Even if the RPC fails, calculate safe incoming stats from the actual profile thoughts.
+        try{
+          let q=DB.from(DB_TABLES.thoughts).select('id,upvotes_count,downvotes_count').eq('status','approved');
+          if(accountId) q=q.eq('account_id',accountId);
+          else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
+          else q=q.eq('author_name',targetName);
+          const {data:ts}=await q;
+          const rows=ts||[], ids=rows.map(x=>Number(x.id)).filter(Number.isFinite);
+          let repostsReceived=0,commentsReceived=0;
+          if(ids.length){
+            const [rr,cc]=await Promise.all([
+              DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
+              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
+            ]);
+            repostsReceived=Number(rr?.count)||0;
+            commentsReceived=Number(cc?.count)||0;
+          }
+          return {...empty,thoughtsCount:rows.length,votesReceived:rows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),repostsReceived,commentsReceived};
+        }catch(_){ return empty; }
       }
     }
 
@@ -2718,13 +2777,32 @@ updateAchievements();
       box.innerHTML='<div class="account-content-empty">جاري تحميل الكومنتات...</div>';
       AppState.profile.comments=[];
       try{
-        let q=DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').order('created_at',{ascending:false});
-        if(accountId) q=q.eq('account_id',accountId);
-        else if(guestId) q=q.eq('guest_id',guestId);
-        else { box.innerHTML='<div class="account-content-empty">مفيش كومنتات متاحة حاليًا.</div>'; return; }
-        const {data,error}=await q;
-        if(error) throw error;
-        const rows=data||[];
+        const profileGuestIds=[...new Set((AppState.profile.thoughts||[]).map(t=>String(t.guest_id||'')).filter(Boolean))];
+        let rows=[];
+        if(accountId){
+          const {data,error}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').eq('account_id',accountId).order('created_at',{ascending:false});
+          if(error) throw error;
+          rows=data||[];
+          // Include old comments that were created before account_id existed.
+          if(profileGuestIds.length){
+            const {data:oldRows,error:oldErr}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').in('guest_id',profileGuestIds).order('created_at',{ascending:false});
+            if(oldErr) throw oldErr;
+            const seen=new Set(rows.map(c=>String(c.id)));
+            rows.push(...(oldRows||[]).filter(c=>!seen.has(String(c.id))));
+            rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+          }
+        }else if(guestId){
+          const {data,error}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').eq('guest_id',guestId).order('created_at',{ascending:false});
+          if(error) throw error;
+          rows=data||[];
+        }else if(profileGuestIds.length){
+          const {data,error}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').in('guest_id',profileGuestIds).order('created_at',{ascending:false});
+          if(error) throw error;
+          rows=data||[];
+        }else{
+          box.innerHTML='<div class="account-content-empty">مفيش كومنتات متاحة حاليًا.</div>';
+          return;
+        }
         const ids=rows.map(c=>Number(c.thought_id)).filter(Number.isFinite);
         let thoughts=[];
         if(ids.length){
