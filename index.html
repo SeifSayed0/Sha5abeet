@@ -279,6 +279,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .action-sub-btn .ic{width:18px;height:18px}
 .action-sub-btn.has-label{width:auto;min-width:42px;padding:0 11px;gap:6px;font-size:12px;font-weight:800}
 .action-sub-btn.has-label .action-label{display:inline}
+.repost-btn.is-reposted{color:var(--success);background:rgba(76,122,99,.10)}
 .action-more{background:var(--surface-2);border:1px solid var(--border);font-size:18px}
 .action-menu{position:absolute;z-index:30;inset-inline-end:18px;bottom:62px;min-width:190px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);padding:6px;display:grid;gap:3px}
 .action-menu[hidden]{display:none!important}.action-menu button{min-height:42px;text-align:right;border-radius:9px;padding:8px 10px;color:var(--text);font-size:12px;display:flex;align-items:center;gap:8px}
@@ -1099,7 +1100,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       reports: 'reports',
       ownerMessages: 'owner_messages',
       settings: 'site_settings',
-      accounts: 'accounts'
+      accounts: 'accounts',
+      thoughtReposts: 'thought_reposts'
     });
 
     const DB_RPC = Object.freeze({
@@ -1122,6 +1124,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       clearNotifications: 'clear_my_device_notifications',
       createAccount: 'create_my_account',
       getMyAccounts: 'get_my_accounts',
+      toggleMyRepost: 'toggle_my_repost',
     });
 
     /* ==================== STAGE 6: CONSTANTS & CONFIG ==================== */
@@ -2302,6 +2305,7 @@ updateAchievements();
               <div class="card-actions">
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
+                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleRepost(${i.id},this)" title="إعادة نشر"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">إعادة نشر</span></button>
                 <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>':'<svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg>'}<span class="action-label">حفظ</span></button>
                 <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
                 <div class="action-menu" hidden>
@@ -2353,6 +2357,7 @@ updateAchievements();
               <div class="card-actions">
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
+                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleRepost(${i.id},this)" title="إعادة نشر"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">إعادة نشر</span></button>
                 <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>':'<svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg>'}<span class="action-label">حفظ</span></button>
                 <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
                 <div class="action-menu" hidden>
@@ -4119,6 +4124,31 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
       }
     }
 
+    async function toggleRepost(thoughtId, btn){
+      if(!AccountState.current){
+        await openAuthModal();
+        return;
+      }
+      const original=btn?.innerHTML||'';
+      if(btn) btn.disabled=true;
+      try{
+        const {data,error}=await DB.rpc(DB_RPC.toggleMyRepost,{p_thought_id:Number(thoughtId)});
+        if(error) throw error;
+        const active=data===true;
+        if(btn){
+          btn.classList.toggle('is-reposted',active);
+          btn.innerHTML=`<svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">${active?'معاد نشرها':'إعادة نشر'}</span>`;
+          btn.title=active?'إلغاء إعادة النشر':'إعادة نشر';
+        }
+        trackEvent(active?'repost':'unrepost',{account_id:AccountState.current.id},Number(thoughtId));
+        showToast(active?'اتعمل ريشير ✓':'اتشال الريشير');
+      }catch(err){
+        console.error('Repost toggle error',err);
+        if(btn) btn.innerHTML=original;
+        alert(err?.message||'تعذر إعادة نشر الخاطرة.');
+      }finally{ if(btn) btn.disabled=false; }
+    }
+
     async function handleReport(encodedName, encodedThought, btnId){
       const author = decodeURIComponent(encodedName), thought = decodeURIComponent(encodedThought), btn = document.getElementById(btnId);
       if(!btn || btn.classList.contains('reported')) return;
@@ -4240,6 +4270,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     openAchievements,
     openAuthModal,
     handleSearch,
+    toggleRepost,
     setSearchSort,
     closeSearchBar,
     editName,
