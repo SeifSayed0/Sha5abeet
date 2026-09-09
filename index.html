@@ -306,33 +306,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .skeleton-line.short{width:42%}
 .skeleton-line.medium{width:70%}
 
-/* my account profile */
-.my-account-profile{max-width:680px;text-align:right}
-.my-account-head{display:flex;align-items:center;gap:14px;padding:4px 2px 16px;border-bottom:1px solid var(--border)}
-.my-account-avatar{width:64px;height:64px;flex:0 0 64px;border-radius:20px;background:var(--primary-soft);color:var(--primary-strong);display:grid;place-items:center;border:1px solid var(--border);font-weight:900;font-size:25px}
-.my-account-avatar .ic{width:30px;height:30px}
-.my-account-head-main{min-width:0;flex:1}
-.my-account-name{font-size:21px;font-weight:900;color:var(--text);line-height:1.4;overflow-wrap:anywhere}
-.my-account-bio{font-size:12px;color:var(--muted);line-height:1.75;margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere}
-.my-account-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
-.my-account-stat{background:var(--surface-2);border:1px solid var(--border);border-radius:15px;padding:11px 6px;text-align:center;min-height:68px;display:flex;flex-direction:column;justify-content:center}
-.my-account-stat strong{font-size:18px;line-height:1.2;color:var(--text)}
-.my-account-stat span{font-size:9.5px;color:var(--muted);margin-top:4px}
-.my-account-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 12px}
-.my-account-tab{min-height:42px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);border-radius:12px;font-size:12px;font-weight:800}
-.my-account-tab.active{background:var(--primary-soft);color:var(--primary-strong);border-color:#cfe3e3}
-.my-account-content{max-height:48vh;overflow:auto;padding-inline:1px}
-.my-account-item{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px;margin-bottom:8px}
-.my-account-item.repost-item{border-inline-start:3px solid var(--primary-soft)}
-.my-account-item-text{font-size:14px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
-.my-account-item-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--muted-2)}
-.my-account-repost-label{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--primary-strong);font-weight:900;margin-bottom:7px}
-.my-account-actions{display:flex;gap:7px;margin-top:10px}
-.my-account-actions button{flex:1;min-height:40px;border:1px solid var(--border);border-radius:11px;background:var(--surface-2);color:var(--text);font-size:11px;font-weight:800}
-.my-account-actions button:hover{border-color:var(--border-strong)}
-.my-account-empty{padding:25px 12px;text-align:center;color:var(--muted);font-size:12px;background:var(--surface-2);border:1px dashed var(--border-strong);border-radius:16px}
-@media(max-width:520px){.my-account-stats{grid-template-columns:repeat(2,1fr)}.my-account-avatar{width:58px;height:58px;flex-basis:58px}.my-account-name{font-size:19px}}
-
 /* accounts */
 .account-switch-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);margin-bottom:7px}
 .account-switch-card .account-meta{min-width:0;text-align:right}
@@ -571,7 +544,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14"/><path d="M9 7V5.4A1.4 1.4 0 0 1 10.4 4h3.2A1.4 1.4 0 0 1 15 5.4V7"/><path d="M7 7l.9 12.4A1.5 1.5 0 0 0 9.4 21h5.2a1.5 1.5 0 0 0 1.5-1.6L17 7"/><path d="M10 11v6M14 11v6"/></g></symbol>
       <symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><path d="M12 3l1.35 4.5L18 9l-4.65 1.5L12 15l-1.35-4.5L6 9l4.65-1.5L12 3Z"/><path d="M19 15l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6.6-1.9Z"/></g></symbol>
       <symbol id="i-flame" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3c1 2.3-.6 3.4-1.7 4.7C9 9 8.3 10.4 8.3 12a3.7 3.7 0 0 0 7.4 0c0-1-.4-1.7-1-2.4.9.5 2 1.7 2 3.7a4.7 4.7 0 0 1-9.4 0C7.3 9.6 10 8 11 6c.4-.8.7-1.8 1-3Z"/></symbol>
-      <symbol id="i-repeat" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 4l3 3-3 3M20 7H8a4 4 0 0 0-4 4v1M7 20l-3-3 3-3M4 17h12a4 4 0 0 0 4-4v-1"/></symbol>
       <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.3"/><path d="M5 19.5c1-3.6 3.7-5.5 7-5.5s6 1.9 7 5.5"/></g></symbol>
       <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.6 1-5.7-4.1-4 5.7-.8L12 3.5Z"/></symbol>
       <symbol id="i-star-outline" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.6 1-5.7-4.1-4 5.7-.8L12 3.5Z"/></symbol>
@@ -734,37 +706,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       <div id="profile-recent-thoughts" style="margin-top:10px; max-height:180px; overflow:auto; text-align:right;"></div>
       <button id="profile-follow-btn" class="primary-btn follow-btn" type="button" data-action="toggleFollowCurrent()" style="margin-top:10px;">+ متابعة</button>
       <button class="secondary-btn" type="button" data-action="viewProfileThoughts()" style="margin-top:6px;">عرض كل خواطره</button>
-    </div>
-  </div>
-
-  <div id="my-account-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="my-account-title">
-    <div class="modal-box my-account-profile">
-      <button class="modal-close" type="button" data-action="closeMyAccountProfile()" aria-label="إغلاق"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
-      <div id="my-account-loading" class="state-box" style="display:none;min-height:80px;margin-bottom:10px;">جاري تحميل حسابك…</div>
-      <div class="my-account-head">
-        <div id="my-account-avatar" class="my-account-avatar" aria-hidden="true"><svg class="ic"><use href="#i-user"></use></svg></div>
-        <div class="my-account-head-main">
-          <div id="my-account-title" class="my-account-name">حسابي</div>
-          <div id="my-account-bio" class="my-account-bio"></div>
-        </div>
-      </div>
-      <div class="my-account-stats" aria-label="إحصائيات الحساب">
-        <div class="my-account-stat"><strong id="my-stat-thoughts">0</strong><span>خواطر</span></div>
-        <div class="my-account-stat"><strong id="my-stat-reposts">0</strong><span>ريشير</span></div>
-        <div class="my-account-stat"><strong id="my-stat-votes-made">0</strong><span>فوت عملتهم</span></div>
-        <div class="my-account-stat"><strong id="my-stat-votes-received">0</strong><span>فوتات حصلت عليها</span></div>
-        <div class="my-account-stat"><strong id="my-stat-followers">0</strong><span>متابعين</span></div>
-        <div class="my-account-stat"><strong id="my-stat-following">0</strong><span>بتابعهم</span></div>
-      </div>
-      <div class="my-account-tabs">
-        <button id="my-account-tab-thoughts" class="my-account-tab active" type="button" data-action="setMyAccountTab('thoughts')"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg> خواطري</button>
-        <button id="my-account-tab-reposts" class="my-account-tab" type="button" data-action="setMyAccountTab('reposts')"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg> الريشير</button>
-      </div>
-      <div id="my-account-content" class="my-account-content"></div>
-      <div class="my-account-actions">
-        <button type="button" data-action="editName()"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg> تعديل الاسم</button>
-        <button type="button" data-action="openAccountSwitcherFromProfile()"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg> الحسابات</button>
-      </div>
     </div>
   </div>
 
@@ -1158,9 +1099,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       reports: 'reports',
       ownerMessages: 'owner_messages',
       settings: 'site_settings',
-      accounts: 'accounts',
-      accountFollows: 'account_follows',
-      thoughtReposts: 'thought_reposts'
+      accounts: 'accounts'
     });
 
     const DB_RPC = Object.freeze({
@@ -1179,10 +1118,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       clearNotifications: 'clear_my_device_notifications',
       createAccount: 'create_my_account',
       getMyAccounts: 'get_my_accounts',
-      getMyAccountProfile: 'get_my_account_profile',
-      getMyReposts: 'get_my_reposts',
-      toggleMyRepost: 'toggle_my_repost',
-      toggleAccountFollow: 'toggle_account_follow'
     });
 
     /* ==================== STAGE 6: CONSTANTS & CONFIG ==================== */
@@ -1263,7 +1198,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     }
 
     function getDeviceThoughtIds() {
-      try { return JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.deviceThoughtIds)) || '[]'); } catch { return []; }
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.deviceThoughtIds) || '[]'); } catch { return []; }
     }
 
     // ملكية الخاطرة مرتبطة بالحساب النشط، وليس بالجهاز.
@@ -1315,9 +1250,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         currentIndex: 0
       },
       profile: {
-        author: '',
-        accountTab: 'thoughts',
-        myReposts: []
+        author: ''
       },
       engagement: {
         streakDays: 0,
@@ -1359,7 +1292,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     // User-controlled text must always use escapeHTML before entering template HTML.
     // Dynamic action arguments use encodeURIComponent via enc().
     
-    function getFavoritesSafe(){ try{return JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.favorites))||'[]')}catch{return[]} }
+    function getFavoritesSafe(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.favorites)||'[]')}catch{return[]} }
 
     /* حالة فتح/غلق الكومنتات على جهاز صاحب الخاطرة.
        الـ DB يظل المصدر الأساسي، وlocalStorage يضمن ثبات الاختيار بعد Refresh
@@ -1371,9 +1304,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       }catch(e){ return null; }
     }
     function getEffectiveCommentsState(thoughtId, serverState){
-      // بعد ربط الملكية بالحساب، قاعدة البيانات هي المصدر الوحيد للحالة.
-      // لا نسمح لـ localStorage قديم على نفس الجهاز أن يطغى على حالة الحساب.
-      return serverState === true;
+      const localState=getLocalCommentsState(thoughtId);
+      return localState === null ? serverState === true : localState;
     }
 
     
@@ -1399,7 +1331,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     function mapDiscoveryRow(i){
       return {id:i.id, thought:i.text, name:i.author_name||'', date:formatDate(i.created_at), rawDate:i.created_at,
         category_id:i.category_id, prompt_question:i.prompt_question, allow_comments:getEffectiveCommentsState(i.id, i.allow_comments),
-        upvotes:i.upvotes_count||0, downvotes:i.downvotes_count||0, account_id:i.account_id||null, guest_id:i.guest_id||null};
+        upvotes:i.upvotes_count||0, downvotes:i.downvotes_count||0};
     }
 
     function discoveryCacheKey(mode, query){
@@ -1423,7 +1355,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     }
 
     async function fetchDiscoveryRows(mode, query=''){
-      const fields='id,author_name,text,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id';
+      const fields='id,author_name,text,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments';
       const q=normalizeText(query);
       const key=discoveryCacheKey(mode,q);
       const cached=AppState.thoughts.discoveryCache.get(key);
@@ -1574,7 +1506,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     function initComposer(){
       const input=$id('visitor-input'), count=$id('char-count'), draftStatus=$id('draft-status');
       if(!input||!count) return;
-      const saved=localStorage.getItem(accountStorageKey(STORAGE_KEYS.draft))||'';
+      const saved=localStorage.getItem(STORAGE_KEYS.draft)||'';
       if(saved&&!input.value) input.value=saved;
       const update=()=>{
         const n=input.value.length;
@@ -1582,10 +1514,10 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         count.classList.toggle('char-warning',n>=900&&n<1100);
         count.classList.toggle('char-danger',n>=1100);
         if(input.value){
-          localStorage.setItem(accountStorageKey(STORAGE_KEYS.draft),input.value);
+          localStorage.setItem(STORAGE_KEYS.draft,input.value);
           if(draftStatus){draftStatus.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> محفوظ تلقائيًا';draftStatus.classList.add('saved');}
         }else{
-          localStorage.removeItem(accountStorageKey(STORAGE_KEYS.draft));
+          localStorage.removeItem(STORAGE_KEYS.draft);
           if(draftStatus){draftStatus.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-save"></use></svg> الحفظ التلقائي شغال';draftStatus.classList.remove('saved');}
         }
       };
@@ -1593,31 +1525,13 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       update();
     }
 
-    async function saveName() {
+    function saveName() {
       const input = $id('visitor-name');
       const val = input.value.trim().replace(/\s+/g,' ');
       if(!val){ input.focus(); return; }
       if(val.length > 40){ alert('الاسم طويل شوية، خليه 40 حرف أو أقل.'); return; }
-
-      if(AccountState?.current?.id){
-        try{
-          const {error}=await DB.from(DB_TABLES.accounts)
-            .update({display_name:val,updated_at:new Date().toISOString()})
-            .eq('id',AccountState.current.id);
-          if(error) throw error;
-          AccountState.current.display_name=val;
-          const found=AccountState.accounts.find(a=>String(a.id)===String(AccountState.current.id));
-          if(found) found.display_name=val;
-          AppState.user.currentName=val;
-        }catch(err){
-          logAppError('Account display name update failed',err);
-          alert('تعذر حفظ اسم الحساب حاليًا. حاول تاني.');
-          return;
-        }
-      }else{
-        localStorage.setItem(STORAGE_KEYS.user, val);
-        AppState.user.currentName = val;
-      }
+      localStorage.setItem(STORAGE_KEYS.user, val); 
+      AppState.user.currentName = val; 
       $id('user-display').textContent = AppState.user.currentName;
       $id('login-modal').style.display = 'none';
       document.body.classList.remove('modal-open');
@@ -1790,7 +1704,7 @@ updateAchievements();
         favs.push(id);
         addNotification('شيلتهالك في جيبك', 'star');
       }
-      localStorage.setItem(accountStorageKey(STORAGE_KEYS.favorites), JSON.stringify(favs));
+      localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(favs));
       bumpLocalAction();
       updateFavBadgeCount();
       if(AppState.thoughts.onlyFavoritesMode){
@@ -1899,27 +1813,32 @@ updateAchievements();
       if (touchEndX - AppState.ui.touchStartX > 50) prevZenQuote();
     }, {passive: true});
 
-    // طلب حذف خاطرة: الحساب المسجل أو Guest ID نفسه صاحب الخاطرة
+    // طلب حذف خاطرة مملوكة للحساب النشط (يعمل من أي جهاز)
     async function requestDeleteThought(thoughtId) {
       const target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
-      const guestId=getGuestId();
-      const activeAccountId=AccountState?.current?.id ? String(AccountState.current.id) : '';
-      const targetAccountId=target?.account_id ? String(target.account_id) : '';
-      const guestOwns=!activeAccountId && getDeviceThoughtIds().some(x=>String(x)===String(thoughtId));
-      const accountOwns=activeAccountId && targetAccountId && activeAccountId===targetAccountId;
-      if(!target || (!accountOwns && !guestOwns)) return alert('عفواً، الخاطرة دي مش بتاعتك ولا يمكنك طلب حذفها.');
+      if(!target || !isMyThought(target)) {
+        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك طلب حذفها.');
+      }
+
+      if(!AccountState?.current?.id) {
+        return alert('سجّل الدخول بحسابك أولاً.');
+      }
+
       if(!confirm('هل تريد بالتأكيد إرسال طلب للأدمن لحذف هذه الخاطرة؟')) return;
+
       try {
-        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, { p_thought_id: thoughtId, p_guest_id: guestId });
+        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, {
+          p_thought_id: thoughtId
+        });
         if(error) throw error;
         alert('تم إرسال طلب الحذف للأدمن بنجاح، وهيراجع الطلب ويحذفها متقلقش 🗑️');
       } catch(err) {
-        console.error('Delete request error',err);
+        console.error(err);
         alert(err?.message || 'حدث خطأ أثناء إرسال طلب الحذف، حاول مرة أخرى.');
       }
     }
 
-    // تبديل حالة الردود: الحساب المسجل أو Guest ID نفسه صاحب الخاطرة
+    // تبديل حالة الردود للحساب النشط (يعمل من أي جهاز)
     async function toggleThoughtCommentsState(thoughtId, currentStatus) {
       let target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
       if(!target){
@@ -1933,28 +1852,25 @@ updateAchievements();
           upvotes:data.upvotes_count||0, downvotes:data.downvotes_count||0, account_id:data.account_id||null
         } : null;
       }
-      if(!target) return alert('الخاطرة غير متاحة حاليًا.');
-      const guestId=getGuestId();
-      const activeAccountId=AccountState?.current?.id ? String(AccountState.current.id) : '';
-      const targetAccountId=target?.account_id ? String(target.account_id) : '';
-      const guestOwns=!activeAccountId && getDeviceThoughtIds().some(x=>String(x)===String(thoughtId));
-      const accountOwns=activeAccountId && targetAccountId && activeAccountId===targetAccountId;
-      if(!accountOwns && !guestOwns) return alert('عفواً، الخاطرة دي مش بتاعتك.');
+      if(!target || !isMyThought(target)) {
+        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك تعديل إعداداتها.');
+      }
+      if(!AccountState?.current?.id) return alert('سجّل الدخول بحسابك أولاً.');
 
-      const newStatus=!currentStatus;
+      const newStatus = !currentStatus;
       try {
-        const { error } = await DB.rpc(DB_RPC.toggleComments, {
+        const { error } = await DB.rpc(DB_RPC.toggleCommentsByAccount, {
           p_thought_id: thoughtId,
-          p_guest_id: guestId,
           p_new_status: newStatus
         });
         if(error) throw error;
-        target.allow_comments=newStatus;
+        target.allow_comments = newStatus;
         try { localStorage.setItem(`thought_comments_state_${thoughtId}`, newStatus ? '1' : '0'); } catch(e) {}
         alert(newStatus ? 'تم فتح باب الردود على خاطرتك بنجاح' : 'تم قفل باب الردود على خاطرتك بنجاح');
-        renderOwnerThoughts(); renderVisitorThoughts();
+        renderOwnerThoughts();
+        renderVisitorThoughts();
       } catch(err) {
-        console.error('Toggle comments error',err);
+        console.error(err);
         alert(err?.message || 'حدث خطأ أثناء تعديل إعدادات الردود.');
       }
     }
@@ -2266,24 +2182,16 @@ updateAchievements();
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 1000);
     }
-    const voteInFlight = new Set();
     async function handleVote(sheetName, id, targetType, btnElement){
       const target = (sheetName==='Owner'?AppState.user.rawOwnerData:AppState.user.rawVisitorData).find(i=>i.id===id);
       if(!target) return;
+      const guestId = getGuestId();
       const voteValue = targetType === 'up' ? 1 : -1;
-      const wrapper = btnElement?.closest('.vote-bar');
-      if(!wrapper) return;
+      const wrapper = btnElement.closest('.vote-bar');
       const up = wrapper.querySelector('.up-btn'), down = wrapper.querySelector('.down-btn'), scoreEl = wrapper.querySelector('.vote-score');
-      if(voteInFlight.has(Number(id))) return;
-      voteInFlight.add(Number(id));
-      if(up) up.disabled = true;
-      if(down) down.disabled = true;
+      btnElement.disabled = true;
 
       try {
-        // مهم: لا نعمل loadMyAccounts هنا؛ لأنه ممكن يعمل re-render للخواطر
-        // أثناء الضغط ويخلي الزر القديم يختفي أو يمنع الطلب. الـ RPC نفسه
-        // يقدر يحدد أول حساب للمستخدم لو الـ active account لسه مش مثبت.
-        const guestId = getGuestId();
         const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
           p_thought_id: target.id,
           p_guest_id: guestId,
@@ -2292,16 +2200,16 @@ updateAchievements();
 
         if(error) throw error;
         
-        let myVotes = JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.votes)) || '{}');
+        let myVotes = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
         myVotes[target.id] = voteValue;
-        localStorage.setItem(accountStorageKey(STORAGE_KEYS.votes), JSON.stringify(myVotes));
+        localStorage.setItem(STORAGE_KEYS.votes, JSON.stringify(myVotes));
 
         const result = Array.isArray(data) ? data[0] : data;
         target.upvotes = Number(result?.upvotes_count ?? target.upvotes) || 0;
         target.downvotes = Number(result?.downvotes_count ?? target.downvotes) || 0;
         const state = Number(result?.my_vote || 0);
         AppState.engagement.guestVoteStates[target.id] = state === 1 ? 'up' : state === -1 ? 'down' : '';
-        localStorage.setItem(accountStorageKey(`vote_state_${target.id}`), AppState.engagement.guestVoteStates[target.id]);
+        localStorage.setItem(`vote_state_${target.id}`, AppState.engagement.guestVoteStates[target.id]);
         
         const score = target.upvotes - target.downvotes;
         scoreEl.textContent = score;
@@ -2314,15 +2222,13 @@ updateAchievements();
         console.error('Supabase vote error', err);
         alert('حصلت مشكلة في تسجيل التصويت.');
       } finally {
-        voteInFlight.delete(Number(id));
-        if(up) up.disabled = false;
-        if(down) down.disabled = false;
+        btnElement.disabled = false;
       }
     }
 
     function createVoteBarHTML(sheetName, id, upvotes, downvotes){
       const score = (parseInt(upvotes)||0) - (parseInt(downvotes)||0);
-      const state = AppState.engagement.guestVoteStates[id] || localStorage.getItem(accountStorageKey(`vote_state_${id}`));
+      const state = AppState.engagement.guestVoteStates[id] || localStorage.getItem(`vote_state_${id}`);
       return `
         <div class="vote-bar" role="group" aria-label="التقييم" dir="ltr">
           <button class="vote-btn down-btn ${state==='down'?'active-down':''}" type="button" data-action="handleVote('${sheetName}',${id},'down',this)" title="لم يعجبني" aria-label="لم يعجبني"><svg class="ic" aria-hidden="true"><use href="#i-chevron-down"></use></svg></button>
@@ -2392,7 +2298,6 @@ updateAchievements();
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
                 <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>':'<svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg>'}<span class="action-label">حفظ</span></button>
-                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleMyRepost(${i.id},this)" title="ريشير" aria-label="ريشير"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">ريشير</span></button>
                 <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
                 <div class="action-menu" hidden>
                   <button type="button" data-action="copyThought('${enc(i.thought)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg> نسخ النص</button>
@@ -2444,7 +2349,6 @@ updateAchievements();
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
                 <button class="action-sub-btn has-label fav-btn ${fav?'is-fav':''}" type="button" data-action="toggleFavorite('${enc(id)}')" title="حفظ في المفضلة" aria-label="${fav?'إزالة من المفضلة':'حفظ في المفضلة'}">${fav?'<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>':'<svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg>'}<span class="action-label">حفظ</span></button>
-                <button class="action-sub-btn has-label repost-btn" type="button" data-action="toggleMyRepost(${i.id},this)" title="ريشير" aria-label="ريشير"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">ريشير</span></button>
                 <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
                 <div class="action-menu" hidden>
                   <button type="button" data-action="copyThought('${enc(i.thought)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg> نسخ النص</button>
@@ -2484,36 +2388,14 @@ updateAchievements();
     }
 
     function recordVisit(){
-      const today = new Date().toISOString().slice(0,10);
-      const scopedLastKey = accountStorageKey(STORAGE_KEYS.lastVisit);
-      const scopedStreakKey = accountStorageKey(STORAGE_KEYS.streak);
-
-      // Preserve the existing streak when moving between the old Guest/device
-      // storage and the new account-scoped storage. Never overwrite a real
-      // existing streak with 1 just because the current storage namespace changed.
-      let key = scopedLastKey;
-      let streakKey = scopedStreakKey;
-      let last = localStorage.getItem(key);
-      let storedStreak = parseInt(localStorage.getItem(streakKey)||'0',10) || 0;
-
-      if(!last && !AccountState?.current?.id){
-        const legacyLast = localStorage.getItem(STORAGE_KEYS.lastVisit);
-        const legacyStreak = parseInt(localStorage.getItem(STORAGE_KEYS.streak)||'0',10) || 0;
-        if(legacyLast){ last = legacyLast; storedStreak = Math.max(storedStreak, legacyStreak); }
-      }
-
-      let streak = storedStreak;
-      if(last === today) {
-        // Same-day visit: keep the streak exactly as it is.
-      } else if(last) {
-        const d = new Date(last+'T00:00:00');
-        const now = new Date(today+'T00:00:00');
-        const diff = Math.round((now-d)/86400000);
-        streak = diff === 1 ? Math.max(1, storedStreak)+1 : 1;
-      } else {
-        streak = storedStreak > 0 ? storedStreak : 1;
-      }
-
+      const today = new Date().toISOString().slice(0,10), key = 'shakabeet_last_visit', streakKey = 'shakabeet_streak';
+      const last = localStorage.getItem(key); 
+      let streak = parseInt(localStorage.getItem(streakKey)||'0',10) || 0;
+      if(last === today){} 
+      else if(last){
+        const d = new Date(last+'T00:00:00'), now = new Date(today+'T00:00:00'), diff = Math.round((now-d)/86400000);
+        streak = diff === 1 ? streak+1 : 1;
+      } else streak = 1;
       localStorage.setItem(key, today);
       localStorage.setItem(streakKey, String(streak));
       AppState.engagement.streakDays = streak;
@@ -2521,24 +2403,28 @@ updateAchievements();
       if(pill) pill.innerHTML = `<svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg> ${streak} ${streak===1?'يوم':'أيام'} متتالية`;
     }
 
-    function getFollowed(){ try{return JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.following))||'[]')}catch{return[]} }
+    function getFollowed(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.following)||'[]')}catch{return[]} }
 
     async function getUserStats(targetName){
-      const myVotesList = JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.votes)) || '{}');
+      let myVotesList = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('vote_state_')) {
+          const val = localStorage.getItem(key);
+          if (val === 'up' || val === 'down') myVotesList[key.replace('vote_state_', '')] = val === 'up' ? 1 : -1;
+        }
+      }
+      localStorage.setItem(STORAGE_KEYS.votes, JSON.stringify(myVotesList));
       const votesMade = Object.keys(myVotesList).length;
 
-      const activeAccountId = AccountState?.current?.id ? String(AccountState.current.id) : '';
       const localIds = getDeviceThoughtIds();
-      const isMyProfile = (activeAccountId && targetName === AppState.user.currentName) || targetName === 'صاحب المساحة' || targetName === 'صديقنا';
+      const isMyProfile = (targetName === AppState.user.currentName || targetName === 'صاحب المساحة' || targetName === 'صديقنا');
 
       let query = DB.from(DB_TABLES.thoughts)
-        .select('id,author_name,status,upvotes_count,downvotes_count,account_id');
-      if(activeAccountId && targetName === AppState.user.currentName) {
-        query = query.eq('account_id', activeAccountId);
-      } else if(isMyProfile && localIds.length) {
+        .select('id,author_name,status,upvotes_count,downvotes_count');
+      if(isMyProfile) {
+        if(!localIds.length) return { votesMade, netVotes: 0, thoughtsCount: 0, pendingCount: 0 };
         query = query.in('id', localIds);
-      } else if(isMyProfile) {
-        return { votesMade, netVotes: 0, thoughtsCount: 0, pendingCount: 0 };
       } else {
         query = query.eq('author_name', targetName);
       }
@@ -2570,190 +2456,6 @@ updateAchievements();
         console.warn('Could not load complete user stats', e);
         return { votesMade, netVotes: 0, thoughtsCount: 0, pendingCount: 0 };
       }
-    }
-
-    async function openMyAccountProfile(){
-      AppState.ui.lastFocusedElement = document.activeElement;
-      $id('my-account-modal').style.display='flex';
-      document.body.classList.add('modal-open');
-      if(AccountState?.current?.id){
-        await loadMyAccountProfile();
-      }else{
-        await loadGuestAccountProfile();
-      }
-    }
-
-    async function loadGuestAccountProfile(){
-      const loading=$id('my-account-loading');
-      const content=$id('my-account-content');
-      if(loading) loading.style.display='flex';
-      if(content) content.innerHTML='';
-      try{
-        const name=AppState.user.currentName || 'مجهول';
-        const localIds=getDeviceThoughtIds().map(Number).filter(Number.isFinite);
-        const myVotesList=JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.votes))||'{}');
-        const votesMade=Object.keys(myVotesList).length;
-        let thoughts=[];
-        if(localIds.length){
-          const {data,error}=await DB.from(DB_TABLES.thoughts)
-            .select('id,text,created_at,status,upvotes_count,downvotes_count')
-            .in('id',localIds)
-            .order('created_at',{ascending:false})
-            .order('id',{ascending:false});
-          if(error) throw error;
-          thoughts=data||[];
-        }
-        const approved=thoughts.filter(t=>t.status==='approved');
-        const votesReceived=approved.reduce((sum,t)=>sum+(Number(t.upvotes_count)||0)+(Number(t.downvotes_count)||0),0);
-        $id('my-account-title').textContent=name;
-        $id('my-account-bio').textContent='حساب ضيف — بياناتك محفوظة على جهازك';
-        $id('my-stat-thoughts').textContent=approved.length;
-        $id('my-stat-reposts').textContent=0;
-        $id('my-stat-votes-made').textContent=votesMade;
-        $id('my-stat-votes-received').textContent=votesReceived;
-        $id('my-stat-followers').textContent=0;
-        $id('my-stat-following').textContent=getFollowed().length;
-        const initial=(name||'م').trim().charAt(0);
-        $id('my-account-avatar').textContent=initial||'م';
-        AppState.profile.myReposts=[];
-        AppState.profile.accountTab='thoughts';
-        setMyAccountTab('thoughts');
-      }catch(err){
-        logAppError('Guest account profile load failed',err);
-        if(content) content.innerHTML='<div class="my-account-empty">تعذر تحميل حسابك حاليًا. جرّب تاني.</div>';
-      }finally{
-        if(loading) loading.style.display='none';
-      }
-    }
-
-    function closeMyAccountProfile(){
-      const modal=$id('my-account-modal');
-      if(modal) modal.style.display='none';
-      document.body.classList.remove('modal-open');
-      if(AppState.ui.lastFocusedElement?.focus) AppState.ui.lastFocusedElement.focus();
-    }
-
-    async function openAccountSwitcherFromProfile(){
-      closeMyAccountProfile();
-      await openAuthModal();
-    }
-
-    function setMyAccountTab(tab){
-      AppState.profile.accountTab = tab === 'reposts' ? 'reposts' : 'thoughts';
-      $id('my-account-tab-thoughts')?.classList.toggle('active', AppState.profile.accountTab==='thoughts');
-      $id('my-account-tab-reposts')?.classList.toggle('active', AppState.profile.accountTab==='reposts');
-      renderMyAccountContent();
-    }
-
-    async function loadMyAccountProfile(){
-      const account=AccountState?.current;
-      if(!account?.id) return;
-      const loading=$id('my-account-loading');
-      const content=$id('my-account-content');
-      if(loading) loading.style.display='flex';
-      if(content) content.innerHTML='';
-      try{
-        const {data,error}=await DB.rpc(DB_RPC.getMyAccountProfile);
-        if(error) throw error;
-        const row=Array.isArray(data)?data[0]:data;
-        if(row){
-          account.display_name=row.display_name||account.display_name;
-          account.bio=row.bio||'';
-          $id('my-account-title').textContent=account.display_name||'حسابي';
-          $id('my-account-bio').textContent=account.bio||'';
-          $id('my-stat-thoughts').textContent=Number(row.thoughts_count)||0;
-          $id('my-stat-reposts').textContent=Number(row.reposts_count)||0;
-          $id('my-stat-votes-made').textContent=Number(row.votes_made)||0;
-          $id('my-stat-votes-received').textContent=Number(row.votes_received)||0;
-          $id('my-stat-followers').textContent=Number(row.followers_count)||0;
-          $id('my-stat-following').textContent=Number(row.following_count)||0;
-          const initial=(account.display_name||'ح').trim().charAt(0);
-          $id('my-account-avatar').textContent=initial||'ح';
-        }
-        await loadMyAccountRepostsCache();
-        AppState.profile.accountTab='thoughts';
-        setMyAccountTab('thoughts');
-      }catch(err){
-        logAppError('My account profile load failed',err);
-        if(content) content.innerHTML='<div class="my-account-empty">تعذر تحميل حسابك حاليًا. جرّب تاني.</div>';
-      }finally{
-        if(loading) loading.style.display='none';
-      }
-    }
-
-    async function loadMyAccountRepostsCache(){
-      AppState.profile.myReposts=[];
-      const accountId=AccountState?.current?.id;
-      if(!accountId) return;
-      const {data,error}=await DB.rpc(DB_RPC.getMyReposts);
-      if(error) throw error;
-      AppState.profile.myReposts=(data||[]).map(r=>({
-        repost_id:r.repost_id,
-        reposted_at:r.reposted_at,
-        thought:{
-          id:r.thought_id,
-          text:r.text,
-          author_name:r.author_name,
-          created_at:r.created_at,
-          upvotes_count:r.upvotes_count,
-          downvotes_count:r.downvotes_count
-        }
-      }));
-    }
-
-    function renderMyAccountContent(){
-      const box=$id('my-account-content');
-      if(!box) return;
-      if(AppState.profile.accountTab==='reposts'){
-        const rows=AppState.profile.myReposts||[];
-        if(!rows.length){box.innerHTML='<div class="my-account-empty"><svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><br>لسه معملتش ريشير لأي خاطرة.</div>';return;}
-        box.innerHTML=rows.map(x=>{
-          const t=x.thought;
-          return `<article class="my-account-item repost-item">
-            <div class="my-account-repost-label"><svg class="ic"><use href="#i-repeat"></use></svg> ريشير</div>
-            <div class="my-account-item-text">${escapeHTML(t.text||'')}</div>
-            <div class="my-account-item-meta"><span>${escapeHTML(t.author_name||'صديقنا')}</span><span>${escapeHTML(formatDate(t.created_at))}</span></div>
-          </article>`;
-        }).join('');
-        return;
-      }
-      const accountId=AccountState?.current?.id;
-      if(!accountId){
-        const localIds=getDeviceThoughtIds().map(Number).filter(Number.isFinite);
-        if(!localIds.length){
-          box.innerHTML='<div class="my-account-empty"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><br>لسه معندكش خواطر منشورة.</div>';
-          return;
-        }
-        DB.from(DB_TABLES.thoughts).select('id,text,created_at,upvotes_count,downvotes_count').in('id',localIds).eq('status','approved').order('created_at',{ascending:false}).order('id',{ascending:false}).then(({data,error})=>{
-          if(error){logAppError('Guest account thoughts load failed',error);box.innerHTML='<div class="my-account-empty">تعذر تحميل خواطرك.</div>';return;}
-          const rows=data||[];
-          if(!rows.length){box.innerHTML='<div class="my-account-empty"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><br>لسه معندكش خواطر منشورة.</div>';return;}
-          box.innerHTML=rows.map(t=>`<article class="my-account-item"><div class="my-account-item-text">${escapeHTML(t.text||'')}</div><div class="my-account-item-meta"><span>${escapeHTML(formatDate(t.created_at))}</span><span>↑ ${Number(t.upvotes_count)||0} · ↓ ${Number(t.downvotes_count)||0}</span></div></article>`).join('');
-        });
-        return;
-      }
-      DB.from(DB_TABLES.thoughts).select('id,text,created_at,upvotes_count,downvotes_count').eq('account_id',accountId).eq('status','approved').order('created_at',{ascending:false}).order('id',{ascending:false}).then(({data,error})=>{
-        if(error){logAppError('My account thoughts load failed',error);box.innerHTML='<div class="my-account-empty">تعذر تحميل خواطرك.</div>';return;}
-        const rows=data||[];
-        if(!rows.length){box.innerHTML='<div class="my-account-empty"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><br>لسه معندكش خواطر منشورة.</div>';return;}
-        box.innerHTML=rows.map(t=>`<article class="my-account-item"><div class="my-account-item-text">${escapeHTML(t.text||'')}</div><div class="my-account-item-meta"><span>${escapeHTML(formatDate(t.created_at))}</span><span>↑ ${Number(t.upvotes_count)||0} · ↓ ${Number(t.downvotes_count)||0}</span></div></article>`).join('');
-      });
-    }
-
-    async function toggleMyRepost(thoughtId,btn){
-      if(!AccountState?.current?.id){await openAuthModal();return;}
-      if(!thoughtId) return;
-      try{
-        if(btn) btn.disabled=true;
-        const {data,error}=await DB.rpc(DB_RPC.toggleMyRepost,{p_thought_id:Number(thoughtId)});
-        if(error) throw error;
-        const isReposted=!!data;
-        showToast(isReposted?'اتعمل ريشير ✓':'اتشال الريشير');
-        await loadMyAccountProfile();
-      }catch(err){
-        logAppError('Repost toggle failed',err);
-        alert(getErrorMessage(err,'تعذر تنفيذ الريشير حاليًا.'));
-      }finally{if(btn) btn.disabled=false;}
     }
 
     async function openProfile(encodedName){
@@ -2896,7 +2598,7 @@ updateAchievements();
       if(!AppState.profile.author) return;
       let f = getFollowed();
       f = f.includes(AppState.profile.author) ? f.filter(x=>x!==AppState.profile.author) : [...f, AppState.profile.author];
-      localStorage.setItem(accountStorageKey(STORAGE_KEYS.following), JSON.stringify(f));
+      localStorage.setItem(STORAGE_KEYS.following, JSON.stringify(f));
       updateFollowButton(); updateAchievements();
     }
 
@@ -2915,8 +2617,8 @@ updateAchievements();
       if(AppState.ui.lastFocusedElement?.focus) AppState.ui.lastFocusedElement.focus();
     }
 
-    function getLocalActions(){ return parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.actions))||'0',10) || 0; }
-    function bumpLocalAction(){ localStorage.setItem(accountStorageKey(STORAGE_KEYS.actions), String(getLocalActions()+1)); updateAchievements(); }
+    function getLocalActions(){ return parseInt(localStorage.getItem(STORAGE_KEYS.actions)||'0',10) || 0; }
+    function bumpLocalAction(){ localStorage.setItem(STORAGE_KEYS.actions, String(getLocalActions()+1)); updateAchievements(); }
     function openAchievements(){
       AppState.ui.lastFocusedElement = document.activeElement;
       updateAchievements();
@@ -2944,8 +2646,8 @@ updateAchievements();
     function updateAchievements(){
       const favs = getFavoritesSafe().length;
       const actions = getLocalActions();
-      const streak = AppState.engagement.streakDays || parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.streak))||'0',10) || 0;
-      const submissions = parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.submissions))||'0',10) || 0;
+      const streak = AppState.engagement.streakDays || parseInt(localStorage.getItem(STORAGE_KEYS.streak)||'0',10) || 0;
+      const submissions = parseInt(localStorage.getItem(STORAGE_KEYS.submissions)||'0',10) || 0;
       const totalScore = (submissions * 20) + (actions * 5) + (favs * 3) + (streak * 10);
 
       $id('achievement-streak').textContent = streak;
@@ -3007,21 +2709,21 @@ updateAchievements();
     /* ==================== NOTIFICATIONS 2.0 ==================== */
     function getNotifications(){
       try {
-        const raw=JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.notifications)) || '[]');
+        const raw=JSON.parse(localStorage.getItem(STORAGE_KEYS.notifications) || '[]');
         const cleaned=Array.isArray(raw)?raw.map(normalizeNotification):[];
-        localStorage.setItem(accountStorageKey(STORAGE_KEYS.notifications),JSON.stringify(cleaned));
+        localStorage.setItem(STORAGE_KEYS.notifications,JSON.stringify(cleaned));
         return cleaned;
       } catch { return []; }
     }
 
     function getSeenNotificationIds(){
-      try { return new Set(JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEYS.notificationSeen)) || '[]').map(String)); }
+      try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEYS.notificationSeen) || '[]').map(String)); }
       catch { return new Set(); }
     }
 
     function saveSeenNotificationIds(ids){
       const list=[...ids].slice(-100);
-      localStorage.setItem(accountStorageKey(STORAGE_KEYS.notificationSeen), JSON.stringify(list));
+      localStorage.setItem(STORAGE_KEYS.notificationSeen, JSON.stringify(list));
     }
 
     function notificationIcon(value){
@@ -3049,7 +2751,7 @@ updateAchievements();
       const notifs=getNotifications();
       if(notifs.some(n=>String(n.id)===String(item.id))) return false;
       notifs.unshift(item);
-      localStorage.setItem(accountStorageKey(STORAGE_KEYS.notifications), JSON.stringify(notifs.slice(0, APP_CONFIG.maxNotifications)));
+      localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(notifs.slice(0, APP_CONFIG.maxNotifications)));
       updateNotificationBadge();
       return true;
     }
@@ -3084,7 +2786,7 @@ updateAchievements();
           const ok=addNotification(n.message,n.icon||'edit',null,{id:`remote-${n.id}`,date:n.created_at||n.date,remote:true,thoughtId:n.thought_id});
           if(ok) added++;
         });
-        localStorage.setItem(accountStorageKey(STORAGE_KEYS.notificationSync),new Date().toISOString());
+        localStorage.setItem(STORAGE_KEYS.notificationSync,new Date().toISOString());
         updateNotificationBadge();
         if(markRead && data?.length){
           const ids=data.map(n=>n.id).filter(Boolean);
@@ -3152,18 +2854,18 @@ updateAchievements();
         console.warn('Remote notification clear failed',e);
         alert('اتمسحت التنبيهات المحفوظة على الجهاز، لكن حصلت مشكلة في مسح التنبيهات المتزامنة. حاول مرة تانية.');
       }
-      localStorage.removeItem(accountStorageKey(STORAGE_KEYS.notifications));
-      localStorage.removeItem(accountStorageKey(STORAGE_KEYS.notificationSeen));
+      localStorage.removeItem(STORAGE_KEYS.notifications);
+      localStorage.removeItem(STORAGE_KEYS.notificationSeen);
       updateNotificationBadge();
       await openNotificationsModal();
     }
 
     function checkSocialHooks(){
-      const streak=parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.streak))||'0',10);
-      const lastNotifStreak=parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.lastStreakNotif))||'0',10);
+      const streak=parseInt(localStorage.getItem(STORAGE_KEYS.streak)||'0',10);
+      const lastNotifStreak=parseInt(localStorage.getItem(STORAGE_KEYS.lastStreakNotif)||'0',10);
       if(streak>=3 && lastNotifStreak!==streak){
         addNotification(`رائع! لقد حافظت على حضورك لـ ${streak} أيام متتالية <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg>`,'<svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg>');
-        localStorage.setItem(accountStorageKey(STORAGE_KEYS.lastStreakNotif),String(streak));
+        localStorage.setItem(STORAGE_KEYS.lastStreakNotif,String(streak));
       }
     }
 
@@ -3284,57 +2986,6 @@ updateAchievements();
     let AccountState = { current: null, accounts: [] };
     const AccountCache = new Map();
 
-    // أي بيانات شخصية محلية تتبع الحساب النشط عند تسجيل الدخول.
-    // قبل تسجيل الدخول تظل مرتبطة بهوية Guest الحالية.
-    function accountStorageKey(baseKey){
-      const id = AccountState?.current?.id ? String(AccountState.current.id) : '';
-      return id ? `${baseKey}::account::${id}` : baseKey;
-    }
-    function migrateLegacyLocalStateToAccount(accountId){
-      if(!accountId) return;
-      const keys = [
-        STORAGE_KEYS.user, STORAGE_KEYS.draft, STORAGE_KEYS.favorites,
-        STORAGE_KEYS.deviceThoughtIds, STORAGE_KEYS.votes, STORAGE_KEYS.following,
-        STORAGE_KEYS.actions, STORAGE_KEYS.submissions, STORAGE_KEYS.streak,
-        STORAGE_KEYS.lastVisit, STORAGE_KEYS.notifications, STORAGE_KEYS.lastStreakNotif,
-        STORAGE_KEYS.notificationSeen, STORAGE_KEYS.notificationSync
-      ];
-      keys.forEach(base=>{
-        const scoped=`${base}::account::${accountId}`;
-        try{
-          if(localStorage.getItem(scoped) === null){
-            const legacy=localStorage.getItem(base);
-            if(legacy !== null) localStorage.setItem(scoped, legacy);
-          }
-          // Legacy keys are Guest/device state. بعد أول تسجيل للحساب لا نتركها
-          // متاحة لحساب آخر على نفس الجهاز.
-          if(base !== STORAGE_KEYS.user) localStorage.removeItem(base);
-        }catch(e){}
-      });
-    }
-
-    function syncAccountScopedLocalUI(){
-      const input=$id('visitor-input');
-      if(input){
-        const saved=localStorage.getItem(accountStorageKey(STORAGE_KEYS.draft))||'';
-        input.value=saved;
-        const count=$id('char-count');
-        if(count) count.textContent=`${input.value.length}/${APP_CONFIG.maxThoughtLength}`;
-        const status=$id('draft-status');
-        if(status){
-          status.innerHTML=input.value
-            ? '<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> محفوظ تلقائيًا'
-            : '<svg class="ic" aria-hidden="true"><use href="#i-save"></use></svg> الحفظ التلقائي شغال';
-          status.classList.toggle('saved',!!input.value);
-        }
-      }
-      AppState.engagement.streakDays=parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.streak))||'0',10)||0;
-      updateFavBadgeCount();
-      updateNotificationBadge();
-      updateAchievements();
-    }
-
-
     async function hydrateThoughtAccounts(rows){
       const ids=[...new Set((rows||[]).map(r=>r?.account_id).filter(Boolean))];
       const missing=ids.filter(id=>!AccountCache.has(String(id)));
@@ -3399,25 +3050,12 @@ updateAchievements();
       if(error){ logAppError('Load accounts failed',error); return null; }
       AccountState.accounts=Array.isArray(data)?data:[];
       AccountState.current=AccountState.accounts.find(a=>a.is_current)||AccountState.accounts[0]||null;
-      if(AccountState.current){
-        migrateLegacyLocalStateToAccount(AccountState.current.id);
-        // بعد تثبيت الحساب النشط، أعد تحميل حالات الفوتات الظاهرة حتى لا تظل الصفحة على حالة الضيف القديمة.
-        const visibleIds = [...new Set([
-          ...(AppState.user.rawOwnerData||[]).map(x=>x?.id),
-          ...(AppState.user.rawVisitorData||[]).map(x=>x?.id)
-        ].filter(Boolean))];
-        if(visibleIds.length) setTimeout(()=>loadGuestVoteStates(visibleIds).then(()=>{ renderOwnerThoughts(); renderVisitorThoughts(); }),0);
-        AppState.user.currentName = AccountState.current.display_name || AccountState.current.username || '';
-        if($id('user-display')) $id('user-display').textContent = AppState.user.currentName || 'صديقنا';
-        if($id('visitor-name')) $id('visitor-name').value = AppState.user.currentName;
-        syncAccountScopedLocalUI();
-      }
       const box=$id('my-accounts-box');
       if(box){
         if(!AccountState.accounts.length){
           box.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px;">لسه معندكش هوية حساب. أضف أول حساب ليك.</div>';
         } else {
-          box.innerHTML=AccountState.accounts.map(a=>`<div class="account-switch-card"><div class="account-meta"><strong>${escapeHTML(a.display_name||a.username||'حساب')}</strong><span>حساب شخابيط</span></div><button class="account-switch-btn" type="button" data-action="switchAccount('${enc(String(a.id))}')">${a.is_current?'الحساب الحالي':'تبديل'}</button></div>`).join('');
+          box.innerHTML=AccountState.accounts.map(a=>`<div class="account-switch-card"><div class="account-meta"><strong>${escapeHTML(a.display_name||a.username||'حساب')}</strong><span>@${escapeHTML(a.username||'')}</span></div><button class="account-switch-btn" type="button" data-action="switchAccount('${enc(String(a.id))}')">${a.is_current?'الحساب الحالي':'تبديل'}</button></div>`).join('');
         }
       }
       return AccountState.accounts;
@@ -3461,10 +3099,7 @@ updateAchievements();
       const {data,error}=await DB.rpc('switch_my_account',{p_account_id:accountId});
       if(error){ logAppError('Switch account failed',error); return alert(error.message||'تعذر تبديل الحساب.'); }
       AccountState.current=(Array.isArray(data)?data[0]:data)||null;
-      AppState.engagement.guestVoteStates = {};
       await loadMyAccounts();
-      syncAccountScopedLocalUI();
-      await checkRemoteNotifications();
       closeAuthModal();
       showToast(`تم التبديل إلى @${AccountState.current?.username||'الحساب'}`);
       await loadAllThoughts();
@@ -3499,19 +3134,6 @@ updateAchievements();
       const {error}=await DB.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
       if(error) return alert(error.message||'تعذر إرسال رابط استعادة كلمة المرور.');
       alert('بعتنالك رابط استعادة كلمة المرور على البريد.');
-    }
-
-    async function syncMainAuthButton(){
-      try{
-        const userSession=(await DB.auth.getSession())?.data?.session || null;
-        const ownerSession=(await OWNER_DB.auth.getSession())?.data?.session || null;
-        const btn=$id('main-auth-btn');
-        if(!btn) return;
-        btn.innerHTML = ownerSession?.user
-          ? '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>'
-          : '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
-        btn.setAttribute('aria-label', ownerSession?.user ? 'فتح حساب المالك' : (userSession?.user ? 'فتح حسابك' : 'تسجيل الدخول'));
-      }catch(e){}
     }
 
     async function openAuthModal() {
@@ -3566,6 +3188,17 @@ updateAchievements();
 
     async function checkOwner(){
       try{
+        const { data: debugData, error: debugError } =
+          await OWNER_DB.rpc('debug_owner_delete_requests');
+
+        alert(
+          debugError
+            ? 'DEBUG ERROR:\n' + debugError.message
+            : 'DEBUG OWNER:\n' + JSON.stringify(debugData, null, 2)
+        );
+
+        if(debugError) return false;
+
         let {data,error}=await OWNER_DB.rpc(DB_RPC.isOwner);
         if(error){
           try{
@@ -3575,6 +3208,7 @@ updateAchievements();
         }
         return !error && data === true;
       }catch(e){
+        alert('DEBUG EXCEPTION:\n' + (e?.message || e));
         console.warn('Owner session check failed',e);
         return false;
       }
@@ -3600,7 +3234,7 @@ updateAchievements();
         return alert('الحساب مسجل لكن غير مفعل كـ Owner في Supabase.');
       }
       closeAuthModal();
-      await syncMainAuthButton();
+      $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>';
       await openOwnerDashboard();
       await checkOwnerPendingNotifications();
     }
@@ -3621,7 +3255,7 @@ updateAchievements();
       if(!confirm('هل أنت متأكد من تسجيل خروج المالك؟')) return;
       await OWNER_DB.auth.signOut();
       closeOwnerDashboard();
-      await syncMainAuthButton();
+      $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
       alert('تم تسجيل خروج المالك فقط. حساب المستخدم ما زال مسجلًا.');
     }
 
@@ -3629,10 +3263,8 @@ updateAchievements();
       if(!confirm('هل أنت متأكد من تسجيل خروج حساب المستخدم؟')) return;
       AccountState = { current:null, accounts:[] };
       await DB.auth.signOut();
-      AppState.user.currentName = localStorage.getItem(STORAGE_KEYS.user) || '';
-      if($id('user-display')) $id('user-display').textContent = AppState.user.currentName || 'صديقنا';
       closeAuthModal();
-      await syncMainAuthButton();
+      $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
       alert('تم تسجيل خروج المستخدم فقط. حساب المالك — إن كان مسجلًا — لم يتأثر.');
     }
 
@@ -4162,10 +3794,6 @@ updateAchievements();
       AppState.engagement.guestVoteStates = {};
       if(!thoughtIds?.length) return;
       try {
-        // لو فيه Session، نتأكد إن الحساب النشط اتحدد قبل ما نطلب حالة الفوتات.
-        // ده يمنع إن الصفحة تفتح والحساب لسه بيتحمّل فتظهر الفوتات القديمة كأنها مش موجودة.
-        // لا نحمّل الحسابات أثناء جلب حالات الفوتات؛ ذلك قد يعيد رسم الصفحة
-        // بالتزامن مع ضغط المستخدم. الـ RPC يحدد الهوية المسجلة بنفسه.
         const { data, error } = await DB.rpc(DB_RPC.getGuestVotes, {
           p_guest_id: getGuestId(),
           p_thought_ids: thoughtIds
@@ -4409,13 +4037,13 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
 
   if (!myLocalIds.includes(normalizedId)) {
     myLocalIds.push(normalizedId);
-    localStorage.setItem(accountStorageKey(STORAGE_KEYS.deviceThoughtIds), JSON.stringify(myLocalIds));
+    localStorage.setItem(STORAGE_KEYS.deviceThoughtIds, JSON.stringify(myLocalIds));
   }
 }
           
       
 
-        localStorage.removeItem(accountStorageKey(STORAGE_KEYS.draft)); 
+        localStorage.removeItem(STORAGE_KEYS.draft); 
         input.value = '';
         if($id('draft-status')){ $id('draft-status').innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> اتبعت واتحفظت'; $id('draft-status').classList.remove('saved'); }
         cancelAnswerWeeklyPrompt();
@@ -4428,7 +4056,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
           toggleTxt.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> الردود مقفولة (اضغط لفتحها)';
         }
 
-        localStorage.setItem(accountStorageKey(STORAGE_KEYS.submissions), String((parseInt(localStorage.getItem(accountStorageKey(STORAGE_KEYS.submissions))||'0',10)||0)+1));
+        localStorage.setItem(STORAGE_KEYS.submissions, String((parseInt(localStorage.getItem(STORAGE_KEYS.submissions)||'0',10)||0)+1));
         $id('char-count').textContent = `0/${APP_CONFIG.maxThoughtLength}`;
         addNotification('تم إرسال خاطرتك للمراجعة، ستظهر فور موافقة المالك ', '<svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg>');
         await updateStats();
@@ -4480,7 +4108,6 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
         if($id('guide-modal').style.display === 'flex') closeGuideModal();
         if($id('comments-modal').style.display === 'flex') closeCommentsModal();
         if($id('profile-modal').style.display === 'flex') closeProfile();
-        if($id('my-account-modal').style.display === 'flex') closeMyAccountProfile();
         if($id('achievements-modal').style.display === 'flex') closeAchievements();
         if($id('auth-modal').style.display === 'flex') closeAuthModal();
         if($id('owner-dashboard-modal').style.display === 'flex') closeOwnerDashboard();
@@ -4498,7 +4125,6 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     $id('random-modal').addEventListener('click', e => { if(e.target.id==='random-modal') closeRandomModal(); });
     $id('guide-modal').addEventListener('click', e => { if(e.target.id==='guide-modal') closeGuideModal(); });
     $id('profile-modal').addEventListener('click', e => { if(e.target.id==='profile-modal') closeProfile(); });
-    $id('my-account-modal').addEventListener('click', e => { if(e.target.id==='my-account-modal') closeMyAccountProfile(); });
     $id('comments-modal').addEventListener('click', e => { if(e.target.id==='comments-modal') closeCommentsModal(); });
     $id('achievements-modal').addEventListener('click', e => { if(e.target.id==='achievements-modal') closeAchievements(); });
     $id('notifications-modal').addEventListener('click', e => { if(e.target.id==='notifications-modal') closeNotificationsModal(); });
@@ -4517,10 +4143,6 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     closeNotificationsModal,
     clearAllNotifications,
     closeProfile,
-    openMyAccountProfile,
-    closeMyAccountProfile,
-    setMyAccountTab,
-    toggleMyRepost,
     toggleFollowCurrent,
     viewProfileThoughts,
     closeCommentsModal,
@@ -4618,10 +4240,10 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
         try {
           if(event === 'SIGNED_IN' && session?.user){
             await loadMyAccounts();
-            await syncMainAuthButton()
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
           } else if(event === 'SIGNED_OUT'){
             AccountState = { current:null, accounts:[] };
-            await syncMainAuthButton()
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
           }
         } catch(e) { logAppError('User auth state handling failed', e); }
       }, 0);
@@ -4634,9 +4256,9 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
         try {
           if(event === 'SIGNED_IN' && session?.user){
             await checkOwnerPendingNotifications();
-            await syncMainAuthButton()
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>'; } catch(e) {}
           } else if(event === 'SIGNED_OUT'){
-            await syncMainAuthButton()
+            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
           }
         } catch(e) { logAppError('Owner auth state handling failed', e); }
       }, 0);
@@ -4755,7 +4377,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
   <button type="button" class="bn-item" data-bn="discover" onclick="document.querySelector('.discovery-bar')?.scrollIntoView({behavior:'smooth',block:'start'})"><svg class="ic" aria-hidden="true"><use href="#i-compass"></use></svg><span>اكتشف</span></button>
   <button type="button" class="bn-item bn-write" data-bn="write" onclick="document.getElementById('composer-section')?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>document.getElementById('visitor-input')?.focus(),350)"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg><span>اكتب</span></button>
   <button type="button" class="bn-item" data-bn="saved" data-action="toggleFavoritesMode()"><svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg><span>المحفوظة</span></button>
-  <button type="button" class="bn-item" data-bn="account" data-action="openMyAccountProfile()"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg><span>حسابي</span></button>
+  <button type="button" class="bn-item" data-bn="account" data-action="openAuthModal()"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg><span>حسابي</span></button>
 </nav>
 <script>
 (function(){
