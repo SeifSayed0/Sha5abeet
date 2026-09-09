@@ -2360,7 +2360,7 @@ updateAchievements();
                   <button type="button" data-action="copyThoughtLink(${i.id},this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ الرابط</button>
                   <button type="button" data-action="shareAsImage('${enc(i.thought)}','${enc(displayName)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg> مشاركة</button>
                   ${authorToggleHtml}${deleteThoughtHtml}
-                  <button id="${reportId}" class="danger" type="button" data-action="handleReport('${enc(displayName)}','${enc(i.thought)}','${reportId}')"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> إبلاغ</button>
+                  <button class="danger" type="button" data-action="handleReport('${enc(displayName)}','${enc(i.thought)}','${reportId}')"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> إبلاغ</button>
                 </div>
                 </div>
                 ${createVoteBarHTML('Visitors', i.id, i.upvotes, i.downvotes)}
@@ -3531,24 +3531,55 @@ updateAchievements();
 
       // 2. تعليقات قيد المراجعة
       try {
-        const { data: c } = await OWNER_DB
+        const { data: c, error: commentsError } = await OWNER_DB
           .from(DB_TABLES.comments)
           .select('id,thought_id,author_name,text,created_at')
           .eq('status','pending')
           .order('created_at',{ascending:false});
 
-        setHTML(commentsList, c?.length ? c.map(cm=>`
+        if(commentsError) throw commentsError;
+
+        const commentRows = c || [];
+        const thoughtIds = [...new Set(commentRows.map(cm => Number(cm.thought_id)).filter(Number.isFinite))];
+        const originalThoughts = new Map();
+
+        if(thoughtIds.length){
+          const { data: originalRows, error: thoughtsError } = await OWNER_DB
+            .from(DB_TABLES.thoughts)
+            .select('id,author_name,text,created_at')
+            .in('id', thoughtIds);
+
+          if(thoughtsError) throw thoughtsError;
+          (originalRows || []).forEach(t => originalThoughts.set(Number(t.id), t));
+        }
+
+        setHTML(commentsList, commentRows.length ? commentRows.map(cm=>{
+          const original = originalThoughts.get(Number(cm.thought_id));
+          return `
           <div class="owner-item selectable" style="border-right:3px solid var(--primary);" id="owner-item-comment-${cm.id}">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <small>من: ${escapeHTML(cm.author_name)} · على خاطرة #${cm.thought_id} · ${formatDate(cm.created_at)}</small>
+              <small>من: ${escapeHTML(cm.author_name||'مجهول')} · على خاطرة #${cm.thought_id} · ${formatDate(cm.created_at)}</small>
               <input type="checkbox" class="select-check" data-action="toggleSelectOwnerItem(${cm.id}, 'comment')">
             </div>
-            <p style="margin-top:4px;">${escapeHTML(cm.text)}</p>
+
+            <div style="margin-top:8px; padding:10px 11px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
+              <small style="display:block; color:var(--primary-strong); font-weight:800; margin-bottom:4px;">
+                الخاطرة الأصلية${original?.author_name ? ` · ${escapeHTML(original.author_name)}` : ''}
+              </small>
+              <p style="margin:0; font-size:12.5px; line-height:1.8; white-space:pre-wrap;">${escapeHTML(original?.text || 'الخاطرة الأصلية غير متاحة حاليًا.')}</p>
+            </div>
+
+            <div style="margin-top:9px; padding:10px 11px; background:var(--primary-soft); border:1px solid rgba(62,138,147,.22); border-radius:10px;">
+              <small style="display:block; color:var(--primary-strong); font-weight:800; margin-bottom:4px;">الكومنت</small>
+              <p style="margin:0; font-size:13px; line-height:1.8; white-space:pre-wrap;">${escapeHTML(cm.text||'')}</p>
+            </div>
+
             <div class="owner-item-actions" style="display:flex; gap:5px; margin-top:8px;">
               <button class="approve" style="flex:1;" data-action="ownerApproveComment(${cm.id})">موافقة <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg></button>
               <button class="reject" style="flex:1;" data-action="ownerDeleteComment(${cm.id})">حذف <svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg></button>
             </div>
-          </div>`).join('') : '<div class="owner-empty">مفيش تعليقات بانتظار المراجعة.</div>');
+          </div>`;
+        }).join('') : '<div class="owner-empty">مفيش تعليقات بانتظار المراجعة.</div>');
       } catch(err) {
         setHTML(commentsList, '<div class="owner-empty">تعذر تحميل التعليقات المعلقة.</div>');
       }
@@ -3558,15 +3589,34 @@ updateAchievements();
         const { data: dr, error: drError } = await OWNER_DB.rpc(DB_RPC.getOwnerPendingDeleteRequests);
         if(drError) throw drError;
 
-        setHTML(delReqList, dr?.length ? dr.map(d => `
+        const deleteRows = dr || [];
+        const deleteThoughtIds = [...new Set(deleteRows.map(d => Number(d.thought_id)).filter(Number.isFinite))];
+        const deleteThoughts = new Map();
+
+        if(deleteThoughtIds.length){
+          const { data: originalRows, error: thoughtsError } = await OWNER_DB
+            .from(DB_TABLES.thoughts)
+            .select('id,author_name,text,created_at')
+            .in('id', deleteThoughtIds);
+
+          if(thoughtsError) throw thoughtsError;
+          (originalRows || []).forEach(t => deleteThoughts.set(Number(t.id), t));
+        }
+
+        setHTML(delReqList, deleteRows.length ? deleteRows.map(d => {
+          const original = deleteThoughts.get(Number(d.thought_id));
+          const authorName = d.author_name || original?.author_name || 'مجهول';
+          const thoughtText = d.thought_text || original?.text || 'الخاطرة الأصلية غير متاحة حاليًا.';
+          return `
           <div class="owner-item" style="border-right:3px solid var(--danger);">
-            <small>طلب حذف من: ${escapeHTML(d.author_name||'مجهول')} · خاطرة #${d.thought_id} · ${formatDate(d.created_at)}</small>
-            <p style="margin-top:4px; font-style:italic;">"${escapeHTML(d.thought_text)}"</p>
+            <small>طلب حذف من: ${escapeHTML(authorName)} · خاطرة #${d.thought_id} · ${formatDate(d.created_at)}</small>
+            <p style="margin-top:4px; font-style:italic; white-space:pre-wrap;">"${escapeHTML(thoughtText)}"</p>
             <div class="owner-item-actions" style="display:flex; gap:5px; margin-top:8px;">
               <button class="reject" style="flex:1;" data-action="ownerExecuteDeleteRequest(${d.id}, ${d.thought_id})">تنفيذ الحذف <svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg></button>
               <button style="flex:1; background:var(--button-secondary); color:#fff;" data-action="ownerDismissDeleteRequest(${d.id})">رفض الطلب <svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
             </div>
-          </div>`).join('') : '<div class="owner-empty">مفيش طلبات حذف جديدة.</div>');
+          </div>`;
+        }).join('') : '<div class="owner-empty">مفيش طلبات حذف جديدة.</div>');
       } catch(err) {
         setHTML(delReqList, '<div class="owner-empty">تعذر تحميل طلبات الحذف.</div>');
       }
