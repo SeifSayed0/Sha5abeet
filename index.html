@@ -762,7 +762,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div class="profile-stat"><strong id="profile-following">0</strong><span>بيتابع</span></div>
       </div>
 
-      <div id="profile-guest-hint" class="account-login-hint" style="display:none;"><strong>عايز تعمل ريشير؟</strong><br>سجّل دخولك عشان تعمل ريشير ومتضيعش بياناتك.</div>
+      <div id="profile-guest-hint" class="account-login-hint" style="display:none;"><strong>أنت داخل كزائر</strong><br>تقدر تشوف وتعمل فوت وتكتب كومنت عادي، لكن عشان تعمل ريشير وتحافظ على بياناتك بين الأجهزة سجّل دخولك.</div>
       <div class="profile-recent-wrap">
         <div class="account-content-heading"><span id="profile-content-title">خواطره</span><button class="content-expand-btn" type="button" data-action="expandProfileContent()">تكبير ⛶</button></div>
         <div class="account-content-tabs" role="tablist" aria-label="محتوى الملف الشخصي">
@@ -2562,7 +2562,7 @@ updateAchievements();
       const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
       let all=[];
       try{
-        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id').eq('status','approved');
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,category_id,prompt_question,allow_comments,account_id,guest_id').eq('status','approved');
         if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
         else if(accountId) q=q.eq('account_id',accountId);
         else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
@@ -2581,7 +2581,7 @@ updateAchievements();
       await hydrateThoughtAccounts(all);
       AppState.profile.thoughts=all;
       $id('profile-title').textContent=name;
-      $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
+      $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':((guestId&&!accountId)?'مساحة زائر على شخابيط':'مساحة هذا الشخص على شخابيط');
       $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
       const stats=await getUserStats(name,accountId,guestId);
       $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
@@ -2600,7 +2600,7 @@ updateAchievements();
       switchProfileContentTab('thoughts');
 
       const hint=$id('profile-guest-hint');
-      if(hint) hint.style.display=AccountState?.current?'none':'block';
+      if(hint) hint.style.display=(!accountId && guestId)?'block':'none';
       updateFollowButton();
       AppState.ui.lastFocusedElement=document.activeElement;
       $id('profile-modal').style.display='flex';
@@ -2629,7 +2629,8 @@ updateAchievements();
         const favKey=`thought_${id}_${displayName}`;
         const fav=getFavoritesSafe().includes(favKey);
         const promptHtml=i.prompt_question ? `<div class="prompt-ref-badge"><svg class="ic" aria-hidden="true"><use href="#i-bulb"></use></svg> إجابة سؤال الأسبوع: ${escapeHTML(i.prompt_question)}</div>` : '';
-        const commentsBtn=i.allow_comments===true ? `<button class="action-sub-btn has-label comment-count-btn" type="button" data-comment-thought-id="${id}" data-action="openCommentsModal(${id})" title="ردود ونقاش" aria-label="عرض الردود"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">ردود <b>0</b></span></button>` : '';
+        const commentsAllowed=getEffectiveCommentsState(id,i.allow_comments);
+        const commentsBtn=commentsAllowed ? `<button class="action-sub-btn has-label comment-count-btn" type="button" data-comment-thought-id="${id}" data-action="openCommentsModal(${id})" title="ردود ونقاش" aria-label="عرض الردود"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">ردود <b>0</b></span></button>` : '';
         const repostMeta=options.repostMeta && i.reposted_at ? `<span class="profile-item-note">أعاد نشرها · ${escapeHTML(formatDate(i.reposted_at))}</span>` : '';
         return `<article class="card profile-thought-card" data-thought-id="${id}">
           ${promptHtml}
