@@ -745,6 +745,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       </div>
       <div id="profile-loading" style="display:none; font-size:12px; color:var(--muted); margin:8px 0;">جاري تحميل الحساب…</div>
 
+      <div id="profile-guest-hint" class="account-login-hint" style="display:none; margin:8px 0 12px;"><strong>🔐 أنت تستخدم شخابيط كزائر</strong><br>سجل دخولك عشان تحافظ على هويتك وبياناتك وتقدر تنقلها لأي جهاز.<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;"><button type="button" class="primary-btn" data-action="signInWithGoogle()"><svg class="ic" aria-hidden="true"><use href="#i-google"></use></svg> الدخول عبر Google</button><button type="button" class="secondary-btn" data-action="openAuthModal()">البريد الإلكتروني</button></div></div>
+
       <div class="profile-stat-group-title">أثره على شخابيط</div>
       <div class="profile-stats" aria-label="إحصائيات الحساب العامة">
         <div class="profile-stat"><strong id="profile-thoughts">0</strong><span>خواطر</span></div>
@@ -761,8 +763,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div class="profile-stat"><strong id="profile-comments-made">0</strong><span>تعليقات كتبها</span></div>
         <div class="profile-stat"><strong id="profile-following">0</strong><span>بيتابع</span></div>
       </div>
-
-      <div id="profile-guest-hint" class="account-login-hint" style="display:none;"><strong>عايز تعمل ريشير؟</strong><br>سجّل دخولك عشان تعمل ريشير ومتضيعش بياناتك.</div>
       <div class="profile-recent-wrap">
         <div class="account-content-heading"><span id="profile-content-title">خواطره</span><button class="content-expand-btn" type="button" data-action="expandProfileContent()">تكبير ⛶</button></div>
         <div class="account-content-tabs" role="tablist" aria-label="محتوى الملف الشخصي">
@@ -4862,7 +4862,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
   <button type="button" class="bn-item" data-bn="discover" onclick="document.querySelector('.discovery-bar')?.scrollIntoView({behavior:'smooth',block:'start'})"><svg class="ic" aria-hidden="true"><use href="#i-compass"></use></svg><span>اكتشف</span></button>
   <button type="button" class="bn-item bn-write" data-bn="write" onclick="document.getElementById('composer-section')?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>document.getElementById('visitor-input')?.focus(),350)"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg><span>اكتب</span></button>
   <button type="button" class="bn-item" data-bn="saved" data-action="toggleFavoritesMode()"><svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg><span>المحفوظة</span></button>
-  <button type="button" class="bn-item" data-bn="account" data-action="openAuthModal()"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg><span>حسابي</span></button>
+  <button type="button" class="bn-item" data-bn="account" data-action="openAccountEntry()"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg><span>حسابي</span></button>
 </nav>
 <script>
 (function(){
