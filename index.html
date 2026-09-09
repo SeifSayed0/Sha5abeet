@@ -549,9 +549,12 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .account-content-panel.active{display:block}
 .content-expand-btn{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;padding:5px 8px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
 .content-expand-btn:hover{color:var(--text)}
-.thoughts-fullscreen-box{width:min(760px,96vw)!important;max-width:760px!important;height:min(88vh,900px);max-height:88vh!important;display:flex;flex-direction:column}
-.thoughts-fullscreen-list{overflow:auto;flex:1;padding:2px 2px 12px;text-align:right}
-.thoughts-fullscreen-list .account-content-item{font-size:14px;line-height:1.8;padding:13px;margin-bottom:8px}
+.thoughts-fullscreen-modal{z-index:3000!important}
+.thoughts-fullscreen-box{width:min(760px,96vw)!important;max-width:760px!important;height:min(92dvh,940px);max-height:92dvh!important;display:flex;flex-direction:column;overflow:hidden}
+.thoughts-fullscreen-list{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;padding:4px 2px 16px;text-align:right;-webkit-overflow-scrolling:touch}
+.thoughts-fullscreen-list .account-content-item{display:block;width:100%;box-sizing:border-box;text-align:right;font-size:14px;line-height:1.9;padding:15px 14px;margin:0 0 10px;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);white-space:normal;overflow-wrap:anywhere;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.thoughts-fullscreen-list .account-content-item:hover{transform:none}
+.thoughts-fullscreen-list .item-date{display:block;margin-top:7px;font-size:11px;color:var(--muted)}
 .profile-recent-wrap{margin-top:10px}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -756,10 +759,10 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
           <button id="profile-content-tab-reposts" class="account-content-tab" type="button" data-action="switchProfileContentTab('reposts')" role="tab">معاد نشرها</button>
         </div>
         <div id="profile-content-panel-thoughts" class="account-content-panel active">
-          <div id="profile-recent-thoughts" class="account-content-list" style="max-height:180px;overflow:auto;"></div>
+          <div id="profile-recent-thoughts" class="account-content-list"></div>
         </div>
         <div id="profile-content-panel-reposts" class="account-content-panel">
-          <div id="profile-recent-reposts" class="account-content-list" style="max-height:180px;overflow:auto;"></div>
+          <div id="profile-recent-reposts" class="account-content-list"></div>
         </div>
       </div>
       <button id="profile-follow-btn" class="primary-btn follow-btn" type="button" data-action="toggleFollowCurrent()" style="margin-top:10px;">+ متابعة</button>
@@ -2598,7 +2601,7 @@ updateAchievements();
 
     function renderProfileThoughtList(items){
       const box=$id('profile-recent-thoughts');
-      if(box) box.innerHTML=renderContentItems((items||[]).slice(0,5),{empty:'مفيش خواطر منشورة حاليًا.'});
+      if(box) box.innerHTML=renderContentItems((items||[]).slice(0,8),{empty:'مفيش خواطر منشورة حاليًا.'});
     }
 
     async function loadProfileReposts(accountId, guestId){
@@ -2680,22 +2683,25 @@ updateAchievements();
       document.body.classList.remove('modal-open');
     }
 
-    function viewProfileThoughts(){
-      const author = AppState.profile.author;
-      closeProfile();
-      AppState.thoughts.onlyFavoritesMode = false;
-      AppState.thoughts.discoveryResults = null;
-      if(author === 'صاحب المساحة' || author === 'صديقنا') {
-        AppState.thoughts.discoveryMode = 'owner';
-        $id('search-input').value = '';
-        $id('search-popup-bar').style.display = 'none';
-        setDiscovery('owner');
-      } else {
-        AppState.thoughts.discoveryMode = 'all';
-        $id('search-input').value = author;
-        $id('search-popup-bar').style.display = 'block';
-        $id('visitor-heading').scrollIntoView({behavior:'smooth',block:'start'});
-        handleSearch(author);
+    async function viewProfileThoughts(){
+      const author=AppState.profile.author||'';
+      const accountId=String(AppState.profile.accountId||'');
+      const guestId=String(AppState.profile.guestId||'');
+      try{
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id').eq('status','approved');
+        if((author==='صاحب المساحة'||author==='صديقنا')) q=q.or('author_name.is.null,author_name.eq.');
+        else if(accountId) q=q.eq('account_id',accountId);
+        else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
+        else q=q.eq('author_name',author);
+        const {data,error}=await q.order('created_at',{ascending:false}).order('id',{ascending:false});
+        if(error) throw error;
+        await hydrateThoughtAccounts(data||[]);
+        const items=(data||[]).map(mapDiscoveryRow);
+        closeProfile();
+        openThoughtsFullscreen(author==='صاحب المساحة'||author==='صديقنا'?'خواطر شخابيط':`خواطر ${author}`,renderContentItems(items,{empty:'مفيش خواطر منشورة حاليًا.'}),`كل خواطر ${author==='صاحب المساحة'||author==='صديقنا'?'شخابيط':author}`);
+      }catch(e){
+        console.warn('Could not load all profile thoughts',e);
+        alert('تعذر تحميل كل الخواطر حاليًا.');
       }
     }
 
@@ -2788,7 +2794,7 @@ updateAchievements();
 
     function renderProfileThoughtList(items){
       const box=$id('profile-recent-thoughts');
-      if(box) box.innerHTML=renderContentItems((items||[]).slice(0,5),{empty:'مفيش خواطر منشورة حاليًا.'});
+      if(box) box.innerHTML=renderContentItems((items||[]).slice(0,8),{empty:'مفيش خواطر منشورة حاليًا.'});
     }
 
     async function loadProfileReposts(accountId, guestId){
@@ -3380,15 +3386,11 @@ updateAchievements();
         const {data,error}=await DB.from(DB_TABLES.thoughts)
           .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id')
           .eq('account_id',AccountState.current.id).eq('status','approved')
-          .order('created_at',{ascending:false});
+          .order('created_at',{ascending:false}).order('id',{ascending:false});
         if(error) throw error;
         await hydrateThoughtAccounts(data||[]);
-        AppState.thoughts.discoveryMode='all';
-        AppState.thoughts.discoveryResults=(data||[]).map(mapDiscoveryRow);
-        closeAuthModal();
-        renderVisitorThoughts();
-        refreshCommentCounts((data||[]).map(x=>x.id));
-        $id('visitor-heading')?.scrollIntoView({behavior:'smooth',block:'start'});
+        const items=(data||[]).map(mapDiscoveryRow);
+        openThoughtsFullscreen('خواطري',renderContentItems(items,{empty:'لسه مفيش خواطر منشورة.'}),'كل خواطرك المنشورة');
       }catch(e){ console.warn(e); alert('تعذر تحميل خواطرك حاليًا.'); }
     }
 
@@ -3398,20 +3400,15 @@ updateAchievements();
         const {data,error}=await DB.from(DB_TABLES.thoughtReposts).select('thought_id,created_at').eq('account_id',AccountState.current.id).order('created_at',{ascending:false});
         if(error) throw error;
         const ids=[...(data||[])].map(r=>Number(r.thought_id)).filter(Number.isFinite);
-        if(!ids.length){ showToast('لسه مفيش ريشير عملته.'); return; }
+        if(!ids.length){ openThoughtsFullscreen('معاد نشرها','<div class="account-content-empty">لسه مفيش ريشير عملته.</div>','كل الخواطر التي أعدت نشرها'); return; }
         const {data:thoughts,error:tErr}=await DB.from(DB_TABLES.thoughts)
           .select('id,author_name,text,status,created_at,category_id,upvotes_count,downvotes_count,prompt_question,allow_comments,account_id,guest_id')
           .in('id',ids).eq('status','approved');
         if(tErr) throw tErr;
         await hydrateThoughtAccounts(thoughts||[]);
         const byId=new Map((thoughts||[]).map(t=>[Number(t.id),t]));
-        const ordered=(data||[]).map(r=>byId.get(Number(r.thought_id))).filter(Boolean);
-        AppState.thoughts.discoveryMode='all';
-        AppState.thoughts.discoveryResults=ordered.map(mapDiscoveryRow);
-        closeAuthModal();
-        renderVisitorThoughts();
-        refreshCommentCounts(ordered.map(x=>x.id));
-        $id('visitor-heading')?.scrollIntoView({behavior:'smooth',block:'start'});
+        const ordered=(data||[]).map(r=>{const t=byId.get(Number(r.thought_id)); return t?{...t,reposted_at:r.created_at}:null}).filter(Boolean);
+        openThoughtsFullscreen('معاد نشرها',renderContentItems(ordered,{empty:'لسه مفيش ريشير عملته.',meta:i=>`أعدت نشرها · ${formatDate(i.reposted_at||i.created_at)}`}),'كل الخواطر التي أعدت نشرها');
       }catch(e){ console.warn(e); alert('تعذر تحميل الريشير حاليًا.'); }
     }
 
