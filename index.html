@@ -1110,6 +1110,10 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       toggleVote: 'toggle_guest_vote',
       getGuestVotes: 'get_guest_votes',
       isOwner: 'is_owner',
+      getOwnerPendingDeleteRequests: 'get_owner_pending_delete_requests',
+      getOwnerPendingDeleteRequestsCount: 'get_owner_pending_delete_requests_count',
+      executeOwnerDeleteRequest: 'execute_owner_delete_request',
+      dismissOwnerDeleteRequest: 'dismiss_owner_delete_request',
       setWeeklyPrompt: 'set_weekly_prompt_v2',
       fetchNotifications: 'fetch_my_device_notifications_v2',
       markNotificationsRead: 'mark_my_notifications_read',
@@ -2874,7 +2878,9 @@ updateAchievements();
       try {
         const { count: thoughtsCount } = await OWNER_DB.from(DB_TABLES.thoughts).select('*', {count:'exact', head:true}).eq('status', 'pending');
         const { count: commentsCount } = await OWNER_DB.from(DB_TABLES.comments).select('*', {count:'exact', head:true}).eq('status', 'pending');
-        const { count: delReqCount } = await OWNER_DB.from(DB_TABLES.deleteRequests).select('*', {count:'exact', head:true}).eq('status', 'pending');
+        const { data: delReqCountData, error: delReqCountError } = await OWNER_DB.rpc(DB_RPC.getOwnerPendingDeleteRequestsCount);
+        if(delReqCountError) throw delReqCountError;
+        const delReqCount = Number(delReqCountData || 0);
         const { count: reportsCount } = await OWNER_DB.from(DB_TABLES.reports).select('*', {count:'exact', head:true});
 
         const lastKnown = JSON.parse(localStorage.getItem(STORAGE_KEYS.ownerNotifCache) || '{}');
@@ -3188,17 +3194,6 @@ updateAchievements();
 
     async function checkOwner(){
       try{
-        const { data: debugData, error: debugError } =
-          await OWNER_DB.rpc('debug_owner_delete_requests');
-
-        alert(
-          debugError
-            ? 'DEBUG ERROR:\n' + debugError.message
-            : 'DEBUG OWNER:\n' + JSON.stringify(debugData, null, 2)
-        );
-
-        if(debugError) return false;
-
         let {data,error}=await OWNER_DB.rpc(DB_RPC.isOwner);
         if(error){
           try{
@@ -3208,7 +3203,6 @@ updateAchievements();
         }
         return !error && data === true;
       }catch(e){
-        alert('DEBUG EXCEPTION:\n' + (e?.message || e));
         console.warn('Owner session check failed',e);
         return false;
       }
@@ -3560,11 +3554,8 @@ updateAchievements();
 
       // 3. طلبات الحذف من المستخدمين
       try {
-        const { data: dr } = await OWNER_DB
-          .from(DB_TABLES.deleteRequests)
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', {ascending:false});
+        const { data: dr, error: drError } = await OWNER_DB.rpc(DB_RPC.getOwnerPendingDeleteRequests);
+        if(drError) throw drError;
 
         setHTML(delReqList, dr?.length ? dr.map(d => `
           <div class="owner-item" style="border-right:3px solid var(--danger);">
@@ -3645,8 +3636,11 @@ updateAchievements();
       if(!(await checkOwner())) return alert('غير مصرح.');
 
       try {
-        await OWNER_DB.from(DB_TABLES.thoughts).delete().eq('id', thoughtId);
-        await OWNER_DB.from(DB_TABLES.deleteRequests).update({status:'executed'}).eq('id', reqId);
+        const { error } = await OWNER_DB.rpc(DB_RPC.executeOwnerDeleteRequest, {
+          p_request_id: reqId,
+          p_thought_id: thoughtId
+        });
+        if(error) throw error;
         alert('تم حذف الخاطرة بنجاح وتنفيذ الطلب');
         await loadOwnerDashboard();
         await loadAllThoughts();
@@ -3659,7 +3653,10 @@ updateAchievements();
     async function ownerDismissDeleteRequest(reqId) {
       if(!(await checkOwner())) return alert('غير مصرح.');
       try {
-        await OWNER_DB.from(DB_TABLES.deleteRequests).update({status:'dismissed'}).eq('id', reqId);
+        const { error } = await OWNER_DB.rpc(DB_RPC.dismissOwnerDeleteRequest, {
+          p_request_id: reqId
+        });
+        if(error) throw error;
         alert('تم رفض طلب الحذف.');
         await loadOwnerDashboard();
       } catch(err) {
