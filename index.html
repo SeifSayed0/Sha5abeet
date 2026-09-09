@@ -4140,7 +4140,6 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
           btn.innerHTML=`<svg class="ic" aria-hidden="true"><use href="#i-repeat"></use></svg><span class="action-label">${active?'معاد نشرها':'إعادة نشر'}</span>`;
           btn.title=active?'إلغاء إعادة النشر':'إعادة نشر';
         }
-        trackEvent(active?'repost':'unrepost',{account_id:AccountState.current.id},Number(thoughtId));
         showToast(active?'اتعمل ريشير ✓':'اتشال الريشير');
       }catch(err){
         console.error('Repost toggle error',err);
