@@ -2320,33 +2320,12 @@ updateAchievements();
       btnElement.disabled = true;
 
       try {
-        // لو فيه Session مسجلة لكن AccountState لسه ما اتحملش،
-        // جهّز الهوية قبل التصويت. ده يمنع خطأ "No active account" لبعض
-        // المستخدمين اللي عندهم Session قديمة/رجعوا للموقع قبل اكتمال تحميل الحساب.
-        let session = null;
-        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
-        if(session?.user && !AccountState?.current?.id){
-          await loadMyAccounts();
-        }
-
-        const voteParams = {
+        const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
           p_thought_id: target.id,
           p_guest_id: guestId,
           p_vote: voteValue
-        };
-        let resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
+        });
 
-        // إعادة محاولة آمنة فقط لأخطاء الهوية/الجلسة، وليس لأي خطأ عام؛
-        // عشان ما نكررش التصويت بالخطأ لو حصل خطأ شبكي بعد تنفيذ العملية.
-        if(resultRpc?.error && /no active account|not authenticated|jwt|session/i.test(resultRpc.error.message||'')){
-          try {
-            await DB.auth.refreshSession();
-            await loadMyAccounts();
-          } catch(e) {}
-          resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
-        }
-
-        const { data, error } = resultRpc;
         if(error) throw error;
         
         let myVotes = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
@@ -2566,7 +2545,31 @@ updateAchievements();
         }else if(guestId){
           ({data,error}=await DB.rpc('get_public_guest_stats',{p_guest_id:guestId}));
         }else{
-          return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+          // Legacy profile: older thoughts may have author_name only, with no account_id/guest_id.
+          // We can safely calculate incoming activity on those thoughts by their stored author name.
+          const {data: legacyThoughts,error: legacyErr}=await DB.from(DB_TABLES.thoughts)
+            .select('id,upvotes_count,downvotes_count')
+            .eq('status','approved')
+            .eq('author_name',targetName);
+          if(legacyErr) throw legacyErr;
+          const ids=(legacyThoughts||[]).map(x=>x.id);
+          let repostsReceived=0, commentsReceived=0;
+          if(ids.length){
+            const [rr,cc]=await Promise.all([
+              DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
+              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
+            ]);
+            if(rr.error) throw rr.error;
+            if(cc.error) throw cc.error;
+            repostsReceived=Number(rr.count)||0;
+            commentsReceived=Number(cc.count)||0;
+          }
+          return {
+            thoughtsCount:legacyThoughts?.length||0,
+            votesMade:0,
+            votesReceived:(legacyThoughts||[]).reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),
+            repostsMade:0, repostsReceived, commentsMade:0, commentsReceived, followers:0, following:0
+          };
         }
         if(error) throw error;
         const row=Array.isArray(data)?data[0]:data;
@@ -2601,7 +2604,7 @@ updateAchievements();
       const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
       let all=[];
       try{
-        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id').eq('status','approved');
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id,allow_comments').eq('status','approved');
         if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
         else if(accountId) q=q.eq('account_id',accountId);
         else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
