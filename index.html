@@ -745,12 +745,6 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       </div>
       <div id="profile-loading" style="display:none; font-size:12px; color:var(--muted); margin:8px 0;">جاري تحميل الحساب…</div>
 
-      <div id="profile-guest-hint" class="account-login-hint" style="display:none;">
-        <strong>سجّل دخولك عشان تحافظ على هويتك وبياناتك</strong><br>
-        تقدر تكمل كزائر وتشوف وتعمل فوت وتكتب كومنت، لكن تسجيل الدخول بيحفظ هويتك ويخلّيك تعمل ريشير وتنقل بياناتك لأي جهاز.
-        <button class="secondary-btn" type="button" data-action="openAuthModal()" style="margin-top:8px;">تسجيل الدخول</button>
-      </div>
-
       <div class="profile-stat-group-title">أثره على شخابيط</div>
       <div class="profile-stats" aria-label="إحصائيات الحساب العامة">
         <div class="profile-stat"><strong id="profile-thoughts">0</strong><span>خواطر</span></div>
@@ -768,6 +762,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div class="profile-stat"><strong id="profile-following">0</strong><span>بيتابع</span></div>
       </div>
 
+      <div id="profile-guest-hint" class="account-login-hint" style="display:none;"><strong>عايز تعمل ريشير؟</strong><br>سجّل دخولك عشان تعمل ريشير ومتضيعش بياناتك.</div>
       <div class="profile-recent-wrap">
         <div class="account-content-heading"><span id="profile-content-title">خواطره</span><button class="content-expand-btn" type="button" data-action="expandProfileContent()">تكبير ⛶</button></div>
         <div class="account-content-tabs" role="tablist" aria-label="محتوى الملف الشخصي">
@@ -1066,7 +1061,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <button class="icon-action-btn" type="button" data-action="openZenMode()" title="وضع الرواق" aria-label="فتح وضع الرواق"><svg class="ic" aria-hidden="true"><use href="#i-coffee"></use></svg></button>
         <button class="icon-action-btn" type="button" data-action="showRandomThought()" title="خاطرة عشوائية" aria-label="خاطرة عشوائية"><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg></button>
         <button class="icon-action-btn" type="button" data-action="openAchievements()" title="إنجازاتي" aria-label="فتح إنجازاتي"><svg class="ic" aria-hidden="true"><use href="#i-trophy"></use></svg></button>
-        <button class="icon-action-btn" id="main-auth-btn" type="button" data-action="openAccountCenter()" title="الحساب والتسجيل" aria-label="الحساب"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg></button>
+        <button class="icon-action-btn" id="main-auth-btn" type="button" data-action="openAccountEntry()" title="الحساب والتسجيل" aria-label="الحساب"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg></button>
         <button class="icon-action-btn" id="notif-bell-btn" type="button" data-action="openNotificationsModal()" title="التنبيهات" aria-label="التنبيهات">
           <svg class="ic" aria-hidden="true"><use href="#i-bell"></use></svg> <span id="notif-count-badge" class="badge-count" style="display:none; background:var(--danger); color:#fff; border-radius:99px; padding:1px 5px;">0</span>
         </button>
@@ -2567,7 +2562,7 @@ updateAchievements();
       const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
       let all=[];
       try{
-        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,category_id,prompt_question,allow_comments,account_id,guest_id').eq('status','approved');
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id').eq('status','approved');
         if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
         else if(accountId) q=q.eq('account_id',accountId);
         else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
@@ -2586,7 +2581,7 @@ updateAchievements();
       await hydrateThoughtAccounts(all);
       AppState.profile.thoughts=all;
       $id('profile-title').textContent=name;
-      $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':((guestId&&!accountId)?'مساحة زائر على شخابيط':'مساحة هذا الشخص على شخابيط');
+      $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
       $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
       const stats=await getUserStats(name,accountId,guestId);
       $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
@@ -2605,7 +2600,7 @@ updateAchievements();
       switchProfileContentTab('thoughts');
 
       const hint=$id('profile-guest-hint');
-      if(hint) hint.style.display=(!accountId && guestId)?'block':'none';
+      if(hint) hint.style.display=AccountState?.current?'none':'block';
       updateFollowButton();
       AppState.ui.lastFocusedElement=document.activeElement;
       $id('profile-modal').style.display='flex';
@@ -2634,8 +2629,7 @@ updateAchievements();
         const favKey=`thought_${id}_${displayName}`;
         const fav=getFavoritesSafe().includes(favKey);
         const promptHtml=i.prompt_question ? `<div class="prompt-ref-badge"><svg class="ic" aria-hidden="true"><use href="#i-bulb"></use></svg> إجابة سؤال الأسبوع: ${escapeHTML(i.prompt_question)}</div>` : '';
-        const commentsAllowed=getEffectiveCommentsState(id,i.allow_comments);
-        const commentsBtn=commentsAllowed ? `<button class="action-sub-btn has-label comment-count-btn" type="button" data-comment-thought-id="${id}" data-action="openCommentsModal(${id})" title="ردود ونقاش" aria-label="عرض الردود"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">ردود <b>0</b></span></button>` : '';
+        const commentsBtn=i.allow_comments===true ? `<button class="action-sub-btn has-label comment-count-btn" type="button" data-comment-thought-id="${id}" data-action="openCommentsModal(${id})" title="ردود ونقاش" aria-label="عرض الردود"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">ردود <b>0</b></span></button>` : '';
         const repostMeta=options.repostMeta && i.reposted_at ? `<span class="profile-item-note">أعاد نشرها · ${escapeHTML(formatDate(i.reposted_at))}</span>` : '';
         return `<article class="card profile-thought-card" data-thought-id="${id}">
           ${promptHtml}
@@ -3519,20 +3513,28 @@ updateAchievements();
       alert('بعتنالك رابط استعادة كلمة المرور على البريد.');
     }
 
-    async function openAccountCenter(){
-      let session=null;
-      let ownerSession=null;
-      try { session=(await DB.auth.getSession()).data?.session || null; } catch(e) {}
-      try { ownerSession=(await OWNER_DB.auth.getSession()).data?.session || null; } catch(e) {}
-
+    async function openAccountEntry(){
+      let session=null, ownerSession=null;
+      try { session=(await DB.auth.getSession()).data?.session||null; } catch(e) {}
+      try { ownerSession=(await OWNER_DB.auth.getSession()).data?.session||null; } catch(e) {}
       if(session?.user || ownerSession?.user){
         await openAuthModal();
         return;
       }
-
       const guestId=getGuestId();
-      const guestName=(AppState.user.currentName||'زائر').trim()||'زائر';
-      await openProfile(enc(guestName),'',enc(guestId));
+      let name=(AppState.user.currentName||'').trim();
+      try{
+        const {data,error}=await DB.from(DB_TABLES.thoughts)
+          .select('author_name')
+          .eq('guest_id',guestId)
+          .is('account_id',null)
+          .eq('status','approved')
+          .order('created_at',{ascending:false})
+          .limit(1);
+        if(!error && data?.[0]?.author_name) name=String(data[0].author_name).trim();
+      }catch(e){}
+      if(!name) name='صديقنا';
+      await openProfile(encodeURIComponent(name),'',encodeURIComponent(guestId));
     }
 
     async function openAuthModal() {
@@ -4657,6 +4659,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     openZenMode,
     openAchievements,
     openAuthModal,
+    openAccountEntry,
     handleSearch,
     toggleRepost,
     setSearchSort,
@@ -4705,7 +4708,16 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     ownerDismissDeleteRequest,
     });
 
-    DB.auth.onAuthStateChange((event, session) => {
+    const mainAuthBtn = document.getElementById('main-auth-btn');
+  if(mainAuthBtn){
+    mainAuthBtn.addEventListener('click', function(event){
+      event.stopPropagation();
+      const fn=window.__SHAKABEET_ACTIONS?.openAccountEntry;
+      if(typeof fn==='function') fn.call(mainAuthBtn);
+    }, true);
+  }
+
+  DB.auth.onAuthStateChange((event, session) => {
       // Never call signOut() or refreshSession() from this listener.
       // It only synchronizes UI/data with the already-persisted Supabase session.
       console.info('[شخابيط][USER AUTH]', event, session?.user ? 'session-present' : 'no-session');
