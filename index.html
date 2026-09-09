@@ -1817,23 +1817,22 @@ updateAchievements();
       if (touchEndX - AppState.ui.touchStartX > 50) prevZenQuote();
     }, {passive: true});
 
-    // طلب حذف خاطرة مملوكة للحساب النشط (يعمل من أي جهاز)
+    // طلب حذف خاطرة مملوكة للحساب النشط أو للـGuest ID الحالي.
     async function requestDeleteThought(thoughtId) {
-      const target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
+      const target = AppState.thoughts.allLoadedThoughts.find(t => String(t.id) === String(thoughtId));
       if(!target || !isMyThought(target)) {
-        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك طلب حذفها.');
-      }
-
-      if(!AccountState?.current?.id) {
-        return alert('سجّل الدخول بحسابك أولاً.');
+        return alert('عفواً، هذه الخاطرة ليست ملكاً لهويتك الحالية ولا يمكنك طلب حذفها.');
       }
 
       if(!confirm('هل تريد بالتأكيد إرسال طلب للأدمن لحذف هذه الخاطرة؟')) return;
 
       try {
-        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, {
-          p_thought_id: thoughtId
-        });
+        const activeAccountId = AccountState?.current?.id ? String(AccountState.current.id) : '';
+        const params = {
+          p_thought_id: thoughtId,
+          p_guest_id: activeAccountId ? null : getGuestId()
+        };
+        const { error } = await DB.rpc(DB_RPC.requestDeleteMyThought, params);
         if(error) throw error;
         alert('تم إرسال طلب الحذف للأدمن بنجاح، وهيراجع الطلب ويحذفها متقلقش 🗑️');
       } catch(err) {
@@ -1842,9 +1841,9 @@ updateAchievements();
       }
     }
 
-    // تبديل حالة الردود للحساب النشط (يعمل من أي جهاز)
+    // تبديل حالة الردود للحساب النشط أو للـGuest ID الحالي.
     async function toggleThoughtCommentsState(thoughtId, currentStatus) {
-      let target = AppState.thoughts.allLoadedThoughts.find(t => t.id === thoughtId);
+      let target = AppState.thoughts.allLoadedThoughts.find(t => String(t.id) === String(thoughtId));
       if(!target){
         const {data,error}=await DB.from(DB_TABLES.thoughts)
           .select('id,text,author_name,allow_comments,created_at,category_id,upvotes_count,downvotes_count,prompt_question,account_id')
@@ -1857,16 +1856,18 @@ updateAchievements();
         } : null;
       }
       if(!target || !isMyThought(target)) {
-        return alert('عفواً، هذه الخاطرة ليست ملكاً لحسابك الحالي ولا يمكنك تعديل إعداداتها.');
+        return alert('عفواً، هذه الخاطرة ليست ملكاً لهويتك الحالية ولا يمكنك تعديل إعداداتها.');
       }
-      if(!AccountState?.current?.id) return alert('سجّل الدخول بحسابك أولاً.');
 
       const newStatus = !currentStatus;
       try {
-        const { error } = await DB.rpc(DB_RPC.toggleCommentsByAccount, {
-          p_thought_id: thoughtId,
-          p_new_status: newStatus
-        });
+        const activeAccountId = AccountState?.current?.id ? String(AccountState.current.id) : '';
+        const { error } = await DB.rpc(
+          activeAccountId ? DB_RPC.toggleCommentsByAccount : DB_RPC.toggleComments,
+          activeAccountId
+            ? { p_thought_id: thoughtId, p_new_status: newStatus }
+            : { p_thought_id: thoughtId, p_guest_id: getGuestId(), p_new_status: newStatus }
+        );
         if(error) throw error;
         target.allow_comments = newStatus;
         try { localStorage.setItem(`thought_comments_state_${thoughtId}`, newStatus ? '1' : '0'); } catch(e) {}
