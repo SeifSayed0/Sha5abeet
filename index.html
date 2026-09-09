@@ -126,7 +126,7 @@ body{
   font-family:'Cairo',system-ui,sans-serif;
   background:radial-gradient(circle at 50% -10%,#fffaf3 0,var(--bg) 48%,#f2ede3 100%);
   color:var(--text);
-  min-height:100vh;
+  min-height:100vh;padding-bottom:calc(88px + env(safe-area-inset-bottom));
   padding:20px 14px 108px;
   line-height:1.7;
   -webkit-font-smoothing:antialiased;
@@ -314,10 +314,22 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .account-switch-card span{font-size:11px;color:var(--muted)}
 .account-switch-btn{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;cursor:pointer;font-weight:700}
 /* profile / achievements / weekly answers */
-.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
-.profile-stat{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 6px;text-align:center}
-.profile-stat strong{display:block;color:var(--primary-strong);font-size:17px}
-.profile-stat span{font-size:10.5px;color:var(--muted)}
+.profile-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:16px 0 12px}
+.profile-stat{background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:10px 5px;text-align:center;min-width:0}
+.profile-stat strong{display:block;color:var(--primary-strong);font-size:17px;line-height:1.2}
+.profile-stat span{display:block;font-size:10px;color:var(--muted);line-height:1.35;margin-top:4px}
+.profile-stats + .profile-stats{margin-top:7px}
+.auth-account-stats{grid-template-columns:repeat(3,1fr);margin-top:10px}
+.auth-account-stats .profile-stat{padding:9px 5px}
+.profile-stat-group-title{font-size:11px;font-weight:800;color:var(--muted);text-align:right;margin:12px 2px 7px}
+.account-profile-head{display:flex;align-items:center;gap:12px;text-align:right;margin:4px 0 14px}
+.account-profile-avatar{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary-strong);font-size:24px;font-weight:900;flex:0 0 auto;border:1px solid var(--border)}
+.account-profile-head h2{margin:0;font-size:21px;line-height:1.3}
+.account-profile-head p{margin:4px 0 0;color:var(--muted);font-size:11px}
+.account-login-hint{background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:10px 12px;margin:12px 0;text-align:right;font-size:11px;color:var(--muted);line-height:1.7}
+.account-login-hint strong{color:var(--text)}
+.auth-owner-small{font-size:10px!important;min-height:32px!important;padding:5px 8px!important;margin-top:12px!important;color:var(--muted)!important;background:transparent!important;border:0!important}
+@media (max-width:620px){.profile-stats{grid-template-columns:repeat(3,1fr)} .profile-stat:nth-child(4),.profile-stat:nth-child(5){margin-top:0}.profile-stats:last-of-type{grid-template-columns:repeat(2,1fr)}}
 .follow-btn.following{background:rgba(76,122,99,.12);color:var(--success);border:1px solid rgba(76,122,99,.3)}
 
 .achievement-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;text-align:right;margin-top:16px}
@@ -687,23 +699,33 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
   <div id="profile-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="profile-title">
     <div class="modal-box">
       <button class="modal-close" type="button" data-action="closeProfile()" aria-label="إغلاق"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
-      <div class="login-logo" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg></div>
-      <h2 id="profile-title">ملف الكاتب</h2>
-      <p id="profile-name" class="modal-subtitle"></p>
-      <div id="profile-loading" style="display:none; font-size:12px; opacity:.75; margin:8px 0;">جاري تحميل الملف…</div>
-      <div class="profile-stats">
-        <div class="profile-stat"><strong id="profile-thoughts">0</strong><span>خاطرة</span></div>
-        <div class="profile-stat"><strong id="profile-votes">0</strong><span>تفاعل</span></div>
-        <div class="profile-stat"><strong id="profile-favorites">0</strong><span>محفوظة عندك</span></div>
+      <div class="account-profile-head">
+        <div id="profile-avatar" class="account-profile-avatar" aria-hidden="true">م</div>
+        <div>
+          <h2 id="profile-title">الحساب</h2>
+          <p id="profile-subtitle">مساحة الشخص على شخابيط</p>
+        </div>
       </div>
-      
-      <div id="profile-own-stats-box" style="display:none; background:rgba(62,138,147,.08); border:1px solid rgba(62,138,147,.25); border-radius:12px; padding:10px; margin:10px 0; text-align:right; font-size:12px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>عملت كام فوت:</span><strong id="stat-my-votes-count" style="color:var(--primary);">0</strong></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>اتعملك كام فوت:</span><strong id="stat-net-votes-received" style="color:var(--success);">0</strong></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>كتبت كام خاطرة:</span><strong id="stat-my-thoughts-count" style="color:var(--primary);">0</strong></div>
-        <div style="display:flex; justify-content:space-between;"><span>خواطرك المعلقة:</span><strong id="stat-pending-thoughts-count" style="color:var(--warning);">0</strong></div>
+      <div id="profile-loading" style="display:none; font-size:12px; color:var(--muted); margin:8px 0;">جاري تحميل الحساب…</div>
+
+      <div class="profile-stat-group-title">أثره على شخابيط</div>
+      <div class="profile-stats" aria-label="إحصائيات الحساب العامة">
+        <div class="profile-stat"><strong id="profile-thoughts">0</strong><span>خواطر</span></div>
+        <div class="profile-stat"><strong id="profile-votes-received">0</strong><span>اتعمله فوت</span></div>
+        <div class="profile-stat"><strong id="profile-reposts-received">0</strong><span>اتعمله ريشير</span></div>
+        <div class="profile-stat"><strong id="profile-comments-received">0</strong><span>تعليقات على خواطره</span></div>
+        <div class="profile-stat"><strong id="profile-followers">0</strong><span>متابعين</span></div>
       </div>
 
+      <div class="profile-stat-group-title">تفاعله</div>
+      <div class="profile-stats" aria-label="إحصائيات تفاعل الحساب">
+        <div class="profile-stat"><strong id="profile-votes-made">0</strong><span>عمل فوت</span></div>
+        <div class="profile-stat"><strong id="profile-reposts-made">0</strong><span>عمل ريشير</span></div>
+        <div class="profile-stat"><strong id="profile-comments-made">0</strong><span>تعليقات كتبها</span></div>
+        <div class="profile-stat"><strong id="profile-following">0</strong><span>بيتابع</span></div>
+      </div>
+
+      <div id="profile-guest-hint" class="account-login-hint" style="display:none;"><strong>عايز تعمل ريشير؟</strong><br>سجّل دخولك عشان تعمل ريشير ومتضيعش بياناتك.</div>
       <div id="profile-recent-thoughts" style="margin-top:10px; max-height:180px; overflow:auto; text-align:right;"></div>
       <button id="profile-follow-btn" class="primary-btn follow-btn" type="button" data-action="toggleFollowCurrent()" style="margin-top:10px;">+ متابعة</button>
       <button class="secondary-btn" type="button" data-action="viewProfileThoughts()" style="margin-top:6px;">عرض كل خواطره</button>
@@ -767,19 +789,24 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       <p class="modal-subtitle" id="auth-subtitle">حسابك وهويتك في شخابيط</p>
 
       <div id="auth-logged-section" style="display:none;">
-        <div style="background:rgba(62,138,147,.08); border:1px solid rgba(62,138,147,.25); border-radius:12px; padding:12px; margin:12px 0; text-align:right;">
-          <div style="font-size:12px;color:var(--muted);">مسجل بـ</div>
-          <strong id="auth-logged-email" style="display:block;margin-top:3px;overflow-wrap:anywhere;"></strong>
+        <div id="my-account-summary" class="account-profile-head" style="margin-top:8px;">
+          <div id="my-account-avatar" class="account-profile-avatar" aria-hidden="true">م</div>
+          <div><h2 id="my-account-title">حسابي</h2><p id="my-account-bio">مساحتك على شخابيط</p></div>
+        </div>
+        <div id="my-account-stats" class="profile-stats auth-account-stats" aria-label="إحصائيات حسابي">
+          <div class="profile-stat"><strong id="my-stat-thoughts">0</strong><span>خواطرك</span></div>
+          <div class="profile-stat"><strong id="my-stat-votes-made">0</strong><span>عملت فوت</span></div>
+          <div class="profile-stat"><strong id="my-stat-votes-received">0</strong><span>اتعملك فوت</span></div>
+          <div class="profile-stat"><strong id="my-stat-reposts-made">0</strong><span>عملت ريشير</span></div>
+          <div class="profile-stat"><strong id="my-stat-reposts-received">0</strong><span>اتعملك ريشير</span></div>
+          <div class="profile-stat"><strong id="my-stat-comments-made">0</strong><span>تعليقات كتبتها</span></div>
+          <div class="profile-stat"><strong id="my-stat-comments-received">0</strong><span>تعليقات على خواطرك</span></div>
+          <div class="profile-stat"><strong id="my-stat-followers">0</strong><span>متابعين</span></div>
+          <div class="profile-stat"><strong id="my-stat-following">0</strong><span>بيتابع</span></div>
         </div>
         <div id="my-accounts-box" style="margin:12px 0; text-align:right;"></div>
         <button class="primary-btn" type="button" data-action="openAccountCreate()">＋ إضافة حساب</button>
         <button class="secondary-btn" type="button" data-action="userLogout()" style="margin-top:7px;">تسجيل الخروج</button>
-      </div>
-
-      <div id="auth-msg-to-owner-box" style="margin:12px 0; border-top:1px solid var(--border); padding-top:10px; text-align:right;">
-        <span style="font-size:12px; color:var(--primary); font-weight:700; display:block; margin-bottom:4px;"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> ابعت رسالة للمالك (خاصة):</span>
-        <textarea id="user-to-owner-msg" placeholder="اكتب رسالتك للمالك هنا..." style="min-height:70px; font-size:13px; margin:4px 0;"></textarea>
-        <button class="primary-btn" style="padding:8px; font-size:13px; margin-top:4px;" type="button" data-action="sendUserMessageToOwner()">إرسال للمالك <svg class="ic" aria-hidden="true"><use href="#i-mail"></use></svg></button>
       </div>
 
       <div id="auth-login-section">
@@ -794,7 +821,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <button class="primary-btn" type="button" data-action="emailLogin()">تسجيل الدخول</button>
         <button class="secondary-btn" type="button" data-action="showSignupForm()" style="margin-top:7px;">إنشاء حساب جديد</button>
         <button class="link-btn" type="button" data-action="sendPasswordReset()" style="margin-top:7px;background:none;border:0;color:var(--primary);cursor:pointer;">نسيت كلمة المرور؟</button>
-        <button class="secondary-btn" type="button" data-action="showOwnerLoginForm()" style="margin-top:10px;">دخول المالك</button>
+        <button class="secondary-btn auth-owner-small" type="button" data-action="showOwnerLoginForm()">دخول المالك</button>
       </div>
 
       <div id="auth-signup-section" style="display:none;">
@@ -1101,6 +1128,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       ownerMessages: 'owner_messages',
       settings: 'site_settings',
       accounts: 'accounts',
+      accountFollows: 'account_follows',
       thoughtReposts: 'thought_reposts'
     });
 
@@ -1124,6 +1152,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       clearNotifications: 'clear_my_device_notifications',
       createAccount: 'create_my_account',
       getMyAccounts: 'get_my_accounts',
+      getPublicAccountStats: 'get_public_account_stats',
+      toggleAccountFollow: 'toggle_account_follow',
       toggleMyRepost: 'toggle_my_repost',
     });
 
@@ -1257,7 +1287,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         currentIndex: 0
       },
       profile: {
-        author: ''
+        author: '', accountId: ''
       },
       engagement: {
         streakDays: 0,
@@ -2022,6 +2052,7 @@ updateAchievements();
           author_name: author,
           text: text,
           guest_id: getGuestId(),
+          account_id: AccountState?.current?.id || null,
           status: 'pending'
         });
 
@@ -2300,7 +2331,7 @@ updateAchievements();
             <p class="thought-text">${escapeHTML(i.thought)}</p>
             <div class="card-footer">
               <span class="card-meta">
-                <button class="profile-link" type="button" data-action="openProfile('${enc(ownerDisplayName)}')">${escapeHTML(ownerDisplayName)}</button> · ${escapeHTML(i.date||'')}
+                <button class="profile-link" type="button" data-action="openProfile('${enc(ownerDisplayName)}','${enc(i.account_id||'')}')">${escapeHTML(ownerDisplayName)}</button> · ${escapeHTML(i.date||'')}
               </span>
               <div class="card-actions">
                 <div class="action-scroll-pill">
@@ -2353,7 +2384,7 @@ updateAchievements();
             ${promptHtml}
             <p class="thought-text">${escapeHTML(i.thought)}</p>
             <div class="card-footer">
-              <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(displayName)}')">${escapeHTML(displayName)}</button> · ${escapeHTML(i.date||'')}</span>
+              <span class="card-meta">كتبها: <button class="profile-link" type="button" data-action="openProfile('${enc(displayName)}','${enc(i.account_id||'')}')">${escapeHTML(displayName)}</button> · ${escapeHTML(i.date||'')}</span>
               <div class="card-actions">
                 <div class="action-scroll-pill">
                 ${commentsBtnHtml.replace('class="action-sub-btn comment-count-btn"','class="action-sub-btn has-label comment-count-btn"').replace('</svg> 0','</svg><span class="action-label">ردود <b>0</b></span>')}
@@ -2415,142 +2446,88 @@ updateAchievements();
 
     function getFollowed(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.following)||'[]')}catch{return[]} }
 
-    async function getUserStats(targetName){
-      let myVotesList = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('vote_state_')) {
-          const val = localStorage.getItem(key);
-          if (val === 'up' || val === 'down') myVotesList[key.replace('vote_state_', '')] = val === 'up' ? 1 : -1;
-        }
+    async function getUserStats(targetName, targetAccountId=''){
+      const accountId=String(targetAccountId||'').trim();
+      if(!accountId){
+        return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
       }
-      localStorage.setItem(STORAGE_KEYS.votes, JSON.stringify(myVotesList));
-      const votesMade = Object.keys(myVotesList).length;
-
-      const localIds = getDeviceThoughtIds();
-      const isMyProfile = (targetName === AppState.user.currentName || targetName === 'صاحب المساحة' || targetName === 'صديقنا');
-
-      let query = DB.from(DB_TABLES.thoughts)
-        .select('id,author_name,status,upvotes_count,downvotes_count');
-      if(isMyProfile) {
-        if(!localIds.length) return { votesMade, netVotes: 0, thoughtsCount: 0, pendingCount: 0 };
-        query = query.in('id', localIds);
-      } else {
-        query = query.eq('author_name', targetName);
-      }
-
-      try {
-        const { data, error } = await query;
+      try{
+        const {data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId});
         if(error) throw error;
-        const rows = data || [];
-        const visibleRows = rows.filter(r => r.status === 'approved');
-        const totalUp = visibleRows.reduce((sum, r) => sum + (Number(r.upvotes_count) || 0), 0);
-        const totalDown = visibleRows.reduce((sum, r) => sum + (Number(r.downvotes_count) || 0), 0);
-
-        let pendingCount = rows.filter(r => r.status === 'pending').length;
-        if(!isMyProfile) {
-          const { count } = await DB.from(DB_TABLES.thoughts)
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'pending')
-            .eq('author_name', targetName);
-          pendingCount = count || 0;
-        }
-
+        const row=Array.isArray(data)?data[0]:data;
         return {
-          votesMade,
-          netVotes: totalUp - totalDown,
-          thoughtsCount: rows.filter(r => r.status === 'approved').length,
-          pendingCount
+          thoughtsCount:Number(row?.thoughts_count)||0,
+          votesMade:Number(row?.votes_made)||0,
+          votesReceived:Number(row?.votes_received)||0,
+          repostsMade:Number(row?.reposts_made)||0,
+          repostsReceived:Number(row?.reposts_received)||0,
+          commentsMade:Number(row?.comments_made)||0,
+          commentsReceived:Number(row?.comments_received)||0,
+          followers:Number(row?.followers_count)||0,
+          following:Number(row?.following_count)||0
         };
-      } catch(e) {
-        console.warn('Could not load complete user stats', e);
-        return { votesMade, netVotes: 0, thoughtsCount: 0, pendingCount: 0 };
+      }catch(e){
+        console.warn('Could not load account stats',e);
+        return {thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
       }
     }
 
-    async function openProfile(encodedName){
-      const name = decodeURIComponent(encodedName || '');
+    async function openProfile(encodedName, encodedAccountId=''){
+      const name=decodeURIComponent(encodedName||'');
+      const accountId=decodeURIComponent(encodedAccountId||'');
       if(!name) return;
-      AppState.profile.author = name;
-      const loading = $id('profile-loading');
-      const recentBox = $id('profile-recent-thoughts');
-      if(loading) loading.style.display = 'block';
-      if(recentBox) recentBox.innerHTML = '';
-
-      const isOwnerProfile = name === 'صاحب المساحة' || name === 'صديقنا';
-      const isMyAccount = !!AppState.user.currentName && name === AppState.user.currentName;
-      let all = [];
-
-      try {
-        let q = DB.from(DB_TABLES.thoughts)
-          .select('id,author_name,text,status,upvotes_count,downvotes_count,created_at')
-          .eq('status','approved');
-
-        if(isOwnerProfile){
-          // خواطر صاحب المساحة مخزنة بدون اسم كاتب.
-          q = q.or('author_name.is.null,author_name.eq.');
-        } else {
-          // كل خواطر الكاتب من قاعدة البيانات، وليس الصفحة الحالية فقط.
-          q = q.eq('author_name', name);
-        }
-
-        const { data, error } = await q
-          .order('created_at',{ascending:false})
-          .order('id',{ascending:false});
+      AppState.profile.author=name;
+      AppState.profile.accountId=accountId||'';
+      const loading=$id('profile-loading'), recentBox=$id('profile-recent-thoughts');
+      if(loading) loading.style.display='block';
+      if(recentBox) recentBox.innerHTML='';
+      const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
+      let all=[];
+      try{
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id').eq('status','approved');
+        if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
+        else if(accountId) q=q.eq('account_id',accountId);
+        else q=q.eq('author_name',name);
+        const {data,error}=await q.order('created_at',{ascending:false}).order('id',{ascending:false});
         if(error) throw error;
-        all = data || [];
-      } catch(err) {
-        logAppError('Profile query failed', err);
-        // fallback محدود للبيانات الموجودة بالفعل، بدون اعتبارها العدد الحقيقي.
-        all = [...AppState.user.rawOwnerData, ...AppState.user.rawVisitorData].filter(i=>{
-          const rowName = i?.author_name || i?.name || '';
-          return isOwnerProfile ? !rowName : rowName === name;
+        all=data||[];
+      }catch(err){
+        logAppError('Profile query failed',err);
+        all=[...AppState.user.rawOwnerData,...AppState.user.rawVisitorData].filter(i=>{
+          const rowName=i?.author_name||i?.name||'';
+          return isOwnerProfile ? !rowName : (accountId ? String(i.account_id||'')===String(accountId) : rowName===name);
         });
-      } finally {
-        if(loading) loading.style.display = 'none';
-      }
+      }finally{ if(loading) loading.style.display='none'; }
 
-      $id('profile-name').textContent = name;
-      $id('profile-thoughts').textContent = all.length;
-      $id('profile-votes').textContent = all.reduce((n,i)=>
-        n + (Number(i.upvotes_count ?? i.upvotes) || 0) + (Number(i.downvotes_count ?? i.downvotes) || 0), 0);
-      const saved = getFavoritesSafe().filter(id=>all.some(i=>id===`thought_${i.id}_${i.author_name || i.name || 'owner'}`)).length;
-      $id('profile-favorites').textContent = saved;
+      $id('profile-title').textContent=name;
+      $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
+      $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
+      const stats=await getUserStats(name,accountId);
+      $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
+      $id('profile-votes-received').textContent=stats.votesReceived;
+      $id('profile-reposts-received').textContent=stats.repostsReceived;
+      $id('profile-comments-received').textContent=stats.commentsReceived;
+      $id('profile-followers').textContent=stats.followers;
+      $id('profile-votes-made').textContent=stats.votesMade;
+      $id('profile-reposts-made').textContent=stats.repostsMade;
+      $id('profile-comments-made').textContent=stats.commentsMade;
+      $id('profile-following').textContent=stats.following;
 
       if(recentBox){
-        if(!all.length){
-          recentBox.innerHTML = '<div style="padding:10px; opacity:.65; font-size:12px;">مفيش خواطر منشورة حاليًا.</div>';
-        } else {
-          recentBox.innerHTML = all.slice(0,5).map(i=>{
-            const text = escapeHTML(i.text || '');
-            const date = escapeHTML(formatDate(i.created_at));
-            const link = safeActionValue(String(i.id));
-            return `<button type="button" class="profile-recent-item" data-action="openDirectThought('${link}')" style="display:block;width:100%;text-align:right;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px;margin-bottom:6px;color:inherit;cursor:pointer;">${text.length>140?text.slice(0,140)+'…':text}<div style="font-size:10px;opacity:.55;margin-top:4px;">${date}</div></button>`;
-          }).join('');
-        }
+        if(!all.length) recentBox.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px;">مفيش خواطر منشورة حاليًا.</div>';
+        else recentBox.innerHTML=all.slice(0,5).map(i=>{
+          const text=escapeHTML(i.text||''), date=escapeHTML(formatDate(i.created_at)), link=safeActionValue(String(i.id));
+          return `<button type="button" class="profile-recent-item" data-action="openDirectThought('${link}')" style="display:block;width:100%;text-align:right;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px;margin-bottom:6px;color:inherit;cursor:pointer;">${text.length>140?text.slice(0,140)+'…':text}<div style="font-size:10px;color:var(--muted);margin-top:4px;">${date}</div></button>`;
+        }).join('');
       }
 
-      const ownBox = $id('profile-own-stats-box');
-      if(isMyAccount){
-        try {
-          const stats = await getUserStats(name);
-          $id('stat-my-votes-count').textContent = stats.votesMade;
-          $id('stat-net-votes-received').textContent = stats.netVotes;
-          $id('stat-my-thoughts-count').textContent = stats.thoughtsCount;
-          $id('stat-pending-thoughts-count').textContent = stats.pendingCount;
-        } catch(err) {
-          logAppError('Profile private stats failed', err);
-        }
-        ownBox.style.display = 'block';
-      } else {
-        ownBox.style.display = 'none';
-      }
-
+      const hint=$id('profile-guest-hint');
+      if(hint) hint.style.display=AccountState?.current?'none':'block';
       updateFollowButton();
-      AppState.ui.lastFocusedElement = document.activeElement;
-      $id('profile-modal').style.display = 'flex';
+      AppState.ui.lastFocusedElement=document.activeElement;
+      $id('profile-modal').style.display='flex';
       document.body.classList.add('modal-open');
-      $id('profile-follow-btn').focus();
+      $id('profile-follow-btn')?.focus();
     }
 
     function viewProfileThoughts(){
@@ -2596,20 +2573,55 @@ updateAchievements();
       }
     }
 
-    function updateFollowButton(){
-      const btn = $id('profile-follow-btn');
+    async function updateFollowButton(){
+      const btn=$id('profile-follow-btn');
       if(!btn) return;
-      const following = getFollowed().includes(AppState.profile.author);
-      btn.innerHTML = following ? '<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> متابَع' : '＋ متابعة';
-      btn.classList.toggle('following', following);
+      const targetId=String(AppState.profile.accountId||'').trim();
+      if(!targetId){
+        btn.innerHTML=getFollowed().includes(AppState.profile.author)?'<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> متابَع':'＋ متابعة';
+        btn.classList.toggle('following',getFollowed().includes(AppState.profile.author));
+        return;
+      }
+      if(!AccountState?.current){
+        btn.innerHTML='＋ متابعة';
+        btn.classList.remove('following');
+        return;
+      }
+      try{
+        const {data,error}=await DB.from(DB_TABLES.accountFollows).select('follower_account_id').eq('follower_account_id',AccountState.current.id).eq('followed_account_id',targetId).maybeSingle();
+        if(error) throw error;
+        const following=!!data;
+        btn.innerHTML=following?'<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> متابَع':'＋ متابعة';
+        btn.classList.toggle('following',following);
+        btn.disabled=String(AccountState.current.id)===targetId;
+      }catch(e){
+        console.warn('Follow state load failed',e);
+        btn.disabled=false;
+      }
     }
 
-    function toggleFollowCurrent(){
-      if(!AppState.profile.author) return;
-      let f = getFollowed();
-      f = f.includes(AppState.profile.author) ? f.filter(x=>x!==AppState.profile.author) : [...f, AppState.profile.author];
-      localStorage.setItem(STORAGE_KEYS.following, JSON.stringify(f));
-      updateFollowButton(); updateAchievements();
+    async function toggleFollowCurrent(){
+      const targetId=String(AppState.profile.accountId||'').trim();
+      if(!targetId){
+        let f=getFollowed();
+        f=f.includes(AppState.profile.author)?f.filter(x=>x!==AppState.profile.author):[...f,AppState.profile.author];
+        localStorage.setItem(STORAGE_KEYS.following,JSON.stringify(f));
+        updateFollowButton();
+        return;
+      }
+      if(!AccountState?.current){
+        await openAuthModal();
+        return;
+      }
+      try{
+        const {data,error}=await DB.rpc(DB_RPC.toggleAccountFollow,{p_target_account_id:targetId});
+        if(error) throw error;
+        showToast(data?'تمت المتابعة ✓':'اتشالت المتابعة');
+        await openProfile(enc(AppState.profile.author),enc(targetId));
+      }catch(err){
+        console.error('Follow toggle error',err);
+        alert(err?.message||'تعذر تعديل المتابعة حاليًا.');
+      }
     }
 
     function viewProfileThoughts(){
@@ -3033,7 +3045,7 @@ updateAchievements();
         hide($id('auth-login-section'));
         hide($id('auth-signup-section'));
         show($id('auth-logged-section'));
-        $id('auth-logged-email').textContent = session.user.email || 'حساب Google';
+        $id('auth-logged-email') && ($id('auth-logged-email').textContent = session.user.email || 'حساب Google');
         await loadMyAccounts();
         return;
       }
@@ -3067,8 +3079,18 @@ updateAchievements();
         if(!AccountState.accounts.length){
           box.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px;">لسه معندكش هوية حساب. أضف أول حساب ليك.</div>';
         } else {
-          box.innerHTML=AccountState.accounts.map(a=>`<div class="account-switch-card"><div class="account-meta"><strong>${escapeHTML(a.display_name||a.username||'حساب')}</strong><span>@${escapeHTML(a.username||'')}</span></div><button class="account-switch-btn" type="button" data-action="switchAccount('${enc(String(a.id))}')">${a.is_current?'الحساب الحالي':'تبديل'}</button></div>`).join('');
+          box.innerHTML=AccountState.accounts.map(a=>`<div class="account-switch-card"><div class="account-meta"><strong>${escapeHTML(a.display_name||'حساب')}</strong></div><button class="account-switch-btn" type="button" data-action="switchAccount('${enc(String(a.id))}')">${a.is_current?'الحساب الحالي':'تبديل'}</button></div>`).join('');
         }
+      }
+      if(AccountState.current?.id){
+        const stats=await getUserStats(AccountState.current.display_name||'',String(AccountState.current.id));
+        const set=(id,val)=>{const el=$id(id);if(el)el.textContent=Number(val)||0;};
+        set('my-stat-thoughts',stats.thoughtsCount); set('my-stat-votes-made',stats.votesMade); set('my-stat-votes-received',stats.votesReceived);
+        set('my-stat-reposts-made',stats.repostsMade); set('my-stat-reposts-received',stats.repostsReceived); set('my-stat-comments-made',stats.commentsMade);
+        set('my-stat-comments-received',stats.commentsReceived); set('my-stat-followers',stats.followers); set('my-stat-following',stats.following);
+        const title=$id('my-account-title'); if(title) title.textContent=AccountState.current.display_name||'حسابي';
+        const bio=$id('my-account-bio'); if(bio) bio.textContent=AccountState.current.bio||'مساحتك على شخابيط';
+        const avatar=$id('my-account-avatar'); if(avatar) avatar.textContent=(AccountState.current.display_name||'م').trim().charAt(0)||'م';
       }
       return AccountState.accounts;
     }
@@ -3157,7 +3179,7 @@ updateAchievements();
       hide($id('auth-login-section')); hide($id('auth-signup-section')); hide($id('account-create-section')); hide($id('auth-logged-section')); hide($id('auth-owner-section'));
       if(user){
         show($id('auth-logged-section'));
-        $id('auth-logged-email').textContent = user.email || 'حساب Google';
+        $id('auth-logged-email') && ($id('auth-logged-email').textContent = user.email || 'حساب Google');
         await loadMyAccounts();
         show($id('auth-owner-section'));
         const ownerTitle = $id('auth-owner-section')?.querySelector('div');
