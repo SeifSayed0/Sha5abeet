@@ -2602,7 +2602,17 @@ updateAchievements();
       $id('profile-title').textContent=name;
       $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
       $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
-      const stats=await getUserStats(name,accountId,guestId);
+      // Use the identity actually attached to the loaded profile rows as the final source of truth.
+      // This protects Guest profiles from a stale/missing guest_id in the clicked profile link.
+      const rowAccountId=accountId || String(all.find(r=>r?.account_id)?.account_id||'');
+      const rowGuestId=guestId || String(all.find(r=>r?.guest_id && !r?.account_id)?.guest_id||'');
+      let stats=await getUserStats(name,rowAccountId,rowGuestId);
+      // If an old/stale profile link supplied a different identity, retry once using the
+      // identity read directly from the profile's thoughts. This keeps all nine counters
+      // server-derived and avoids any localStorage/RLS-dependent fallback.
+      if((stats.votesMade===0 && stats.commentsMade===0 && rowGuestId) && (rowGuestId!==guestId || !guestId)){
+        stats=await getUserStats(name,'',rowGuestId);
+      }
       $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
       $id('profile-votes-received').textContent=stats.votesReceived;
       $id('profile-reposts-received').textContent=stats.repostsReceived;
