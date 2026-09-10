@@ -2559,115 +2559,96 @@ updateAchievements();
     async function getUserStats(targetName, targetAccountId='', targetGuestId=''){
       const accountId=String(targetAccountId||'').trim();
       const guestId=String(targetGuestId||'').trim();
-      const empty={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+      const stats={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+
+      // 1) Identify the profile's actual thoughts first. This is the source of truth
+      // for old profiles as well as newer Account/Guest profiles.
+      let thoughtRows=[];
       try{
-        let data,error;
-        if(accountId){
-          ({data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId}));
-        }else if(guestId){
-          ({data,error}=await DB.rpc('get_public_guest_stats',{p_guest_id:guestId}));
-        }
+        let q=DB.from(DB_TABLES.thoughts)
+          .select('id,upvotes_count,downvotes_count,guest_id,account_id')
+          .eq('status','approved');
+        if(accountId) q=q.eq('account_id',accountId);
+        else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
+        else q=q.eq('author_name',targetName);
+        const {data,error}=await q;
         if(error) throw error;
-        const row=Array.isArray(data)?data[0]:data;
-        const stats={
-          thoughtsCount:Number(row?.thoughts_count)||0,
-          votesMade:Number(row?.votes_made)||0,
-          votesReceived:Number(row?.votes_received)||0,
-          repostsMade:Number(row?.reposts_made)||0,
-          repostsReceived:Number(row?.reposts_received)||0,
-          commentsMade:Number(row?.comments_made)||0,
-          commentsReceived:Number(row?.comments_received)||0,
-          followers:Number(row?.followers_count)||0,
-          following:Number(row?.following_count)||0
-        };
+        thoughtRows=data||[];
+      }catch(e){
+        console.warn('Profile thoughts stats query failed',e);
+      }
 
-        // Fallback based on the actual thoughts displayed in this profile.
-        // This fixes older/migrated profiles where the RPC identity exists but
-        // historical rows are still attached to guest_id / author_name.
-        let thoughtRows=[];
-        if(accountId){
-          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
-            .select('id,upvotes_count,downvotes_count,guest_id')
-            .eq('status','approved').eq('account_id',accountId);
-          if(tErr) throw tErr;
-          thoughtRows=tData||[];
-        }else if(guestId){
-          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
-            .select('id,upvotes_count,downvotes_count,guest_id')
-            .eq('status','approved').eq('guest_id',guestId).is('account_id',null);
-          if(tErr) throw tErr;
-          thoughtRows=tData||[];
-        }else{
-          const {data:tData,error:tErr}=await DB.from(DB_TABLES.thoughts)
-            .select('id,upvotes_count,downvotes_count,guest_id')
-            .eq('status','approved').eq('author_name',targetName);
-          if(tErr) throw tErr;
-          thoughtRows=tData||[];
+      if(thoughtRows.length){
+        stats.thoughtsCount=thoughtRows.length;
+        stats.votesReceived=thoughtRows.reduce((sum,x)=>
+          sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
+
+        const ids=thoughtRows.map(x=>Number(x.id)).filter(Number.isFinite);
+        if(ids.length){
+          // Each metric is intentionally isolated: a failure in one optional
+          // table must never erase the other profile statistics.
+          try{
+            const {count,error}=await DB.from(DB_TABLES.thoughtReposts)
+              .select('id',{count:'exact',head:true}).in('thought_id',ids);
+            if(!error) stats.repostsReceived=Number(count)||0;
+          }catch(e){ console.warn('Profile repost-received stats failed',e); }
+
+          try{
+            const {count,error}=await DB.from(DB_TABLES.thoughtComments)
+              .select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved');
+            if(!error) stats.commentsReceived=Number(count)||0;
+          }catch(e){ console.warn('Profile comment-received stats failed',e); }
         }
+      }
 
-        if(thoughtRows.length){
-          const ids=thoughtRows.map(x=>Number(x.id)).filter(Number.isFinite);
-          const voteReceived=thoughtRows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
-          if(!stats.thoughtsCount) stats.thoughtsCount=thoughtRows.length;
-          if(!stats.votesReceived) stats.votesReceived=voteReceived;
-
-          if(ids.length){
-            const [rr,cc]=await Promise.all([
-              DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
-              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
-            ]);
-            if(rr.error) throw rr.error;
-            if(cc.error) throw cc.error;
-            if(!stats.repostsReceived) stats.repostsReceived=Number(rr.count)||0;
-            if(!stats.commentsReceived) stats.commentsReceived=Number(cc.count)||0;
-          }
-        }
-
-        // Legacy profiles have no reliable identity for outgoing activity.
-        // For account/guest profiles, recover historical activity even when
-        // the RPC under-counts rows migrated from the guest identity.
-        if(accountId || guestId){
-          const guestIds=[...new Set([guestId,...thoughtRows.map(x=>String(x.guest_id||'')).filter(Boolean)])];
-          const voteQuery=accountId
+      // 2) Recover outgoing activity for identifiable Accounts/Guests.
+      // Legacy name-only profiles cannot safely expose outgoing activity, so
+      // those values remain zero rather than guessing an identity.
+      if(accountId || guestId){
+        try{
+          const q=accountId
             ? DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('account_id',accountId)
             : DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('guest_id',guestId);
-          const commentQuery=accountId
+          const {count,error}=await q;
+          if(!error) stats.votesMade=Number(count)||0;
+        }catch(e){ console.warn('Profile votes-made stats failed',e); }
+
+        try{
+          const q=accountId
             ? DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('account_id',accountId).eq('status','approved')
             : DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('guest_id',guestId).eq('status','approved');
-          const repostQuery=accountId
-            ? DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).eq('account_id',accountId)
-            : null;
-          const [vr,cm,rp]=await Promise.all([voteQuery,commentQuery,repostQuery||Promise.resolve({count:null,error:null})]);
-          if(vr.error) throw vr.error;
-          if(cm.error) throw cm.error;
-          if(rp.error) throw rp.error;
-          if(!stats.votesMade) stats.votesMade=Number(vr.count)||0;
-          if(!stats.commentsMade) stats.commentsMade=Number(cm.count)||0;
-          if(accountId && !stats.repostsMade) stats.repostsMade=Number(rp.count)||0;
+          const {count,error}=await q;
+          if(!error) stats.commentsMade=Number(count)||0;
+        }catch(e){ console.warn('Profile comments-made stats failed',e); }
+
+        if(accountId){
+          try{
+            const {count,error}=await DB.from(DB_TABLES.thoughtReposts)
+              .select('id',{count:'exact',head:true}).eq('account_id',accountId);
+            if(!error) stats.repostsMade=Number(count)||0;
+          }catch(e){ console.warn('Profile reposts-made stats failed',e); }
         }
-        return stats;
-      }catch(e){
-        console.warn('Could not load profile stats',e);
-        // Even if the RPC fails, calculate safe incoming stats from the actual profile thoughts.
-        try{
-          let q=DB.from(DB_TABLES.thoughts).select('id,upvotes_count,downvotes_count').eq('status','approved');
-          if(accountId) q=q.eq('account_id',accountId);
-          else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
-          else q=q.eq('author_name',targetName);
-          const {data:ts}=await q;
-          const rows=ts||[], ids=rows.map(x=>Number(x.id)).filter(Number.isFinite);
-          let repostsReceived=0,commentsReceived=0;
-          if(ids.length){
-            const [rr,cc]=await Promise.all([
-              DB.from(DB_TABLES.thoughtReposts).select('id',{count:'exact',head:true}).in('thought_id',ids),
-              DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved')
-            ]);
-            repostsReceived=Number(rr?.count)||0;
-            commentsReceived=Number(cc?.count)||0;
-          }
-          return {...empty,thoughtsCount:rows.length,votesReceived:rows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0),repostsReceived,commentsReceived};
-        }catch(_){ return empty; }
+
+        // Followers/following are account-based. Keep the values from the RPC
+        // when available, but never let an RPC failure wipe the core stats above.
+        if(accountId){
+          try{
+            const {data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId});
+            if(!error){
+              const row=Array.isArray(data)?data[0]:data;
+              stats.followers=Number(row?.followers_count)||0;
+              stats.following=Number(row?.following_count)||0;
+              // Use RPC outgoing values only when they are greater than the
+              // directly measured counts; direct queries remain the fallback.
+              stats.votesMade=Math.max(stats.votesMade,Number(row?.votes_made)||0);
+              stats.repostsMade=Math.max(stats.repostsMade,Number(row?.reposts_made)||0);
+              stats.commentsMade=Math.max(stats.commentsMade,Number(row?.comments_made)||0);
+            }
+          }catch(e){ console.warn('Public account stats RPC failed',e); }
+        }
       }
+
+      return stats;
     }
 
     async function openProfile(encodedName, encodedAccountId='', encodedGuestId=''){
