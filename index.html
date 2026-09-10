@@ -4356,19 +4356,12 @@ updateAchievements();
 
     async function ownerAddThought(){
       if(!(await checkOwner())) return alert('غير مصرح.');
-      const text = $id('owner-thought-text')?.value?.trim() || '';
+      const text = $id('owner-thought-text').value.trim();
       if(!text) return alert('اكتب الخاطرة الأول.');
-      try{
-        const { data, error } = await OWNER_DB.rpc('owner_add_thought', { p_text: text });
-        if(error) throw error;
-        $id('owner-thought-text').value = '';
-        await loadOwnerDashboard();
-        await loadAllThoughts();
-        alert('اتضافت الخاطرة بنجاح');
-      }catch(err){
-        console.error('[شخابيط] Owner add thought failed', err);
-        alert(err?.message || 'حصل خطأ أثناء الإضافة.');
-      }
+      const { data: insertedId, error } = await OWNER_DB.rpc('owner_add_thought', { p_text: text });
+      if(error) return alert('حصل خطأ أثناء الإضافة.');
+      $id('owner-thought-text').value = '';
+      await loadOwnerDashboard(); await loadAllThoughts(); alert('اتضافت الخاطرة بنجاح');
     }
 
     // قبول الخاطرة وإشعار صاحبها بالـ RPC
