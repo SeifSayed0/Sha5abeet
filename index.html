@@ -2320,12 +2320,33 @@ updateAchievements();
       btnElement.disabled = true;
 
       try {
-        const { data, error } = await DB.rpc(DB_RPC.toggleVote, {
+        // لو فيه Session مسجلة لكن AccountState لسه ما اتحملش،
+        // جهّز الهوية قبل التصويت. ده يمنع خطأ "No active account" لبعض
+        // المستخدمين اللي عندهم Session قديمة/رجعوا للموقع قبل اكتمال تحميل الحساب.
+        let session = null;
+        try { session = (await DB.auth.getSession())?.data?.session || null; } catch(e) {}
+        if(session?.user && !AccountState?.current?.id){
+          await loadMyAccounts();
+        }
+
+        const voteParams = {
           p_thought_id: target.id,
           p_guest_id: guestId,
           p_vote: voteValue
-        });
+        };
+        let resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
 
+        // إعادة محاولة آمنة فقط لأخطاء الهوية/الجلسة، وليس لأي خطأ عام؛
+        // عشان ما نكررش التصويت بالخطأ لو حصل خطأ شبكي بعد تنفيذ العملية.
+        if(resultRpc?.error && /no active account|not authenticated|jwt|session/i.test(resultRpc.error.message||'')){
+          try {
+            await DB.auth.refreshSession();
+            await loadMyAccounts();
+          } catch(e) {}
+          resultRpc = await DB.rpc(DB_RPC.toggleVote, voteParams);
+        }
+
+        const { data, error } = resultRpc;
         if(error) throw error;
         
         let myVotes = JSON.parse(localStorage.getItem(STORAGE_KEYS.votes) || '{}');
@@ -2538,33 +2559,96 @@ updateAchievements();
     async function getUserStats(targetName, targetAccountId='', targetGuestId=''){
       const accountId=String(targetAccountId||'').trim();
       const guestId=String(targetGuestId||'').trim();
-      const empty={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+      const stats={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
+
+      // 1) Identify the profile's actual thoughts first. This is the source of truth
+      // for old profiles as well as newer Account/Guest profiles.
+      let thoughtRows=[];
       try{
-        // One server-side identity calculation handles Account + linked Guest activity
-        // together, so old guest activity is not lost when a profile also has an account.
-        const {data,error}=await DB.rpc('get_public_profile_stats',{
-          p_account_id: accountId || null,
-          p_guest_id: guestId || null,
-          p_author_name: String(targetName||'').trim() || null
-        });
+        let q=DB.from(DB_TABLES.thoughts)
+          .select('id,upvotes_count,downvotes_count,guest_id,account_id')
+          .eq('status','approved');
+        if(accountId) q=q.eq('account_id',accountId);
+        else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
+        else q=q.eq('author_name',targetName);
+        const {data,error}=await q;
         if(error) throw error;
-        const row=Array.isArray(data)?data[0]:data;
-        return {
-          thoughtsCount:Number(row?.thoughts_count)||0,
-          votesMade:Number(row?.votes_made)||0,
-          votesReceived:Number(row?.votes_received)||0,
-          repostsMade:Number(row?.reposts_made)||0,
-          repostsReceived:Number(row?.reposts_received)||0,
-          commentsMade:Number(row?.comments_made)||0,
-          commentsReceived:Number(row?.comments_received)||0,
-          followers:Number(row?.followers_count)||0,
-          following:Number(row?.following_count)||0
-        };
+        thoughtRows=data||[];
       }catch(e){
-        console.warn('Could not load profile stats',e);
-        // Safe fallback: at least preserve the public thought count already loaded.
-        return {...empty};
+        console.warn('Profile thoughts stats query failed',e);
       }
+
+      if(thoughtRows.length){
+        stats.thoughtsCount=thoughtRows.length;
+        stats.votesReceived=thoughtRows.reduce((sum,x)=>
+          sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
+
+        const ids=thoughtRows.map(x=>Number(x.id)).filter(Number.isFinite);
+        if(ids.length){
+          // Each metric is intentionally isolated: a failure in one optional
+          // table must never erase the other profile statistics.
+          try{
+            const {count,error}=await DB.from(DB_TABLES.thoughtReposts)
+              .select('id',{count:'exact',head:true}).in('thought_id',ids);
+            if(!error) stats.repostsReceived=Number(count)||0;
+          }catch(e){ console.warn('Profile repost-received stats failed',e); }
+
+          try{
+            const {count,error}=await DB.from(DB_TABLES.thoughtComments)
+              .select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved');
+            if(!error) stats.commentsReceived=Number(count)||0;
+          }catch(e){ console.warn('Profile comment-received stats failed',e); }
+        }
+      }
+
+      // 2) Recover outgoing activity for identifiable Accounts/Guests.
+      // Legacy name-only profiles cannot safely expose outgoing activity, so
+      // those values remain zero rather than guessing an identity.
+      if(accountId || guestId){
+        try{
+          const q=accountId
+            ? DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('account_id',accountId)
+            : DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('guest_id',guestId);
+          const {count,error}=await q;
+          if(!error) stats.votesMade=Number(count)||0;
+        }catch(e){ console.warn('Profile votes-made stats failed',e); }
+
+        try{
+          const q=accountId
+            ? DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('account_id',accountId).eq('status','approved')
+            : DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('guest_id',guestId).eq('status','approved');
+          const {count,error}=await q;
+          if(!error) stats.commentsMade=Number(count)||0;
+        }catch(e){ console.warn('Profile comments-made stats failed',e); }
+
+        if(accountId){
+          try{
+            const {count,error}=await DB.from(DB_TABLES.thoughtReposts)
+              .select('id',{count:'exact',head:true}).eq('account_id',accountId);
+            if(!error) stats.repostsMade=Number(count)||0;
+          }catch(e){ console.warn('Profile reposts-made stats failed',e); }
+        }
+
+        // Followers/following are account-based. Keep the values from the RPC
+        // when available, but never let an RPC failure wipe the core stats above.
+        if(accountId){
+          try{
+            const {data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId});
+            if(!error){
+              const row=Array.isArray(data)?data[0]:data;
+              stats.followers=Number(row?.followers_count)||0;
+              stats.following=Number(row?.following_count)||0;
+              // Use RPC outgoing values only when they are greater than the
+              // directly measured counts; direct queries remain the fallback.
+              stats.votesMade=Math.max(stats.votesMade,Number(row?.votes_made)||0);
+              stats.repostsMade=Math.max(stats.repostsMade,Number(row?.reposts_made)||0);
+              stats.commentsMade=Math.max(stats.commentsMade,Number(row?.comments_made)||0);
+            }
+          }catch(e){ console.warn('Public account stats RPC failed',e); }
+        }
+      }
+
+      return stats;
     }
 
     async function openProfile(encodedName, encodedAccountId='', encodedGuestId=''){
@@ -2581,7 +2665,7 @@ updateAchievements();
       const isOwnerProfile=name==='صاحب المساحة'||name==='صديقنا';
       let all=[];
       try{
-        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id').eq('status','approved');
+        let q=DB.from(DB_TABLES.thoughts).select('id,author_name,text,status,upvotes_count,downvotes_count,created_at,account_id,guest_id,allow_comments').eq('status','approved');
         if(isOwnerProfile) q=q.or('author_name.is.null,author_name.eq.');
         else if(accountId) q=q.eq('account_id',accountId);
         else if(guestId) q=q.eq('guest_id',guestId).is('account_id',null);
@@ -2602,17 +2686,7 @@ updateAchievements();
       $id('profile-title').textContent=name;
       $id('profile-subtitle').textContent=isOwnerProfile?'مساحة شخابيط الرسمية':'مساحة هذا الشخص على شخابيط';
       $id('profile-avatar').textContent=(name||'م').trim().charAt(0)||'م';
-      // Use the identity actually attached to the loaded profile rows as the final source of truth.
-      // This protects Guest profiles from a stale/missing guest_id in the clicked profile link.
-      const rowAccountId=accountId || String(all.find(r=>r?.account_id)?.account_id||'');
-      const rowGuestId=guestId || String(all.find(r=>r?.guest_id && !r?.account_id)?.guest_id||'');
-      let stats=await getUserStats(name,rowAccountId,rowGuestId);
-      // If an old/stale profile link supplied a different identity, retry once using the
-      // identity read directly from the profile's thoughts. This keeps all nine counters
-      // server-derived and avoids any localStorage/RLS-dependent fallback.
-      if((stats.votesMade===0 && stats.commentsMade===0 && rowGuestId) && (rowGuestId!==guestId || !guestId)){
-        stats=await getUserStats(name,'',rowGuestId);
-      }
+      const stats=await getUserStats(name,accountId,guestId);
       $id('profile-thoughts').textContent=stats.thoughtsCount||all.length;
       $id('profile-votes-received').textContent=stats.votesReceived;
       $id('profile-reposts-received').textContent=stats.repostsReceived;
@@ -2705,13 +2779,32 @@ updateAchievements();
       box.innerHTML='<div class="account-content-empty">جاري تحميل الكومنتات...</div>';
       AppState.profile.comments=[];
       try{
-        let q=DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').order('created_at',{ascending:false});
-        if(accountId) q=q.eq('account_id',accountId);
-        else if(guestId) q=q.eq('guest_id',guestId);
-        else { box.innerHTML='<div class="account-content-empty">مفيش كومنتات متاحة حاليًا.</div>'; return; }
-        const {data,error}=await q;
-        if(error) throw error;
-        const rows=data||[];
+        const profileGuestIds=[...new Set((AppState.profile.thoughts||[]).map(t=>String(t.guest_id||'')).filter(Boolean))];
+        let rows=[];
+        if(accountId){
+          const {data,error}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').eq('account_id',accountId).order('created_at',{ascending:false});
+          if(error) throw error;
+          rows=data||[];
+          // Include old comments that were created before account_id existed.
+          if(profileGuestIds.length){
+            const {data:oldRows,error:oldErr}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').in('guest_id',profileGuestIds).order('created_at',{ascending:false});
+            if(oldErr) throw oldErr;
+            const seen=new Set(rows.map(c=>String(c.id)));
+            rows.push(...(oldRows||[]).filter(c=>!seen.has(String(c.id))));
+            rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+          }
+        }else if(guestId){
+          const {data,error}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').eq('guest_id',guestId).order('created_at',{ascending:false});
+          if(error) throw error;
+          rows=data||[];
+        }else if(profileGuestIds.length){
+          const {data,error}=await DB.from(DB_TABLES.comments).select('id,thought_id,text,created_at,status,account_id,guest_id').eq('status','approved').in('guest_id',profileGuestIds).order('created_at',{ascending:false});
+          if(error) throw error;
+          rows=data||[];
+        }else{
+          box.innerHTML='<div class="account-content-empty">مفيش كومنتات متاحة حاليًا.</div>';
+          return;
+        }
         const ids=rows.map(c=>Number(c.thought_id)).filter(Number.isFinite);
         let thoughts=[];
         if(ids.length){
@@ -3736,14 +3829,26 @@ updateAchievements();
       const val=input?.value?.trim()||'';
       if(!val) return alert('اكتب السؤال أولاً.');
       try{
-        const {error}=await DB.rpc(DB_RPC.setWeeklyPrompt,{p_question:val});
+        const {data,error}=await OWNER_DB.rpc(DB_RPC.setWeeklyPrompt,{p_question:val});
         if(error) throw error;
-        $id('weekly-prompt-text').textContent=val;
-        await loadOwnerWeeklyArchivePreview();
+
+        // The RPC is the source of truth. Once it succeeds, the question was
+        // saved successfully. Refreshing the optional archive preview must not
+        // turn a successful update into a false error message.
+        const promptEl=$id('weekly-prompt-text');
+        if(promptEl) promptEl.textContent=String(data?.question||val);
+        if(input) input.value=String(data?.question||val);
+
+        try{
+          await loadOwnerWeeklyArchivePreview();
+        }catch(archiveErr){
+          console.warn('[شخابيط] Weekly archive preview refresh failed after successful update',archiveErr);
+        }
+
         alert('تم تحديث سؤال الأسبوع وحفظ السؤال السابق في الأرشيف');
       }catch(err){
         logAppError('Weekly prompt update failed',err);
-        alert('تعذر تحديث السؤال. تأكد من تشغيل SQL الخاص بأرشيف أسئلة الأسبوع في Supabase.');
+        alert(err?.message||'تعذر تحديث سؤال الأسبوع حالياً.');
       }
     }
 
@@ -4253,11 +4358,8 @@ updateAchievements();
       if(!(await checkOwner())) return alert('غير مصرح.');
       const text = $id('owner-thought-text').value.trim();
       if(!text) return alert('اكتب الخاطرة الأول.');
-      const { data: insertedId, error } = await OWNER_DB.rpc('owner_add_thought', { p_text: text });
-      if(error) {
-        console.error('[شخابيط] Owner add thought failed', error);
-        return alert(error?.message || 'حصل خطأ أثناء الإضافة.');
-      }
+      const { error } = await OWNER_DB.from(DB_TABLES.thoughts).insert({author_name: null, text, status:'approved', allow_comments:false});
+      if(error) return alert('حصل خطأ أثناء الإضافة.');
       $id('owner-thought-text').value = '';
       await loadOwnerDashboard(); await loadAllThoughts(); alert('اتضافت الخاطرة بنجاح');
     }
