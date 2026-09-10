@@ -1163,12 +1163,46 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
     const SUPABASE_URL = "https://wrugthhpgqdwwbnxlenj.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydWd0aGhwZ3Fkd3dibnhsZW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMDkzNDMsImV4cCI6MjEwMzc4NTM0M30.Jpl7TTDZ12mrqocSV84aiWVpFECqlwo_uXkePnpdlow";
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'sha5abeet-user-auth-token' }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'sha5abeet-user-auth-token',
+        storage: window.localStorage
+      }
     });
     // Owner has an independent Auth session/storage key so Owner login never replaces the user's session.
     const ownerSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'sha5abeet-owner-auth-token' }
     });
+
+    /* ==================== USER SESSION PERSISTENCE SAFETY ====================
+       Keep a small recovery copy of the already-issued Supabase session.
+       This does NOT create a new auth identity and does NOT touch profile/data logic.
+       It only helps recover the session if the browser loses the Supabase storage entry
+       during a refresh. */
+    const USER_SESSION_RECOVERY_KEY = 'sha5abeet-session-recovery-v1';
+    function saveUserSessionRecovery(session){
+      try{
+        if(session?.access_token && session?.refresh_token){
+          localStorage.setItem(USER_SESSION_RECOVERY_KEY, JSON.stringify({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          }));
+        }
+      }catch(e){}
+    }
+    function clearUserSessionRecovery(){
+      try{ localStorage.removeItem(USER_SESSION_RECOVERY_KEY); }catch(e){}
+    }
+    function getUserSessionRecovery(){
+      try{
+        const raw=localStorage.getItem(USER_SESSION_RECOVERY_KEY);
+        if(!raw) return null;
+        const parsed=JSON.parse(raw);
+        return parsed?.access_token && parsed?.refresh_token ? parsed : null;
+      }catch(e){ return null; }
+    }
 
     /* ==================== DATA ACCESS LAYER ==================== */
     // كل تعاملات البيانات تمر من هنا. يفضل عدم استخدام supabaseClient مباشرة داخل منطق الواجهة.
@@ -1182,6 +1216,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       },
       auth: {
         getSession() { return supabaseClient.auth.getSession(); },
+        setSession(session) { return supabaseClient.auth.setSession(session); },
         refreshSession() { return supabaseClient.auth.refreshSession(); },
         getUser() { return supabaseClient.auth.getUser(); },
         signInWithOAuth(options) { return supabaseClient.auth.signInWithOAuth(options); },
@@ -3706,6 +3741,7 @@ updateAchievements();
     async function userLogout() {
       if(!confirm('هل أنت متأكد من تسجيل خروج حساب المستخدم؟')) return;
       AccountState = { current:null, accounts:[] };
+      clearUserSessionRecovery();
       await DB.auth.signOut();
       closeAuthModal();
       $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
@@ -4779,6 +4815,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
       setTimeout(async () => {
         try {
           if(event === 'SIGNED_IN' && session?.user){
+            saveUserSessionRecovery(session);
             await loadMyAccounts();
             try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
           } else if(event === 'SIGNED_OUT'){
@@ -4809,8 +4846,18 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     // One-time session sync after page initialization; this never logs out or refreshes.
     (async () => {
       try {
-        const userSession = (await DB.auth.getSession())?.data?.session || null;
-        if(userSession?.user) await loadMyAccounts();
+        let userSession = (await DB.auth.getSession())?.data?.session || null;
+        if(userSession?.user){
+          saveUserSessionRecovery(userSession);
+          await loadMyAccounts();
+        } else {
+          const recovered = getUserSessionRecovery();
+          if(recovered){
+            const restored = await DB.auth.setSession(recovered);
+            userSession = restored?.data?.session || null;
+            if(userSession?.user) await loadMyAccounts();
+          }
+        }
       } catch(e) { logAppError('Initial user session sync failed', e); }
       try {
         const ownerSession = (await OWNER_DB.auth.getSession())?.data?.session || null;
