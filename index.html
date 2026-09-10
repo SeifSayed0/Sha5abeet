@@ -1240,6 +1240,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       createAccount: 'create_my_account',
       getMyAccounts: 'get_my_accounts',
       getPublicAccountStats: 'get_public_account_stats',
+      getPublicGuestStats: 'get_public_guest_stats',
       toggleAccountFollow: 'toggle_account_follow',
       toggleMyRepost: 'toggle_my_repost',
     });
@@ -2561,8 +2562,8 @@ updateAchievements();
       const guestId=String(targetGuestId||'').trim();
       const stats={thoughtsCount:0,votesMade:0,votesReceived:0,repostsMade:0,repostsReceived:0,commentsMade:0,commentsReceived:0,followers:0,following:0};
 
-      // 1) Identify the profile's actual thoughts first. This is the source of truth
-      // for old profiles as well as newer Account/Guest profiles.
+      // الخواطر نفسها هي مصدر الحقيقة للجزء الخاص بالأثر على شخابيط.
+      // ده كمان بيشتغل مع البروفايلات القديمة اللي مالهاش Account.
       let thoughtRows=[];
       try{
         let q=DB.from(DB_TABLES.thoughts)
@@ -2574,25 +2575,18 @@ updateAchievements();
         const {data,error}=await q;
         if(error) throw error;
         thoughtRows=data||[];
-      }catch(e){
-        console.warn('Profile thoughts stats query failed',e);
-      }
+      }catch(e){ console.warn('Profile thoughts stats query failed',e); }
 
       if(thoughtRows.length){
         stats.thoughtsCount=thoughtRows.length;
-        stats.votesReceived=thoughtRows.reduce((sum,x)=>
-          sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
-
+        stats.votesReceived=thoughtRows.reduce((sum,x)=>sum+(Number(x.upvotes_count)||0)+(Number(x.downvotes_count)||0),0);
         const ids=thoughtRows.map(x=>Number(x.id)).filter(Number.isFinite);
         if(ids.length){
-          // Each metric is intentionally isolated: a failure in one optional
-          // table must never erase the other profile statistics.
           try{
             const {count,error}=await DB.from(DB_TABLES.thoughtReposts)
               .select('id',{count:'exact',head:true}).in('thought_id',ids);
             if(!error) stats.repostsReceived=Number(count)||0;
           }catch(e){ console.warn('Profile repost-received stats failed',e); }
-
           try{
             const {count,error}=await DB.from(DB_TABLES.thoughtComments)
               .select('id',{count:'exact',head:true}).in('thought_id',ids).eq('status','approved');
@@ -2601,9 +2595,8 @@ updateAchievements();
         }
       }
 
-      // 2) Recover outgoing activity for identifiable Accounts/Guests.
-      // Legacy name-only profiles cannot safely expose outgoing activity, so
-      // those values remain zero rather than guessing an identity.
+      // التفاعل الشخصي: نقرأه مباشرة أولاً، ثم نستخدم RPC الـsecurity-definer
+      // كـfallback عشان RLS ما يخليش بروفايل قديم يظهر بأصفار كاذبة.
       if(accountId || guestId){
         try{
           const q=accountId
@@ -2629,8 +2622,6 @@ updateAchievements();
           }catch(e){ console.warn('Profile reposts-made stats failed',e); }
         }
 
-        // Followers/following are account-based. Keep the values from the RPC
-        // when available, but never let an RPC failure wipe the core stats above.
         if(accountId){
           try{
             const {data,error}=await DB.rpc(DB_RPC.getPublicAccountStats,{p_account_id:accountId});
@@ -2638,16 +2629,30 @@ updateAchievements();
               const row=Array.isArray(data)?data[0]:data;
               stats.followers=Number(row?.followers_count)||0;
               stats.following=Number(row?.following_count)||0;
-              // Use RPC outgoing values only when they are greater than the
-              // directly measured counts; direct queries remain the fallback.
               stats.votesMade=Math.max(stats.votesMade,Number(row?.votes_made)||0);
               stats.repostsMade=Math.max(stats.repostsMade,Number(row?.reposts_made)||0);
               stats.commentsMade=Math.max(stats.commentsMade,Number(row?.comments_made)||0);
             }
           }catch(e){ console.warn('Public account stats RPC failed',e); }
+        }else if(guestId){
+          try{
+            const {data,error}=await DB.rpc(DB_RPC.getPublicGuestStats,{p_guest_id:guestId});
+            if(!error){
+              const row=Array.isArray(data)?data[0]:data;
+              // RPC is the authoritative fallback for guest historical activity.
+              stats.votesMade=Math.max(stats.votesMade,Number(row?.votes_made)||0);
+              stats.repostsMade=Math.max(stats.repostsMade,Number(row?.reposts_made)||0);
+              stats.commentsMade=Math.max(stats.commentsMade,Number(row?.comments_made)||0);
+              stats.followers=Math.max(stats.followers,Number(row?.followers_count)||0);
+              stats.following=Math.max(stats.following,Number(row?.following_count)||0);
+              stats.repostsReceived=Math.max(stats.repostsReceived,Number(row?.reposts_received)||0);
+              stats.commentsReceived=Math.max(stats.commentsReceived,Number(row?.comments_received)||0);
+              stats.votesReceived=Math.max(stats.votesReceived,Number(row?.votes_received)||0);
+              stats.thoughtsCount=Math.max(stats.thoughtsCount,Number(row?.thoughts_count)||0);
+            }
+          }catch(e){ console.warn('Public guest stats RPC failed',e); }
         }
       }
-
       return stats;
     }
 
