@@ -2598,12 +2598,35 @@ updateAchievements();
       // التفاعل الشخصي: نقرأه مباشرة أولاً، ثم نستخدم RPC الـsecurity-definer
       // كـfallback عشان RLS ما يخليش بروفايل قديم يظهر بأصفار كاذبة.
       if(accountId || guestId){
+        // Read outgoing activity from the security-definer stats RPC first.
+        // Direct table reads can be hidden by RLS for public profile viewers.
+        let publicStatsRow=null;
+        try{
+          const rpcName=accountId ? DB_RPC.getPublicAccountStats : DB_RPC.getPublicGuestStats;
+          const params=accountId ? {p_account_id:accountId} : {p_guest_id:guestId};
+          const {data,error}=await DB.rpc(rpcName,params);
+          if(!error) publicStatsRow=Array.isArray(data)?data[0]:data;
+        }catch(e){ console.warn('Public profile stats RPC failed',e); }
+
+        if(publicStatsRow){
+          stats.votesMade=Number(publicStatsRow?.votes_made)||0;
+          stats.repostsMade=Number(publicStatsRow?.reposts_made)||0;
+          stats.commentsMade=Number(publicStatsRow?.comments_made)||0;
+          stats.followers=Number(publicStatsRow?.followers_count)||0;
+          stats.following=Number(publicStatsRow?.following_count)||0;
+          stats.repostsReceived=Math.max(stats.repostsReceived,Number(publicStatsRow?.reposts_received)||0);
+          stats.commentsReceived=Math.max(stats.commentsReceived,Number(publicStatsRow?.comments_received)||0);
+          stats.votesReceived=Math.max(stats.votesReceived,Number(publicStatsRow?.votes_received)||0);
+          stats.thoughtsCount=Math.max(stats.thoughtsCount,Number(publicStatsRow?.thoughts_count)||0);
+        }
+
+        // Direct reads are only a fallback; never replace a successful RPC value with 0.
         try{
           const q=accountId
             ? DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('account_id',accountId)
             : DB.from(DB_TABLES.guestVotes).select('id',{count:'exact',head:true}).eq('guest_id',guestId);
           const {count,error}=await q;
-          if(!error) stats.votesMade=Number(count)||0;
+          if(!error) stats.votesMade=Math.max(stats.votesMade,Number(count)||0);
         }catch(e){ console.warn('Profile votes-made stats failed',e); }
 
         try{
@@ -2611,14 +2634,14 @@ updateAchievements();
             ? DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('account_id',accountId).eq('status','approved')
             : DB.from(DB_TABLES.thoughtComments).select('id',{count:'exact',head:true}).eq('guest_id',guestId).eq('status','approved');
           const {count,error}=await q;
-          if(!error) stats.commentsMade=Number(count)||0;
+          if(!error) stats.commentsMade=Math.max(stats.commentsMade,Number(count)||0);
         }catch(e){ console.warn('Profile comments-made stats failed',e); }
 
         if(accountId){
           try{
             const {count,error}=await DB.from(DB_TABLES.thoughtReposts)
               .select('id',{count:'exact',head:true}).eq('account_id',accountId);
-            if(!error) stats.repostsMade=Number(count)||0;
+            if(!error) stats.repostsMade=Math.max(stats.repostsMade,Number(count)||0);
           }catch(e){ console.warn('Profile reposts-made stats failed',e); }
         }
 
