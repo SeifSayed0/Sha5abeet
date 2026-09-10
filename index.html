@@ -4358,7 +4358,7 @@ updateAchievements();
       if(!(await checkOwner())) return alert('غير مصرح.');
       const text = $id('owner-thought-text').value.trim();
       if(!text) return alert('اكتب الخاطرة الأول.');
-      const { error } = await OWNER_DB.from(DB_TABLES.thoughts).insert({author_name: null, text, status:'approved', allow_comments:false});
+      const { data: insertedId, error } = await OWNER_DB.rpc('owner_add_thought', { p_text: text });
       if(error) return alert('حصل خطأ أثناء الإضافة.');
       $id('owner-thought-text').value = '';
       await loadOwnerDashboard(); await loadAllThoughts(); alert('اتضافت الخاطرة بنجاح');
