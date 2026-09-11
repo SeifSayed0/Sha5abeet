@@ -4772,21 +4772,53 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     }, true);
   }
 
-  DB.auth.onAuthStateChange((event, session) => {
-      // Never call signOut() or refreshSession() from this listener.
-      // It only synchronizes UI/data with the already-persisted Supabase session.
-      console.info('[شخابيط][USER AUTH]', event, session?.user ? 'session-present' : 'no-session');
-      setTimeout(async () => {
-        try {
-          if(event === 'SIGNED_IN' && session?.user){
-            await loadMyAccounts();
-            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
-          } else if(event === 'SIGNED_OUT'){
-            AccountState = { current:null, accounts:[] };
-            try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
+    let userSessionSyncInFlight = false;
+    let userSessionSyncQueued = false;
+
+    async function syncUserSessionState(session, event=''){
+      if(userSessionSyncInFlight){
+        userSessionSyncQueued = true;
+        return;
+      }
+      userSessionSyncInFlight = true;
+      try{
+        console.info('[شخابيط][USER AUTH]', event, session?.user ? 'session-present' : 'no-session');
+        if(session?.user){
+          const accounts = await loadMyAccounts();
+          // فشل RPC تحميل الحسابات لا يعني أن جلسة Supabase انتهت.
+          // نترك الجلسة كما هي ولا نمسح AccountState في هذه الحالة.
+          if(accounts === null){
+            logAppError('User session exists but accounts could not be loaded', {event});
+            return;
           }
-        } catch(e) { logAppError('User auth state handling failed', e); }
-      }, 0);
+          syncAccountScopedLocalUI();
+          await syncMainAuthButton();
+        }else if(event === 'SIGNED_OUT'){
+          AccountState = { current:null, accounts:[] };
+          AppState.engagement.guestVoteStates = {};
+          syncAccountScopedLocalUI();
+          await syncMainAuthButton();
+          // بعد الخروج نعيد القراءة بهوية Guest، مع الحفاظ على guest_id.
+          await loadAllThoughts(true);
+        }
+      }catch(e){
+        logAppError('User auth state handling failed', e);
+      }finally{
+        userSessionSyncInFlight = false;
+        if(userSessionSyncQueued){
+          userSessionSyncQueued = false;
+          setTimeout(async () => {
+            const latest = (await DB.auth.getSession())?.data?.session || null;
+            await syncUserSessionState(latest, 'QUEUED_SYNC');
+          }, 0);
+        }
+      }
+    }
+
+    DB.auth.onAuthStateChange((event, session) => {
+      // لا ننفذ signOut أو refreshSession داخل المستمع حتى لا نصنع loop.
+      // INITIAL_SESSION مهم جدًا عند Refresh الصفحة.
+      setTimeout(() => syncUserSessionState(session, event), 0);
     });
 
     OWNER_DB.auth.onAuthStateChange((event, session) => {
@@ -4810,7 +4842,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     (async () => {
       try {
         const userSession = (await DB.auth.getSession())?.data?.session || null;
-        if(userSession?.user) await loadMyAccounts();
+        await syncUserSessionState(userSession, 'INITIAL_SESSION');
       } catch(e) { logAppError('Initial user session sync failed', e); }
       try {
         const ownerSession = (await OWNER_DB.auth.getSession())?.data?.session || null;
