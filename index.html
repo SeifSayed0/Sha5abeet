@@ -1162,46 +1162,54 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
   <script>
     const SUPABASE_URL = "https://wrugthhpgqdwwbnxlenj.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydWd0aGhwZ3Fkd3dibnhsZW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMDkzNDMsImV4cCI6MjEwMzc4NTM0M30.Jpl7TTDZ12mrqocSV84aiWVpFECqlwo_uXkePnpdlow";
+    const AUTH_STORAGE = window.localStorage;
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
         storageKey: 'sha5abeet-user-auth-token',
-        storage: window.localStorage
+        storage: AUTH_STORAGE
       }
     });
     // Owner has an independent Auth session/storage key so Owner login never replaces the user's session.
     const ownerSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'sha5abeet-owner-auth-token' }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: 'sha5abeet-owner-auth-token',
+        storage: AUTH_STORAGE
+      }
     });
 
-    /* ==================== USER SESSION PERSISTENCE SAFETY ====================
-       Keep a small recovery copy of the already-issued Supabase session.
-       This does NOT create a new auth identity and does NOT touch profile/data logic.
-       It only helps recover the session if the browser loses the Supabase storage entry
-       during a refresh. */
-    const USER_SESSION_RECOVERY_KEY = 'sha5abeet-session-recovery-v1';
-    function saveUserSessionRecovery(session){
+    /* ==================== AUTH SESSION SAFETY ====================
+       Supabase remains the source of truth. These tiny recovery copies are only a
+       last-resort bridge if the browser loses one of the persisted session entries
+       during a page reload. They are deliberately separate for User and Owner.
+    ================================================================ */
+    const USER_AUTH_RECOVERY_KEY = 'sha5abeet-user-auth-recovery-v2';
+    const OWNER_AUTH_RECOVERY_KEY = 'sha5abeet-owner-auth-recovery-v2';
+    function saveAuthRecovery(key, session){
       try{
         if(session?.access_token && session?.refresh_token){
-          localStorage.setItem(USER_SESSION_RECOVERY_KEY, JSON.stringify({
+          AUTH_STORAGE.setItem(key, JSON.stringify({
             access_token: session.access_token,
             refresh_token: session.refresh_token
           }));
         }
-      }catch(e){}
+      }catch(e){ console.warn('[شخابيط][AUTH RECOVERY] save failed',e); }
     }
-    function clearUserSessionRecovery(){
-      try{ localStorage.removeItem(USER_SESSION_RECOVERY_KEY); }catch(e){}
-    }
-    function getUserSessionRecovery(){
+    function readAuthRecovery(key){
       try{
-        const raw=localStorage.getItem(USER_SESSION_RECOVERY_KEY);
+        const raw=AUTH_STORAGE.getItem(key);
         if(!raw) return null;
-        const parsed=JSON.parse(raw);
-        return parsed?.access_token && parsed?.refresh_token ? parsed : null;
+        const v=JSON.parse(raw);
+        return v?.access_token && v?.refresh_token ? v : null;
       }catch(e){ return null; }
+    }
+    function clearAuthRecovery(key){
+      try{ AUTH_STORAGE.removeItem(key); }catch(e){}
     }
 
     /* ==================== DATA ACCESS LAYER ==================== */
@@ -1233,6 +1241,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       rpc(name, params) { return this.client.rpc(name, params); },
       auth: {
         getSession() { return ownerSupabaseClient.auth.getSession(); },
+        setSession(session) { return ownerSupabaseClient.auth.setSession(session); },
         refreshSession() { return ownerSupabaseClient.auth.refreshSession(); },
         getUser() { return ownerSupabaseClient.auth.getUser(); },
         signInWithPassword(options) { return ownerSupabaseClient.auth.signInWithPassword(options); },
@@ -3732,6 +3741,7 @@ updateAchievements();
 
     async function ownerLogout(){
       if(!confirm('هل أنت متأكد من تسجيل خروج المالك؟')) return;
+      clearAuthRecovery(OWNER_AUTH_RECOVERY_KEY);
       await OWNER_DB.auth.signOut();
       closeOwnerDashboard();
       $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
@@ -3741,7 +3751,6 @@ updateAchievements();
     async function userLogout() {
       if(!confirm('هل أنت متأكد من تسجيل خروج حساب المستخدم؟')) return;
       AccountState = { current:null, accounts:[] };
-      clearUserSessionRecovery();
       await DB.auth.signOut();
       closeAuthModal();
       $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>';
@@ -4814,9 +4823,9 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
       console.info('[شخابيط][USER AUTH]', event, session?.user ? 'session-present' : 'no-session');
       setTimeout(async () => {
         try {
-          if(event === 'SIGNED_IN' && session?.user){
-            saveUserSessionRecovery(session);
-            await loadMyAccounts();
+          if((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user){
+            saveAuthRecovery(USER_AUTH_RECOVERY_KEY,session);
+            if(event !== 'TOKEN_REFRESHED') await loadMyAccounts();
             try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
           } else if(event === 'SIGNED_OUT'){
             AccountState = { current:null, accounts:[] };
@@ -4831,8 +4840,9 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
       console.info('[شخابيط][OWNER AUTH]', event, session?.user ? 'session-present' : 'no-session');
       setTimeout(async () => {
         try {
-          if(event === 'SIGNED_IN' && session?.user){
-            await checkOwnerPendingNotifications();
+          if((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user){
+            saveAuthRecovery(OWNER_AUTH_RECOVERY_KEY,session);
+            if(event !== 'TOKEN_REFRESHED') await checkOwnerPendingNotifications();
             try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>'; } catch(e) {}
           } else if(event === 'SIGNED_OUT'){
             try { $id('main-auth-btn').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>'; } catch(e) {}
@@ -4848,20 +4858,30 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
       try {
         let userSession = (await DB.auth.getSession())?.data?.session || null;
         if(userSession?.user){
-          saveUserSessionRecovery(userSession);
+          saveAuthRecovery(USER_AUTH_RECOVERY_KEY,userSession);
           await loadMyAccounts();
         } else {
-          const recovered = getUserSessionRecovery();
+          const recovered=readAuthRecovery(USER_AUTH_RECOVERY_KEY);
           if(recovered){
-            const restored = await DB.auth.setSession(recovered);
-            userSession = restored?.data?.session || null;
-            if(userSession?.user) await loadMyAccounts();
+            const restored=await DB.auth.setSession(recovered);
+            userSession=restored?.data?.session || null;
+            if(userSession?.user){ saveAuthRecovery(USER_AUTH_RECOVERY_KEY,userSession); await loadMyAccounts(); }
           }
         }
       } catch(e) { logAppError('Initial user session sync failed', e); }
       try {
-        const ownerSession = (await OWNER_DB.auth.getSession())?.data?.session || null;
-        if(ownerSession?.user) await checkOwnerPendingNotifications();
+        let ownerSession = (await OWNER_DB.auth.getSession())?.data?.session || null;
+        if(ownerSession?.user){
+          saveAuthRecovery(OWNER_AUTH_RECOVERY_KEY,ownerSession);
+          await checkOwnerPendingNotifications();
+        } else {
+          const recovered=readAuthRecovery(OWNER_AUTH_RECOVERY_KEY);
+          if(recovered){
+            const restored=await OWNER_DB.auth.setSession(recovered);
+            ownerSession=restored?.data?.session || null;
+            if(ownerSession?.user){ saveAuthRecovery(OWNER_AUTH_RECOVERY_KEY,ownerSession); await checkOwnerPendingNotifications(); }
+          }
+        }
       } catch(e) { logAppError('Initial owner session sync failed', e); }
     })();
   </script>
