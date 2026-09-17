@@ -386,10 +386,18 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .audio-inline-block{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .audio-inline-heading{font-size:12px;color:var(--primary-strong);font-weight:800;display:flex;align-items:center;gap:5px;margin-bottom:9px}
 .audio-list{display:grid;gap:10px}
-.audio-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px;box-shadow:var(--shadow);text-align:right}
+.audio-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:13px;margin-bottom:10px;box-shadow:var(--shadow);text-align:right}
 .audio-card-title{font-size:14px;font-weight:800;color:var(--text);margin:0 0 3px;overflow-wrap:anywhere}
 .audio-card-description{font-size:11px;color:var(--muted);line-height:1.7;margin:0 0 9px;white-space:pre-wrap;overflow-wrap:anywhere}
-.audio-card audio{width:100%;height:38px;display:block}
+.audio-card-player{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:8px 10px}
+.audio-play-btn{width:40px;height:40px;flex:0 0 40px;border:0;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 5px 12px rgba(62,138,147,.2)}
+.audio-play-btn:hover{background:var(--primary-strong)}
+.audio-wave{height:38px;flex:1;display:flex;align-items:center;justify-content:center;gap:3px;overflow:hidden;direction:ltr}
+.audio-wave i{display:block;width:3px;height:var(--h);min-height:6px;border-radius:99px;background:var(--primary);opacity:.55;transform-origin:center;transition:opacity .2s ease}
+.audio-card.is-playing .audio-wave i{animation:audioWave .85s ease-in-out infinite alternate;opacity:1;animation-delay:var(--d)}
+@keyframes audioWave{from{transform:scaleY(.45)}to{transform:scaleY(1.08)}}
+.audio-card-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;color:var(--muted);font-size:10px}
+.audio-card-listen-count{display:inline-flex;align-items:center;gap:4px;color:var(--primary-strong);font-weight:800}
 @media (max-width:520px){.audio-owner-actions{grid-template-columns:1fr}.audio-card{padding:11px}}
 .owner-tabs-bar{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 11px;border-bottom:1px solid var(--border);margin-bottom:15px;scrollbar-width:none}
 .owner-tabs-bar::-webkit-scrollbar{display:none}
@@ -1202,7 +1210,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div class="discovery-sub"><span id="discovery-summary">كل المحتوى في مكان واحد</span><span class="streak-pill" id="streak-pill"></span></div>
       </section>
 
-      <section aria-labelledby="owner-heading"><div class="section-header"><h2 id="owner-heading"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg> خواطر المكان</h2><div class="sort-bar"><button class="sort-btn active" id="owner-sort-new" type="button" data-action="setSort('owner','newest')">الأحدث</button><button class="sort-btn" id="owner-sort-top" type="button" data-action="setSort('owner','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="owner-list" aria-live="polite"></div><div class="audio-inline-block"><div class="audio-inline-heading"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> خواطر صوتية من صاحب المساحة</div><div id="owner-audio-list" class="audio-list" aria-live="polite"><div class="state-box">جاري تحميل الخواطر الصوتية…</div></div></div></section>
+      <section aria-labelledby="owner-heading"><div class="section-header"><h2 id="owner-heading"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg> خواطر المكان</h2><div class="sort-bar"><button class="sort-btn active" id="owner-sort-new" type="button" data-action="setSort('owner','newest')">الأحدث</button><button class="sort-btn" id="owner-sort-top" type="button" data-action="setSort('owner','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="owner-list" aria-live="polite"></div></section>
       <section aria-labelledby="visitor-heading"><div class="section-header"><h2 id="visitor-heading"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> مشاركات الزوار</h2><div class="sort-bar"><button class="sort-btn active" id="visitor-sort-new" type="button" data-action="setSort('visitor','newest')">الأحدث</button><button class="sort-btn" id="visitor-sort-top" type="button" data-action="setSort('visitor','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="visitor-list" aria-live="polite"></div></section>
       
     </main>
@@ -1401,7 +1409,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         discoveryResults: null,
         discoveryLoading: false,
         discoveryCache: new Map(),
-        searchSort: 'newest'
+        searchSort: 'newest',
+        audioThoughts: []
       },
       comments: {
         activeThoughtId: null,
@@ -2443,6 +2452,56 @@ updateAchievements();
       }catch(err){ console.error('Comment counts error',err); }
     }
 
+    function audioWaveHTML(){
+      const heights=[18,28,12,34,22,38,16,30,25,14,36,20,31,17,27,11,35,23,30,15,37,21,29,18];
+      return heights.map((h,i)=>`<i style="--h:${h}px;--d:${(i%7)*.07}s"></i>`).join('');
+    }
+
+    function audioThoughtCardHTML(item){
+      const id=String(item.id||'');
+      return `<article class="card audio-card" data-audio-card-id="${escapeHTML(id)}">
+        <h3 class="audio-card-title">${escapeHTML(item.title||'خاطرة صوتية')}</h3>
+        ${item.description?`<p class="audio-card-description">${escapeHTML(item.description)}</p>`:''}
+        <div class="audio-card-player">
+          <button class="audio-play-btn" type="button" data-action="toggleAudioPlayback('${enc(id)}')" aria-label="تشغيل الخاطرة الصوتية"><svg class="ic" aria-hidden="true"><use href="#i-arrow-right"></use></svg></button>
+          <div class="audio-wave" aria-hidden="true">${audioWaveHTML()}</div>
+          <audio id="audio-track-${escapeHTML(id)}" preload="none" src="${escapeHTML(assertSafeUrl(item.audio_url||''))}"></audio>
+        </div>
+        <div class="audio-card-meta"><span>${escapeHTML(formatDate(item.created_at))}</span><span class="audio-card-listen-count"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg> <b id="audio-listens-${escapeHTML(id)}">${Number(item.listeners_count)||0}</b> مستمع</span></div>
+      </article>`;
+    }
+
+    async function registerAudioPlay(id){
+      try{
+        const {data,error}=await DB.rpc('increment_audio_listens',{p_audio_id:id});
+        if(error) throw error;
+        const count=Number(data)||0;
+        const el=$id(`audio-listens-${id}`); if(el) el.textContent=String(count);
+      }catch(err){ console.warn('Audio listen count failed',err); }
+    }
+
+    async function toggleAudioPlayback(encodedId){
+      const id=decodeURIComponent(String(encodedId||''));
+      const audio=$id(`audio-track-${id}`), card=document.querySelector(`[data-audio-card-id="${CSS.escape(id)}"]`), btn=card?.querySelector('.audio-play-btn');
+      if(!audio || !card) return;
+      document.querySelectorAll('.audio-card audio').forEach(other=>{ if(other!==audio){ other.pause(); other.closest('.audio-card')?.classList.remove('is-playing'); const b=other.closest('.audio-card')?.querySelector('.audio-play-btn'); if(b) b.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-arrow-right"></use></svg>'; }});
+      if(audio.paused){
+        try{ await audio.play(); }catch(err){ return alert('اضغط تشغيل مرة تانية للسماح بتشغيل الصوت.'); }
+        card.classList.add('is-playing');
+        if(btn) btn.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg>';
+        registerAudioPlay(id);
+        audio.onended=()=>{ card.classList.remove('is-playing'); if(btn) btn.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-arrow-right"></use></svg>'; };
+      }else{
+        audio.pause(); card.classList.remove('is-playing');
+        if(btn) btn.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-arrow-right"></use></svg>';
+      }
+    }
+
+    function renderAudioThoughtsInOwnerList(){
+      const ownerList=$id('owner-list'); if(!ownerList || !AppState.thoughts.audioThoughts?.length) return;
+      ownerList.insertAdjacentHTML('beforeend',AppState.thoughts.audioThoughts.map(audioThoughtCardHTML).join(''));
+    }
+
     /* Renderers: owner/visitor feed */
     function renderOwnerThoughts(){
       const div = $id('owner-list');
@@ -2450,7 +2509,7 @@ updateAchievements();
       let list=sortThoughts(getFilteredList(source),AppState.owner.sort);
       if(AppState.thoughts.discoveryMode === 'visitors') list = [];
       if(AppState.thoughts.discoveryMode === 'top') list = sortThoughts(list, 'top');
-      if(!list.length){
+      if(!list.length && !AppState.thoughts.audioThoughts?.length){
         setHTML(div, emptyState(AppState.thoughts.onlyFavoritesMode ? 'مفيش خواطر محفوظة عندك لسه.' : 'لا توجد خواطر مطابقة.', AppState.thoughts.onlyFavoritesMode ? '<svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg>' : '<svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg>'));
         return;
       }
@@ -2499,6 +2558,7 @@ updateAchievements();
             </div>
           </article>`;
       }).join(''));
+      renderAudioThoughtsInOwnerList();
       refreshCommentCounts(list.map(i=>i.id));
     }
 
@@ -3827,15 +3887,15 @@ updateAchievements();
     }
 
     async function loadAudioThoughts(){
-      const box=$id('owner-audio-list'); if(!box) return;
       try{
-        const {data,error}=await DB.from(DB_TABLES.audioThoughts).select('id,title,description,audio_url,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(50);
+        const {data,error}=await DB.from(DB_TABLES.audioThoughts).select('id,title,description,audio_url,listeners_count,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(50);
         if(error) throw error;
-        if(!data?.length){ box.innerHTML='<div class="state-box">لسه مفيش خواطر صوتية منشورة.</div>'; return; }
-        box.innerHTML=data.map(item=>`<article class="audio-card"><h3 class="audio-card-title">${escapeHTML(item.title||'خاطرة صوتية')}</h3>${item.description?`<p class="audio-card-description">${escapeHTML(item.description)}</p>`:''}<audio controls preload="none" src="${escapeHTML(item.audio_url||'')}"></audio></article>`).join('');
+        AppState.thoughts.audioThoughts=data||[];
+        renderOwnerThoughts();
       }catch(err){
         console.warn('Audio thoughts load failed',err);
-        box.innerHTML='<div class="state-box">تعذر تحميل الخواطر الصوتية حاليًا.</div>';
+        AppState.thoughts.audioThoughts=[];
+        renderOwnerThoughts();
       }
     }
 
@@ -4919,6 +4979,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     handleVote,
     openCommentsModal,
     loadMoreComments,
+    toggleAudioPlayback,
     toggleThoughtCommentsState,
     requestDeleteThought,
     openProfile,
