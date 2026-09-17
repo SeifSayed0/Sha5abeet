@@ -398,6 +398,9 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 @keyframes audioWave{from{transform:scaleY(.45)}to{transform:scaleY(1.08)}}
 .audio-card-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;color:var(--muted);font-size:10px}
 .audio-card-listen-count{display:inline-flex;align-items:center;gap:4px;color:var(--primary-strong);font-weight:800}
+.audio-card-actions{display:flex;align-items:center;gap:6px;margin-top:10px;overflow-x:auto}
+.audio-card-actions .action-sub-btn{min-width:42px}
+.audio-seek-btn{font-size:10px;font-weight:800;white-space:nowrap}
 @media (max-width:520px){.audio-owner-actions{grid-template-columns:1fr}.audio-card{padding:11px}}
 .owner-tabs-bar{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 11px;border-bottom:1px solid var(--border);margin-bottom:15px;scrollbar-width:none}
 .owner-tabs-bar::-webkit-scrollbar{display:none}
@@ -1414,6 +1417,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       },
       comments: {
         activeThoughtId: null,
+        activeAudioId: null,
         allowCommentsSelected: true,
         page: 0,
         total: 0,
@@ -2071,6 +2075,7 @@ updateAchievements();
 
     async function openCommentsModal(thoughtId){
       AppState.comments.activeThoughtId = thoughtId;
+      AppState.comments.activeAudioId = null;
       try { localStorage.setItem('shakabeet_open_comments_thought', String(thoughtId)); } catch(e) {}
       AppState.comments.page = 0;
       AppState.comments.total = 0;
@@ -2094,6 +2099,21 @@ updateAchievements();
       await loadCommentsPage(true);
     }
 
+    async function openAudioComments(encodedId){
+      const id=decodeURIComponent(String(encodedId||''));
+      AppState.comments.activeThoughtId = null;
+      AppState.comments.activeAudioId = id;
+      AppState.comments.page=0; AppState.comments.total=0; AppState.comments.loading=false;
+      $id('comment-text-input').value='';
+      const audio=AppState.thoughts.audioThoughts.find(item=>String(item.id)===id);
+      $id('comments-thought-text').textContent=audio?.title || 'خاطرة صوتية';
+      $id('comments-thought-meta').textContent='صاحب المساحة · خاطرة صوتية';
+      $id('comments-count-label').textContent='0 كومنت';
+      setHTML($id('comments-list'),'<div style="color:var(--muted); text-align:center; padding:15px 0; font-size:12px;">جاري تحميل الردود...</div>');
+      $id('comments-modal').style.display='flex'; document.body.classList.add('modal-open');
+      await loadCommentsPage(true);
+    }
+
     async function loadCommentsPage(reset = false){
       const thoughtId = AppState.comments.activeThoughtId;
       if(!thoughtId || AppState.comments.loading) return;
@@ -2103,13 +2123,11 @@ updateAchievements();
         const page = reset ? 0 : AppState.comments.page;
         const from = page * APP_CONFIG.commentsPageSize;
         const to = from + APP_CONFIG.commentsPageSize - 1;
-        const { data, error, count } = await DB
-          .from(DB_TABLES.comments)
-          .select('*', { count: 'exact' })
-          .eq('thought_id', thoughtId)
-          .eq('status', 'approved')
-          .order('created_at', {ascending:true})
-          .range(from, to);
+        let commentsQuery=DB.from(DB_TABLES.comments).select('*', { count: 'exact' }).eq('status', 'approved');
+        commentsQuery=AppState.comments.activeAudioId
+          ? commentsQuery.eq('audio_thought_id',AppState.comments.activeAudioId)
+          : commentsQuery.eq('thought_id',thoughtId);
+        const { data, error, count } = await commentsQuery.order('created_at', {ascending:true}).range(from, to);
         if(error) throw error;
 
         AppState.comments.total = count || 0;
@@ -2172,6 +2190,7 @@ updateAchievements();
       $id('comments-modal').style.display = 'none';
       document.body.classList.remove('modal-open');
       AppState.comments.activeThoughtId = null;
+      AppState.comments.activeAudioId = null;
       try { localStorage.removeItem('shakabeet_open_comments_thought'); } catch(e) {}
     }
 
@@ -2204,14 +2223,16 @@ updateAchievements();
       btn.textContent = 'جاري الإرسال...';
 
       try {
-        const { error } = await DB.from(DB_TABLES.comments).insert({
-          thought_id: AppState.comments.activeThoughtId,
+        const commentPayload = {
           author_name: author,
           text: text,
           guest_id: getGuestId(),
           account_id: AccountState?.current?.id || null,
           status: 'pending'
-        });
+        };
+        if(AppState.comments.activeAudioId) commentPayload.audio_thought_id=AppState.comments.activeAudioId;
+        else commentPayload.thought_id=AppState.comments.activeThoughtId;
+        const { error } = await DB.from(DB_TABLES.comments).insert(commentPayload);
 
         if(error) throw error;
         showToast('وصل ردك اللطيف ✓ هيتنشر فور مراجعة المالك');
@@ -2459,13 +2480,19 @@ updateAchievements();
 
     function audioThoughtCardHTML(item){
       const id=String(item.id||'');
-      return `<article class="card audio-card" data-audio-card-id="${escapeHTML(id)}">
+      return `<article class="card audio-card" data-audio-card-id="${escapeHTML(id)}" data-created-at="${escapeHTML(item.created_at||'')}">
         <h3 class="audio-card-title">${escapeHTML(item.title||'خاطرة صوتية')}</h3>
         ${item.description?`<p class="audio-card-description">${escapeHTML(item.description)}</p>`:''}
         <div class="audio-card-player">
           <button class="audio-play-btn" type="button" data-action="toggleAudioPlayback('${enc(id)}')" aria-label="تشغيل الخاطرة الصوتية"><svg class="ic" aria-hidden="true"><use href="#i-arrow-right"></use></svg></button>
           <div class="audio-wave" aria-hidden="true">${audioWaveHTML()}</div>
           <audio id="audio-track-${escapeHTML(id)}" preload="none" src="${escapeHTML(assertSafeUrl(item.audio_url||''))}"></audio>
+        </div>
+        <div class="audio-card-actions">
+          <button class="action-sub-btn audio-seek-btn" type="button" data-action="seekAudio('${enc(id)}',-5)" title="رجوع 5 ثواني">−5</button>
+          <button class="action-sub-btn audio-seek-btn" type="button" data-action="seekAudio('${enc(id)}',5)" title="تقديم 5 ثواني">+5</button>
+          <button class="action-sub-btn has-label" type="button" data-action="openAudioComments('${enc(id)}')" title="التعليقات"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">كومنتات</span></button>
+          <button class="action-sub-btn has-label fav-btn" type="button" data-action="toggleFavorite('${enc(`audio_${id}`)}')" title="حفظ في المفضلة"><svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg><span class="action-label">حفظ</span></button>
         </div>
         <div class="audio-card-meta"><span>${escapeHTML(formatDate(item.created_at))}</span><span class="audio-card-listen-count"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg> <b id="audio-listens-${escapeHTML(id)}">${Number(item.listeners_count)||0}</b> مستمع</span></div>
       </article>`;
@@ -2497,9 +2524,21 @@ updateAchievements();
       }
     }
 
-    function renderAudioThoughtsInOwnerList(){
-      const ownerList=$id('owner-list'); if(!ownerList || !AppState.thoughts.audioThoughts?.length) return;
-      ownerList.insertAdjacentHTML('beforeend',AppState.thoughts.audioThoughts.map(audioThoughtCardHTML).join(''));
+    function seekAudio(encodedId, seconds){
+      const id=decodeURIComponent(String(encodedId||'')), audio=$id(`audio-track-${id}`);
+      if(!audio) return;
+      audio.currentTime=Math.max(0,Math.min(audio.duration||Number.MAX_SAFE_INTEGER,audio.currentTime+Number(seconds||0)));
+    }
+
+    function insertAudioThoughtsChronologically(){
+      const ownerList=$id('owner-list'); if(!ownerList) return;
+      (AppState.thoughts.audioThoughts||[]).forEach(item=>{
+        const temp=document.createElement('div'); temp.innerHTML=audioThoughtCardHTML(item);
+        const card=temp.firstElementChild; if(!card) return;
+        const audioTime=Date.parse(item.created_at||'')||0;
+        const before=[...ownerList.children].find(el=>(Date.parse(el.dataset.createdAt||'')||0)<audioTime);
+        ownerList.insertBefore(card,before||null);
+      });
     }
 
     /* Renderers: owner/visitor feed */
@@ -2533,7 +2572,7 @@ updateAchievements();
         ` : '';
 
         return `
-          <article class="card" data-thought-id="${i.id}">
+          <article class="card" data-thought-id="${i.id}" data-created-at="${escapeHTML(i.rawDate||'')}">
             ${promptHtml}
             <p class="thought-text">${escapeHTML(i.thought)}</p>
             <div class="card-footer">
@@ -2558,7 +2597,7 @@ updateAchievements();
             </div>
           </article>`;
       }).join(''));
-      renderAudioThoughtsInOwnerList();
+      insertAudioThoughtsChronologically();
       refreshCommentCounts(list.map(i=>i.id));
     }
 
@@ -4980,6 +5019,8 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     openCommentsModal,
     loadMoreComments,
     toggleAudioPlayback,
+    openAudioComments,
+    seekAudio,
     toggleThoughtCommentsState,
     requestDeleteThought,
     openProfile,
