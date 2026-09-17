@@ -1755,6 +1755,16 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       }
     }
 
+    async function copyAudioThoughtLink(encodedId, btnElement){
+      try{
+        const id=decodeURIComponent(String(encodedId||''));
+        const url=`${window.location.origin}${window.location.pathname}?audio_thought=${encodeURIComponent(id)}`;
+        await navigator.clipboard.writeText(url);
+        const old=btnElement?.innerHTML;
+        if(btnElement){ btnElement.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> اتنسخ الرابط'; setTimeout(()=>{btnElement.innerHTML=old||'نسخ رابط الخاطرة';},1400); }
+      }catch(err){ logAppError('Copy audio thought link failed',err); alert('مش قادر أنسخ رابط الخاطرة تلقائيًا.'); }
+    }
+
     async function copyCurrentThoughtLink(btnElement){
       const id=new URLSearchParams(window.location.search).get('thought');
       if(id) return copyThoughtLink(id,btnElement);
@@ -2513,8 +2523,10 @@ updateAchievements();
         <div class="audio-card-actions">
           <button class="action-sub-btn audio-seek-btn" type="button" data-action="seekAudio('${enc(id)}',-5)" title="رجوع 5 ثواني">−5</button>
           <button class="action-sub-btn audio-seek-btn" type="button" data-action="seekAudio('${enc(id)}',5)" title="تقديم 5 ثواني">+5</button>
-          <button class="action-sub-btn has-label" type="button" data-action="openAudioComments('${enc(id)}')" title="التعليقات"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">كومنتات</span></button>
+          <button class="action-sub-btn has-label audio-comment-count-btn" type="button" data-action="openAudioComments('${enc(id)}')" title="التعليقات"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg><span class="action-label">ردود <b>${Number(item.comment_count)||0}</b></span></button>
           <button class="action-sub-btn has-label fav-btn" type="button" data-action="toggleFavorite('${enc(`audio_${id}`)}')" title="حفظ في المفضلة"><svg class="ic" aria-hidden="true"><use href="#i-star-outline"></use></svg><span class="action-label">حفظ</span></button>
+          <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
+          <div class="action-menu" hidden><button type="button" data-action="copyAudioThoughtLink('${enc(id)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ رابط الخاطرة</button></div>
         </div>
         <div class="audio-card-meta"><span>${escapeHTML(formatDate(item.created_at))}</span><span class="audio-card-listen-count"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg> <b id="audio-listens-${escapeHTML(id)}">${Number(item.listeners_count)||0}</b> مستمع</span></div>
       </article>`;
@@ -3951,7 +3963,14 @@ updateAchievements();
       try{
         const {data,error}=await DB.from(DB_TABLES.audioThoughts).select('id,title,description,audio_url,listeners_count,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(50);
         if(error) throw error;
-        AppState.thoughts.audioThoughts=data||[];
+        const rows=data||[], ids=rows.map(item=>String(item.id));
+        let commentRows=[];
+        if(ids.length){
+          const commentsResult=await DB.from(DB_TABLES.comments).select('audio_thought_id').eq('status','approved').in('audio_thought_id',ids);
+          if(!commentsResult.error) commentRows=commentsResult.data||[];
+        }
+        const counts={}; commentRows.forEach(row=>{const id=String(row.audio_thought_id||''); counts[id]=(counts[id]||0)+1;});
+        AppState.thoughts.audioThoughts=rows.map(item=>({...item,comment_count:counts[String(item.id)]||0}));
         renderOwnerThoughts();
       }catch(err){
         console.warn('Audio thoughts load failed',err);
@@ -5057,6 +5076,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     copyThought,
     shareAsImage,
     copyThoughtLink,
+    copyAudioThoughtLink,
     copyCurrentThoughtLink,
     closeDirectThoughtModal,
     handleReport,
