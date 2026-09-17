@@ -4956,7 +4956,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
       btn.disabled = true; btn.textContent = '...';
 
       try {
-        const { error } = await DB.from(DB_TABLES.reports).insert({name:author||'مجهول', thought, report_date:new Date().toISOString()});
+        const { error } = await DB.rpc('submit_report',{p_name:author||'مجهول',p_thought:thought});
         if(error) throw error;
         btn.innerHTML = 'تم <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>'; btn.classList.add('reported'); btn.title = 'تم الإبلاغ';
         showToast('تم استلام البلاغ ✓ هنراجعه بهدوء');
