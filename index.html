@@ -374,6 +374,23 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
 .owner-empty{color:var(--muted);font-size:12px;padding:8px 0}
 .owner-item.is-selected{border-color:var(--primary);background:var(--primary-soft)}
 .owner-item .select-check{width:18px;height:18px;accent-color:var(--primary);margin-inline-end:8px}
+.audio-owner-panel{margin-top:18px;padding:13px;border:1px solid var(--border);border-radius:16px;background:var(--surface-2);text-align:right}
+.audio-owner-panel h3{margin:0 0 8px;font-size:14px;color:var(--primary-strong);display:flex;align-items:center;gap:6px}
+.audio-owner-panel .audio-help{font-size:11px;color:var(--muted);line-height:1.7;margin:0 0 10px}
+.audio-owner-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.audio-owner-actions button{min-height:42px}
+.audio-record-status{font-size:11px;color:var(--muted);margin-top:8px;min-height:20px}
+.audio-preview{width:100%;margin-top:8px;border-radius:10px}
+.audio-public-section{margin:20px 0}
+.audio-public-section .section-header{margin-bottom:10px}
+.audio-inline-block{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.audio-inline-heading{font-size:12px;color:var(--primary-strong);font-weight:800;display:flex;align-items:center;gap:5px;margin-bottom:9px}
+.audio-list{display:grid;gap:10px}
+.audio-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px;box-shadow:var(--shadow);text-align:right}
+.audio-card-title{font-size:14px;font-weight:800;color:var(--text);margin:0 0 3px;overflow-wrap:anywhere}
+.audio-card-description{font-size:11px;color:var(--muted);line-height:1.7;margin:0 0 9px;white-space:pre-wrap;overflow-wrap:anywhere}
+.audio-card audio{width:100%;height:38px;display:block}
+@media (max-width:520px){.audio-owner-actions{grid-template-columns:1fr}.audio-card{padding:11px}}
 .owner-tabs-bar{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 11px;border-bottom:1px solid var(--border);margin-bottom:15px;scrollbar-width:none}
 .owner-tabs-bar::-webkit-scrollbar{display:none}
 .owner-tab-btn{white-space:nowrap;font-size:11px;font-weight:700;padding:7px 12px;border-radius:var(--radius-xs);background:var(--surface-2);color:var(--muted);border:1px solid var(--border);display:inline-flex;align-items:center;gap:5px}
@@ -1029,6 +1046,20 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <h3 class="owner-section-title"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg> إضافة خاطرة كصاحب مساحة</h3>
         <textarea id="owner-thought-text" placeholder="اكتب الخاطرة..."></textarea>
         <button class="primary-btn" type="button" data-action="ownerAddThought()">إضافة مباشرة <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg></button>
+
+        <div class="audio-owner-panel">
+          <h3><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> إضافة خاطرة صوتية</h3>
+          <p class="audio-help">الميزة دي للمالك فقط. سجل بصوتك أو ارفع ملفًا جاهزًا، اسمع المعاينة ثم انشره على الموقع.</p>
+          <input id="owner-audio-title" type="text" maxlength="120" placeholder="عنوان الخاطرة الصوتية (اختياري)">
+          <textarea id="owner-audio-description" maxlength="500" placeholder="وصف قصير (اختياري)" style="min-height:65px;"></textarea>
+          <div class="audio-owner-actions">
+            <button class="secondary-btn" type="button" data-action="toggleOwnerAudioRecording()"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> بدء التسجيل</button>
+            <label class="secondary-btn" style="display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;"><svg class="ic" aria-hidden="true"><use href="#i-arrow-up"></use></svg> رفع ملف صوتي<input id="owner-audio-file" type="file" accept="audio/*" style="display:none;"></label>
+          </div>
+          <div id="owner-audio-record-status" class="audio-record-status" aria-live="polite">لم يتم اختيار تسجيل بعد.</div>
+          <audio id="owner-audio-preview" class="audio-preview" controls hidden></audio>
+          <button id="owner-audio-publish" class="primary-btn" type="button" data-action="publishOwnerAudioThought()" style="display:none;">رفع ونشر الخاطرة الصوتية <svg class="ic" aria-hidden="true"><use href="#i-arrow-up"></use></svg></button>
+        </div>
       </div>
 
       <div id="owner-tab-content-pending" style="display:none;">
@@ -1171,7 +1202,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         <div class="discovery-sub"><span id="discovery-summary">كل المحتوى في مكان واحد</span><span class="streak-pill" id="streak-pill"></span></div>
       </section>
 
-      <section aria-labelledby="owner-heading"><div class="section-header"><h2 id="owner-heading"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg> خواطر المكان</h2><div class="sort-bar"><button class="sort-btn active" id="owner-sort-new" type="button" data-action="setSort('owner','newest')">الأحدث</button><button class="sort-btn" id="owner-sort-top" type="button" data-action="setSort('owner','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="owner-list" aria-live="polite"></div></section>
+      <section aria-labelledby="owner-heading"><div class="section-header"><h2 id="owner-heading"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg> خواطر المكان</h2><div class="sort-bar"><button class="sort-btn active" id="owner-sort-new" type="button" data-action="setSort('owner','newest')">الأحدث</button><button class="sort-btn" id="owner-sort-top" type="button" data-action="setSort('owner','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="owner-list" aria-live="polite"></div><div class="audio-inline-block"><div class="audio-inline-heading"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> خواطر صوتية من صاحب المساحة</div><div id="owner-audio-list" class="audio-list" aria-live="polite"><div class="state-box">جاري تحميل الخواطر الصوتية…</div></div></div></section>
       <section aria-labelledby="visitor-heading"><div class="section-header"><h2 id="visitor-heading"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> مشاركات الزوار</h2><div class="sort-bar"><button class="sort-btn active" id="visitor-sort-new" type="button" data-action="setSort('visitor','newest')">الأحدث</button><button class="sort-btn" id="visitor-sort-top" type="button" data-action="setSort('visitor','top')">الأعلى <svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></button></div></div><div id="visitor-list" aria-live="polite"></div></section>
       
     </main>
@@ -1234,7 +1265,8 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       settings: 'site_settings',
       accounts: 'accounts',
       accountFollows: 'account_follows',
-      thoughtReposts: 'thought_reposts'
+      thoughtReposts: 'thought_reposts',
+      audioThoughts: 'audio_thoughts'
     });
 
     const DB_RPC = Object.freeze({
@@ -1809,6 +1841,15 @@ updateAchievements();
       clearInterval(window.__SHAKABEET_NOTIF_TIMER);
       window.__SHAKABEET_NOTIF_TIMER = setInterval(() => { checkRemoteNotifications(); }, 30000);
       checkOwnerPendingNotifications();
+      const audioFile=$id('owner-audio-file');
+      if(audioFile && !audioFile.dataset.bound){
+        audioFile.dataset.bound='1';
+        audioFile.addEventListener('change',()=>{
+          const file=audioFile.files?.[0];
+          if(file) prepareOwnerAudioBlob(file);
+        });
+      }
+      loadAudioThoughts();
       loadAllThoughts().then(async ()=>{
         await showDailyThought();
       scheduleDailyThoughtRefresh();
@@ -3675,6 +3716,129 @@ updateAchievements();
       }
     }
 
+    let ownerAudioRecorder = null;
+    let ownerAudioChunks = [];
+    let ownerAudioBlob = null;
+    let ownerAudioObjectUrl = '';
+    let ownerAudioTimer = null;
+    let ownerAudioStartedAt = 0;
+
+    function setOwnerAudioStatus(message, isError=false){
+      const el=$id('owner-audio-record-status');
+      if(el){ el.textContent=message; el.style.color=isError?'var(--danger)':'var(--muted)'; }
+    }
+
+    function resetOwnerAudioSelection(){
+      if(ownerAudioObjectUrl){ URL.revokeObjectURL(ownerAudioObjectUrl); ownerAudioObjectUrl=''; }
+      ownerAudioBlob=null;
+      const preview=$id('owner-audio-preview'), publish=$id('owner-audio-publish'), file=$id('owner-audio-file');
+      if(preview){ preview.pause(); preview.removeAttribute('src'); preview.load(); preview.hidden=true; }
+      if(publish) publish.style.display='none';
+      if(file) file.value='';
+      setOwnerAudioStatus('لم يتم اختيار تسجيل بعد.');
+    }
+
+    function prepareOwnerAudioBlob(blob){
+      if(!blob || blob.size > 15 * 1024 * 1024){
+        setOwnerAudioStatus('حجم الملف لازم يكون 15 ميجابايت أو أقل.',true);
+        return false;
+      }
+      if(ownerAudioObjectUrl) URL.revokeObjectURL(ownerAudioObjectUrl);
+      ownerAudioBlob=blob;
+      ownerAudioObjectUrl=URL.createObjectURL(blob);
+      const preview=$id('owner-audio-preview'), publish=$id('owner-audio-publish');
+      if(preview){ preview.src=ownerAudioObjectUrl; preview.hidden=false; }
+      if(publish) publish.style.display='inline-flex';
+      setOwnerAudioStatus(`تم تجهيز التسجيل (${(blob.size/1024/1024).toFixed(2)} MB). اسمعه قبل النشر.`);
+      return true;
+    }
+
+    async function toggleOwnerAudioRecording(){
+      if(!(await checkOwner())) return alert('غير مصرح. تسجيل الصوت متاح للمالك فقط.');
+      if(ownerAudioRecorder?.state==='recording'){
+        ownerAudioRecorder.stop();
+        return;
+      }
+      if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){
+        return alert('المتصفح لا يدعم التسجيل المباشر. استخدم زر رفع ملف صوتي.');
+      }
+      resetOwnerAudioSelection();
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        const preferred=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
+        ownerAudioRecorder=new MediaRecorder(stream,preferred?{mimeType:preferred}:undefined);
+        ownerAudioChunks=[];
+        ownerAudioStartedAt=Date.now();
+        ownerAudioRecorder.ondataavailable=e=>{ if(e.data?.size) ownerAudioChunks.push(e.data); };
+        ownerAudioRecorder.onstop=()=>{
+          clearInterval(ownerAudioTimer); ownerAudioTimer=null;
+          stream.getTracks().forEach(track=>track.stop());
+          const blob=new Blob(ownerAudioChunks,{type:ownerAudioRecorder.mimeType||'audio/webm'});
+          prepareOwnerAudioBlob(blob);
+          const btn=document.querySelector('[data-action="toggleOwnerAudioRecording()"]');
+          if(btn) btn.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg> بدء التسجيل';
+        };
+        ownerAudioRecorder.start();
+        const btn=document.querySelector('[data-action="toggleOwnerAudioRecording()"]');
+        if(btn) btn.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg> إيقاف التسجيل';
+        setOwnerAudioStatus('جاري التسجيل… 00:00');
+        ownerAudioTimer=setInterval(()=>{
+          const seconds=Math.floor((Date.now()-ownerAudioStartedAt)/1000);
+          const mm=String(Math.floor(seconds/60)).padStart(2,'0'), ss=String(seconds%60).padStart(2,'0');
+          setOwnerAudioStatus(`جاري التسجيل… ${mm}:${ss}`);
+          if(seconds>=300 && ownerAudioRecorder?.state==='recording') ownerAudioRecorder.stop();
+        },500);
+      }catch(err){
+        console.error('Owner audio recording failed',err);
+        setOwnerAudioStatus('تعذر الوصول إلى الميكروفون. استخدم رفع ملف صوتي.',true);
+      }
+    }
+
+    async function publishOwnerAudioThought(){
+      if(!(await checkOwner())) return alert('غير مصرح.');
+      if(!ownerAudioBlob) return alert('سجل أو اختر ملفًا صوتيًا أولًا.');
+      const title=String($id('owner-audio-title')?.value||'').trim() || 'خاطرة صوتية';
+      const description=String($id('owner-audio-description')?.value||'').trim();
+      const btn=$id('owner-audio-publish');
+      if(btn){ btn.disabled=true; btn.textContent='جاري الرفع…'; }
+      let path='';
+      try{
+        const {data:userData,error:userError}=await OWNER_DB.auth.getUser();
+        if(userError || !userData?.user) throw userError || new Error('Owner session missing');
+        const extension=(ownerAudioBlob.type.includes('mp4')?'m4a':ownerAudioBlob.type.includes('ogg')?'ogg':ownerAudioBlob.type.includes('mpeg')?'mp3':'webm');
+        path=`${userData.user.id}/${crypto.randomUUID()}.${extension}`;
+        const {error:uploadError}=await ownerSupabaseClient.storage.from('audio-thoughts').upload(path,ownerAudioBlob,{contentType:ownerAudioBlob.type||'audio/webm',upsert:false});
+        if(uploadError) throw uploadError;
+        const {data:publicData}=ownerSupabaseClient.storage.from('audio-thoughts').getPublicUrl(path);
+        const {error:insertError}=await OWNER_DB.from(DB_TABLES.audioThoughts).insert({title,description:description||null,audio_path:path,audio_url:publicData?.publicUrl||null,status:'approved',owner_user_id:userData.user.id});
+        if(insertError) throw insertError;
+        resetOwnerAudioSelection();
+        if($id('owner-audio-title')) $id('owner-audio-title').value='';
+        if($id('owner-audio-description')) $id('owner-audio-description').value='';
+        await loadAudioThoughts();
+        alert('تم نشر الخاطرة الصوتية بنجاح.');
+      }catch(err){
+        console.error('Owner audio publish failed',err);
+        if(path) await ownerSupabaseClient.storage.from('audio-thoughts').remove([path]).catch(()=>{});
+        alert(err?.message||'تعذر رفع الخاطرة الصوتية. تأكد من تطبيق SQL الخاص بها.');
+      }finally{
+        if(btn){ btn.disabled=false; btn.innerHTML='رفع ونشر الخاطرة الصوتية <svg class="ic" aria-hidden="true"><use href="#i-arrow-up"></use></svg>'; }
+      }
+    }
+
+    async function loadAudioThoughts(){
+      const box=$id('owner-audio-list'); if(!box) return;
+      try{
+        const {data,error}=await DB.from(DB_TABLES.audioThoughts).select('id,title,description,audio_url,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(50);
+        if(error) throw error;
+        if(!data?.length){ box.innerHTML='<div class="state-box">لسه مفيش خواطر صوتية منشورة.</div>'; return; }
+        box.innerHTML=data.map(item=>`<article class="audio-card"><h3 class="audio-card-title">${escapeHTML(item.title||'خاطرة صوتية')}</h3>${item.description?`<p class="audio-card-description">${escapeHTML(item.description)}</p>`:''}<audio controls preload="none" src="${escapeHTML(item.audio_url||'')}"></audio></article>`).join('');
+      }catch(err){
+        console.warn('Audio thoughts load failed',err);
+        box.innerHTML='<div class="state-box">تعذر تحميل الخواطر الصوتية حاليًا.</div>';
+      }
+    }
+
     async function signInWithGoogle() {
       const { error } = await DB.auth.signInWithOAuth({
         provider: 'google',
@@ -4713,6 +4877,8 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     updateWeeklyPrompt,
     ownerRefreshDailyThought,
     ownerAddThought,
+    toggleOwnerAudioRecording,
+    publishOwnerAudioThought,
     ownerLogout,
     closeZenMode,
     prevZenQuote,
