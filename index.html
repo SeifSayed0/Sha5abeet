@@ -3494,8 +3494,8 @@ updateAchievements();
         }
       } catch(e){}
 
-      // No current-day manual choice: derive the same stable thought for everyone.
-      // The date is based on Cairo, so the change happens at exactly 00:00 Egypt time.
+      // If this day has no saved choice yet, choose once and persist it.
+      // Later accepted thoughts must not replace today's choice.
       if (!selectedItem) {
         let hash = 0;
         for (let i = 0; i < todayStr.length; i++) {
@@ -3504,6 +3504,11 @@ updateAchievements();
         }
         const index = Math.abs(hash) % AppState.thoughts.allLoadedThoughts.length;
         selectedItem = AppState.thoughts.allLoadedThoughts[index];
+        if(selectedItem){
+          try{
+            await DB.from(DB_TABLES.settings).upsert({key:'daily_thought_id',value:String(selectedItem.id),updated_at:new Date().toISOString()});
+          }catch(e){ console.warn('Could not persist daily thought',e); }
+        }
       }
 
       if (selectedItem) {
@@ -4445,10 +4450,8 @@ updateAchievements();
 
       // 5. البلاغات
       try {
-        const { data: r } = await OWNER_DB
-          .from(DB_TABLES.reports)
-          .select('*')
-          .order('report_date',{ascending:false});
+        const { data: r, error: reportsError } = await OWNER_DB.rpc('get_owner_reports');
+        if(reportsError) throw reportsError;
 
         setHTML(reports, r?.length ? r.map(x=>`
           <div class="owner-item">
