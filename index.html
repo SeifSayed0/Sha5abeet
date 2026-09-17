@@ -1443,6 +1443,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       engagement: {
         streakDays: 0,
         guestVoteStates: {},
+        audioVoteStates: {},
         randomViewsCount: 0
       },
       pagination: {
@@ -2512,6 +2513,8 @@ updateAchievements();
 
     function audioThoughtCardHTML(item){
       const id=String(item.id||'');
+      const audioScore=(Number(item.upvotes_count)||0)-(Number(item.downvotes_count)||0);
+      const audioVoteState=AppState.engagement.audioVoteStates[id]||localStorage.getItem(`audio_vote_state_${id}`)||'';
       return `<article class="card audio-card" data-audio-card-id="${escapeHTML(id)}" data-created-at="${escapeHTML(item.created_at||'')}">
         <h3 class="audio-card-title">${escapeHTML(item.title||'خاطرة صوتية')}</h3>
         ${item.description?`<p class="audio-card-description">${escapeHTML(item.description)}</p>`:''}
@@ -2528,6 +2531,11 @@ updateAchievements();
           <button class="action-sub-btn action-more" type="button" data-action="toggleActionMenu(this)" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-expanded="false">⋯</button>
           <div class="action-menu" hidden><button type="button" data-action="copyAudioThoughtLink('${enc(id)}',this)"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ رابط الخاطرة</button></div>
         </div>
+        <div class="audio-card-bottom"><div class="vote-bar audio-vote-bar" role="group" aria-label="التقييم" dir="ltr">
+          <button class="vote-btn down-btn ${audioVoteState==='down'?'active-down':''}" type="button" data-action="handleAudioVote('${enc(id)}','down',this)" title="لم يعجبني" aria-label="لم يعجبني"><svg class="ic" aria-hidden="true"><use href="#i-chevron-down"></use></svg></button>
+          <span class="vote-score ${audioScore>0?'score-up':audioScore<0?'score-down':''}" aria-live="polite">${audioScore}</span>
+          <button class="vote-btn up-btn ${audioVoteState==='up'?'active-up':''}" type="button" data-action="handleAudioVote('${enc(id)}','up',this)" title="أعجبني" aria-label="أعجبني"><svg class="ic" aria-hidden="true"><use href="#i-chevron-up"></use></svg></button>
+        </div></div>
         <div class="audio-card-meta"><span>${escapeHTML(formatDate(item.created_at))}</span><span class="audio-card-listen-count"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg> <b id="audio-listens-${escapeHTML(id)}">${Number(item.listeners_count)||0}</b> مستمع</span></div>
       </article>`;
     }
@@ -2539,6 +2547,29 @@ updateAchievements();
         const count=Number(data)||0;
         const el=$id(`audio-listens-${id}`); if(el) el.textContent=String(count);
       }catch(err){ console.warn('Audio listen count failed',err); }
+    }
+
+    async function handleAudioVote(encodedId, targetType, btnElement){
+      const id=decodeURIComponent(String(encodedId||'')), item=AppState.thoughts.audioThoughts.find(row=>String(row.id)===id);
+      if(!item) return;
+      const voteValue=targetType==='up'?1:-1, wrapper=btnElement.closest('.vote-bar');
+      const up=wrapper.querySelector('.up-btn'), down=wrapper.querySelector('.down-btn'), scoreEl=wrapper.querySelector('.vote-score');
+      btnElement.disabled=true;
+      try{
+        const {data,error}=await DB.rpc('toggle_audio_vote',{p_audio_id:id,p_guest_id:getGuestId(),p_vote:voteValue});
+        if(error) throw error;
+        const result=Array.isArray(data)?data[0]:data;
+        item.upvotes_count=Number(result?.upvotes_count)||0;
+        item.downvotes_count=Number(result?.downvotes_count)||0;
+        const state=Number(result?.my_vote||0)===1?'up':Number(result?.my_vote||0)===-1?'down':'';
+        AppState.engagement.audioVoteStates[id]=state;
+        localStorage.setItem(`audio_vote_state_${id}`,state);
+        const score=item.upvotes_count-item.downvotes_count;
+        scoreEl.textContent=String(score); up.classList.toggle('active-up',state==='up'); down.classList.toggle('active-down',state==='down');
+        scoreEl.classList.toggle('score-up',score>0); scoreEl.classList.toggle('score-down',score<0);
+        bumpLocalAction();
+      }catch(err){ console.error('Audio vote error',err); alert('حصلت مشكلة في تسجيل التصويت.'); }
+      finally{ btnElement.disabled=false; }
     }
 
     async function toggleAudioPlayback(encodedId){
@@ -3961,7 +3992,7 @@ updateAchievements();
 
     async function loadAudioThoughts(){
       try{
-        const {data,error}=await DB.from(DB_TABLES.audioThoughts).select('id,title,description,audio_url,listeners_count,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(50);
+        const {data,error}=await DB.from(DB_TABLES.audioThoughts).select('id,title,description,audio_url,listeners_count,upvotes_count,downvotes_count,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(50);
         if(error) throw error;
         const rows=data||[], ids=rows.map(item=>String(item.id));
         let commentRows=[];
@@ -5060,6 +5091,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     openCommentsModal,
     loadMoreComments,
     toggleAudioPlayback,
+    handleAudioVote,
     openAudioComments,
     seekAudio,
     toggleThoughtCommentsState,
