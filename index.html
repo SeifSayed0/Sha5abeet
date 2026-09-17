@@ -838,6 +838,7 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
         </div>
       </div>
       <button id="profile-follow-btn" class="primary-btn follow-btn" type="button" data-action="toggleFollowCurrent()" style="margin-top:10px;">+ متابعة</button>
+      <button class="secondary-btn" type="button" data-action="copyProfileLink(this)" style="margin-top:6px;"><svg class="ic" aria-hidden="true"><use href="#i-link"></use></svg> نسخ رابط الحساب</button>
       <button class="secondary-btn" type="button" data-action="viewProfileThoughts()" style="margin-top:6px;">عرض كل خواطره</button>
     </div>
   </div>
@@ -1759,6 +1760,26 @@ section[aria-labelledby]>.section-header{margin:20px 0 10px;padding:0 2px;border
       if(id) return copyThoughtLink(id,btnElement);
     }
 
+    async function copyProfileLink(btnElement){
+      try{
+        const params=new URLSearchParams();
+        params.set('profile',AppState.profile.author||'');
+        if(AppState.profile.accountId) params.set('account_id',AppState.profile.accountId);
+        if(AppState.profile.guestId) params.set('guest_id',AppState.profile.guestId);
+        const url=`${window.location.origin}${window.location.pathname}?${params.toString()}`;
+        await navigator.clipboard.writeText(url);
+        const old=btnElement?.innerHTML;
+        if(btnElement){ btnElement.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg> اتنسخ رابط الحساب'; setTimeout(()=>{btnElement.innerHTML=old||'نسخ رابط الحساب';},1500); }
+      }catch(err){ logAppError('Copy profile link failed',err); alert('مش قادر أنسخ رابط الحساب تلقائيًا.'); }
+    }
+
+    async function openProfileFromUrl(){
+      const params=new URLSearchParams(window.location.search);
+      const profile=params.get('profile');
+      if(!profile) return;
+      await openProfile(enc(profile),enc(params.get('account_id')||''),enc(params.get('guest_id')||''));
+    }
+
     async function openDirectThought(encodedId){
       const id = Number(decodeURIComponent(encodedId || ''));
       if(!Number.isFinite(id) || id<=0) return;
@@ -1867,6 +1888,7 @@ updateAchievements();
         await showDailyThought();
       scheduleDailyThoughtRefresh();
         await openThoughtFromUrl();
+        await openProfileFromUrl();
         await restoreOpenCommentsAfterRefresh();
       });
       // Account bootstrap is intentionally disabled here.
@@ -2116,7 +2138,7 @@ updateAchievements();
 
     async function loadCommentsPage(reset = false){
       const thoughtId = AppState.comments.activeThoughtId;
-      if(!thoughtId || AppState.comments.loading) return;
+      if(!thoughtId && !AppState.comments.activeAudioId || AppState.comments.loading) return;
       const listEl = $id('comments-list');
       AppState.comments.loading = true;
       try {
@@ -2209,7 +2231,7 @@ updateAchievements();
     }
 
     async function submitComment(){
-      if(!AppState.comments.activeThoughtId) return;
+      if(!AppState.comments.activeThoughtId && !AppState.comments.activeAudioId) return;
       const text = $id('comment-text-input').value.trim();
       const author = AppState.user.currentName || 'صديق عابر';
       const btn = $id('comment-send-btn');
@@ -5024,6 +5046,7 @@ if (returnedThoughtId !== null && returnedThoughtId !== undefined && returnedTho
     toggleThoughtCommentsState,
     requestDeleteThought,
     openProfile,
+    copyProfileLink,
     viewMyThoughts, viewMyReposts,
     switchAccountContentTab,
     switchProfileContentTab,
